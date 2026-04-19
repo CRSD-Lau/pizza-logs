@@ -556,27 +556,30 @@ def _safe_float(s: str) -> float:
 
 
 def _is_player(guid: str) -> bool:
-    """Player GUIDs start with 0x0 or 'Player-' depending on server."""
+    """Return True if GUID belongs to a player character."""
     if not guid:
         return False
     g = guid.upper()
-    # Classic/WotLK format: 0x0000000000000000 where type nibble = 0x4 (player)
-    if g.startswith("0X"):
-        # Check creature type bits — players have type 0x4xx... or 0x000...
-        # Actually simplest: non-zero, non-creature prefix
-        # Type is bits 52-55 of the GUID. In hex: position 3-4 of the 16-char hex.
-        # 0x0000000000000000 — if all zeros, skip
-        if g == "0X0000000000000000" or g == "0XNIL":
-            return False
-        # type nibble at position 4 (0-indexed after '0x')
-        hex_part = g[2:]  # 16 hex chars
-        if len(hex_part) >= 4:
-            type_nibble = int(hex_part[3], 16) if hex_part[3] in "0123456789ABCDEF" else 0
-            # Player = 0x4, Pet = 0x5, NPC = 0x3
-            return type_nibble == 4
-        return True  # assume player if we can't tell
+    # Null / empty GUIDs
+    if g in ("0X0000000000000000", "0XNIL", "NIL"):
+        return False
+    # Retail/modern format: "Player-NNNN-XXXXXXXX"
     if g.startswith("PLAYER-"):
         return True
+    if not g.startswith("0X"):
+        return False
+    hex_part = g[2:]  # up to 16 hex chars
+    if len(hex_part) < 2:
+        return False
+    high_byte = hex_part[:2]  # first two hex chars = highest byte
+    # Warmane/private-server WotLK: player GUIDs start with 0x06
+    if high_byte == "06":
+        return True
+    # Standard WotLK: type nibble at hex_part[3]; Player = 4
+    if len(hex_part) >= 4:
+        nibble = hex_part[3]
+        if nibble in "0123456789ABCDEF":
+            return int(nibble, 16) == 4
     return False
 
 
