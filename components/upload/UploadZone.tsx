@@ -109,7 +109,7 @@ export function UploadZone({ onComplete }: UploadZoneProps) {
     disabled: state.stage === "uploading",
   });
 
-  const reset = () => setState({ stage: "idle", progress: 0, message: "" });
+  const reset = () => setState({ stage: "idle", progress: 0, message: "", elapsed: 0 });
 
   return (
     <div className="space-y-4">
