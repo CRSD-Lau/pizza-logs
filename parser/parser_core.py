@@ -49,6 +49,82 @@ ENCOUNTER_GAP_SECONDS = 30
 # Minimum events to treat a fight segment as a real encounter
 MIN_ENCOUNTER_EVENTS = 10
 
+# Map common spell names → WoW class (used to detect player class from spellcasts)
+SPELL_CLASS_MAP: dict[str, str] = {
+    # Death Knight
+    "Icy Touch": "Death Knight", "Plague Strike": "Death Knight",
+    "Blood Strike": "Death Knight", "Heart Strike": "Death Knight",
+    "Frost Strike": "Death Knight", "Scourge Strike": "Death Knight",
+    "Obliterate": "Death Knight", "Death Coil": "Death Knight",
+    "Death and Decay": "Death Knight", "Howling Blast": "Death Knight",
+    "Blood Boil": "Death Knight", "Dark Command": "Death Knight",
+    "Death Grip": "Death Knight", "Rune Strike": "Death Knight",
+    "Ebon Plague": "Death Knight",
+    # Druid
+    "Moonfire": "Druid", "Starfire": "Druid", "Wrath": "Druid",
+    "Insect Swarm": "Druid", "Starfall": "Druid", "Hurricane": "Druid",
+    "Typhoon": "Druid", "Mangle": "Druid", "Shred": "Druid",
+    "Rake": "Druid", "Rip": "Druid", "Ferocious Bite": "Druid",
+    "Maul": "Druid", "Lacerate": "Druid", "Lifebloom": "Druid",
+    "Rejuvenation": "Druid", "Regrowth": "Druid", "Nourish": "Druid",
+    "Healing Touch": "Druid", "Wild Growth": "Druid", "Tranquility": "Druid",
+    # Hunter
+    "Arcane Shot": "Hunter", "Steady Shot": "Hunter", "Multi-Shot": "Hunter",
+    "Chimera Shot": "Hunter", "Explosive Shot": "Hunter", "Aimed Shot": "Hunter",
+    "Kill Shot": "Hunter", "Serpent Sting": "Hunter", "Black Arrow": "Hunter",
+    "Hunter's Mark": "Hunter", "Silencing Shot": "Hunter", "Volley": "Hunter",
+    "Scatter Shot": "Hunter",
+    # Mage
+    "Fireball": "Mage", "Frostbolt": "Mage", "Arcane Missiles": "Mage",
+    "Arcane Blast": "Mage", "Arcane Barrage": "Mage", "Living Bomb": "Mage",
+    "Scorch": "Mage", "Fire Blast": "Mage", "Pyroblast": "Mage",
+    "Blizzard": "Mage", "Ice Lance": "Mage", "Deep Freeze": "Mage",
+    "Frostfire Bolt": "Mage", "Flamestrike": "Mage",
+    # Paladin
+    "Crusader Strike": "Paladin", "Divine Storm": "Paladin",
+    "Hammer of Wrath": "Paladin", "Judgement of Light": "Paladin",
+    "Judgement of Wisdom": "Paladin", "Holy Light": "Paladin",
+    "Flash of Light": "Paladin", "Beacon of Light": "Paladin",
+    "Consecration": "Paladin", "Shield of Righteousness": "Paladin",
+    "Hammer of the Righteous": "Paladin", "Avenger's Shield": "Paladin",
+    "Exorcism": "Paladin", "Hand of Reckoning": "Paladin",
+    # Priest
+    "Mind Blast": "Priest", "Shadow Word: Pain": "Priest",
+    "Mind Flay": "Priest", "Devouring Plague": "Priest",
+    "Vampiric Touch": "Priest", "Holy Nova": "Priest",
+    "Prayer of Mending": "Priest", "Prayer of Healing": "Priest",
+    "Circle of Healing": "Priest", "Greater Heal": "Priest",
+    "Flash Heal": "Priest", "Renew": "Priest", "Power Word: Shield": "Priest",
+    "Penance": "Priest", "Shadowfiend": "Priest",
+    # Rogue
+    "Rupture": "Rogue", "Hemorrhage": "Rogue", "Mutilate": "Rogue",
+    "Sinister Strike": "Rogue", "Eviscerate": "Rogue", "Expose Armor": "Rogue",
+    "Fan of Knives": "Rogue", "Envenom": "Rogue", "Garrote": "Rogue",
+    "Backstab": "Rogue", "Ambush": "Rogue",
+    # Shaman
+    "Lava Burst": "Shaman", "Earth Shock": "Shaman", "Flame Shock": "Shaman",
+    "Frost Shock": "Shaman", "Chain Lightning": "Shaman",
+    "Lightning Bolt": "Shaman", "Thunderstorm": "Shaman",
+    "Stormstrike": "Shaman", "Lava Lash": "Shaman",
+    "Chain Heal": "Shaman", "Riptide": "Shaman", "Earth Shield": "Shaman",
+    "Healing Wave": "Shaman", "Lesser Healing Wave": "Shaman",
+    # Warlock
+    "Shadow Bolt": "Warlock", "Incinerate": "Warlock", "Corruption": "Warlock",
+    "Unstable Affliction": "Warlock", "Haunt": "Warlock",
+    "Curse of Agony": "Warlock", "Chaos Bolt": "Warlock",
+    "Conflagrate": "Warlock", "Drain Soul": "Warlock", "Immolate": "Warlock",
+    "Fel Armor": "Warlock", "Rain of Fire": "Warlock",
+    "Seed of Corruption": "Warlock",
+    # Warrior
+    "Mortal Strike": "Warrior", "Execute": "Warrior", "Whirlwind": "Warrior",
+    "Bladestorm": "Warrior", "Heroic Strike": "Warrior", "Cleave": "Warrior",
+    "Sunder Armor": "Warrior", "Devastate": "Warrior", "Shield Slam": "Warrior",
+    "Revenge": "Warrior", "Thunder Clap": "Warrior", "Deep Wounds": "Warrior",
+    "Slam": "Warrior", "Overpower": "Warrior", "Intercept": "Warrior",
+    "Rend": "Warrior", "Bloodthirst": "Warrior", "Victory Rush": "Warrior",
+    "Concussion Blow": "Warrior", "Shockwave": "Warrior",
+}
+
 # Timestamp regex: "M/D HH:MM:SS.mmm"
 TS_RE = re.compile(
     r"^(\d{1,2})/(\d{1,2})\s+(\d{2}):(\d{2}):(\d{2})\.(\d{3})"
@@ -369,6 +445,9 @@ class CombatLogParser:
         # Aggregate actors
         actors: dict[str, ActorStats] = {}
         targets_hit: set[str] = set()
+        boss_died_ts: Optional[float] = None  # for accurate KILL duration
+
+        boss_name_lower = boss_name.lower() if boss_name else ""
 
         for ts_str, parts, ts in segment:
             event = parts[0]
@@ -378,6 +457,14 @@ class CombatLogParser:
             if event == UNIT_DIED_EVENT:
                 if len(parts) >= 6:
                     dead_name = parts[5].strip('"').strip()
+                    dead_lower = dead_name.lower()
+                    # Track boss death for accurate KILL duration
+                    if boss_died_ts is None and (
+                        dead_lower == boss_name_lower
+                        or ("valithria" in boss_name_lower and (
+                            "combat trigger" in dead_lower or "green dragon" in dead_lower))
+                    ):
+                        boss_died_ts = ts
                     if dead_name in actors:
                         actors[dead_name].deaths += 1
                 continue
@@ -437,6 +524,10 @@ class CombatLogParser:
             a = _get_actor(actors, src_name, src_guid)
             ss = a.spells.setdefault(spell_name, SpellStats(school=school))
 
+            # Detect class from spell name if not yet known
+            if a.wow_class is None and spell_name in SPELL_CLASS_MAP:
+                a.wow_class = SPELL_CLASS_MAP[spell_name]
+
             if is_heal:
                 a.total_healing += amount
                 ss.healing += amount
@@ -450,12 +541,16 @@ class CombatLogParser:
             a.hit_count  += 1
             a.crit_count += int(is_crit)
 
-        # Duration
+        # Duration: for KILL use boss death time to avoid counting post-fight tail
         start_ts = parse_ts(first_ts_str)
         end_ts   = parse_ts(last_ts_str)
-        # Handle midnight rollover
         if end_ts < start_ts:
             end_ts += 86400
+        if outcome == "KILL" and boss_died_ts is not None:
+            kill_ts = boss_died_ts
+            if kill_ts < start_ts:
+                kill_ts += 86400
+            end_ts = kill_ts
         duration = max(1, int(end_ts - start_ts))
 
         # Build participant list
