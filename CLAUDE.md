@@ -1,49 +1,53 @@
 # Pizza Logs — Claude Instructions
 
-## Obsidian Vault Rule (MANDATORY)
-The Obsidian vault lives at `Pizza Logs HQ/` inside this repo.
+## MANDATORY: Read vault at session start
 
-**After every change session** (before or alongside any git commit), Claude MUST:
-1. Update `Pizza Logs HQ/02 Build Log/Latest Handoff.md` with what was done, current state, and exact next step
-2. Update `Pizza Logs HQ/03 Current Focus/Now.md` with what's actively being worked on and what's next
-3. Include vault file changes in the same git commit as code changes (or a follow-up commit in the same session)
+At the start of EVERY session (before writing any code or answering any question),
+Claude MUST read these files in order:
 
-Do not wait to be asked. Do not skip this step. These notes are the source of truth for session continuity.
+1. `Pizza Logs HQ/00 Inbox/START HERE.md` — master context, key technical facts
+2. `Pizza Logs HQ/02 Build Log/Latest Handoff.md` — what happened last session
+3. `Pizza Logs HQ/03 Current Focus/Now.md` — what's actively in progress
+
+Do not skip this. Do not summarize from memory. Read the actual files.
 
 ---
 
-## Project Overview
-Pizza Logs — WoW WotLK combat log analytics for Warmane private server.
+## MANDATORY: Update vault after every change
+
+After every change session (alongside or before any git commit), Claude MUST update:
+
+1. `Pizza Logs HQ/02 Build Log/Latest Handoff.md` — what was done, current state, exact next step
+2. `Pizza Logs HQ/03 Current Focus/Now.md` — active focus and next items
+3. `Pizza Logs HQ/09 Bugs and Blockers/Known Issues.md` — if bugs were fixed or found
+
+Include vault file changes in the same git commit as code changes.
+
+---
+
+## Project Quick Reference
 
 - **Live app**: https://pizza-logs-production.up.railway.app
 - **Repo**: https://github.com/CRSD-Lau/pizza-logs
-- **Railway project**: Pizza Logs (production environment)
-- **Stack**: Next.js 15 + TypeScript + Prisma + PostgreSQL (Railway) + Python parser (FastAPI, separate Railway service)
+- **Stack**: Next.js 15 + TypeScript + Prisma + PostgreSQL + Python FastAPI parser
+- **Hosting**: Railway (two services: "Web Service" + "parser-py")
+- **Vault**: `Pizza Logs HQ/` — Obsidian vault committed to repo
 
-## Architecture
-- `app/` — Next.js pages and API routes
-- `components/` — React UI components
-- `lib/` — DB client, utils, constants (class colors, boss list)
-- `parser/` — Python FastAPI parser service
-  - `parser_core.py` — core parsing logic (heuristic encounter segmentation)
-  - `bosses.py` — WoW boss definitions and aliases
-- `prisma/` — schema and seed data
-- `Pizza Logs HQ/` — Obsidian vault (session notes, architecture, build log)
+## Critical Parser Facts (do not get wrong)
 
-## Key Parser Facts (Warmane / WotLK)
-- **No ENCOUNTER_START/END events** — encounter detection is purely heuristic
-- Player GUIDs use `0x06` prefix; NPC GUIDs use `0x03`
-- Heroic difficulty is undetectable without ENCOUNTER_START
-- Gunship Battle cannot be isolated from Deathbringer Saurfang (timing overlap)
-- SPELL_HEAL format: 14 fields, crit at index 13
-- Valithria Dreamwalker KILL = "Green Dragon Combat Trigger" UNIT_DIED (not Valithria herself)
-- KILL duration: use boss death timestamp, not last segment event
+- Warmane WotLK logs have **NO ENCOUNTER_START/END** — heuristic detection only
+- `SPELL_HEAL`: **14 fields**, crit at **index 13** (NOT 14, NOT 15)
+- `SWING_DAMAGE`: no spell fields, spell_name = "Auto Attack", crit at **index 13**
+- Player GUIDs: `0x06` prefix (Warmane) or `Player-` prefix (retail)
+- Heroic difficulty: **undetectable** — do not attempt
+- Gunship Battle: **undetectable** — do not attempt
+- KILL duration: use **boss death timestamp**, not last segment event
 
-## Railway CLI Notes
-- `railway run --service "Web Service" <cmd>` — runs locally with Railway env injected
-- Internal URLs (postgres.railway.internal, parser-py.railway.internal) are NOT reachable locally
-- Use public proxy URL or a temporary API endpoint for local→Railway DB operations
+## Vault Deep Dives
 
-## Reference Site
-https://uwu-logs.xyz — use as ground truth for DPS/HPS accuracy checks
-Test log: https://uwu-logs.xyz/reports/26-04-17--18-47--Rimeclaw--Lordaeron/
+For detailed reference during implementation:
+- Architecture: `Pizza Logs HQ/04 Architecture/System Architecture.md`
+- Parser internals: `Pizza Logs HQ/04 Architecture/Parser Deep Dive.md`
+- Feature status: `Pizza Logs HQ/05 Features/Feature Status.md`
+- Railway ops: `Pizza Logs HQ/06 Deployment/Railway Guide.md`
+- Active bugs: `Pizza Logs HQ/09 Bugs and Blockers/Known Issues.md`

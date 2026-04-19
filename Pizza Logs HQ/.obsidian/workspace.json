@@ -4,63 +4,21 @@
     "type": "split",
     "children": [
       {
-        "id": "e0615c5f47af2e70",
+        "id": "d5e24f259c2872d5",
         "type": "tabs",
         "children": [
           {
-            "id": "b72a2d0283e53e9d",
+            "id": "fb152add3a8dd63b",
             "type": "leaf",
             "state": {
               "type": "markdown",
               "state": {
-                "file": "02 Build Log/Latest Handoff.md",
+                "file": "09 Bugs and Blockers/Known Issues.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "Latest Handoff"
-            }
-          },
-          {
-            "id": "1bf0c9f13f5501b0",
-            "type": "leaf",
-            "state": {
-              "type": "markdown",
-              "state": {
-                "file": "03 Current Focus/Now.md",
-                "mode": "source",
-                "source": false
-              },
-              "icon": "lucide-file",
-              "title": "Now"
-            }
-          },
-          {
-            "id": "b1544e5ec9209434",
-            "type": "leaf",
-            "state": {
-              "type": "markdown",
-              "state": {
-                "file": "02 Build Log/Latest Handoff.md",
-                "mode": "source",
-                "source": false
-              },
-              "icon": "lucide-file",
-              "title": "Latest Handoff"
-            }
-          },
-          {
-            "id": "da39210944a4fdac",
-            "type": "leaf",
-            "state": {
-              "type": "markdown",
-              "state": {
-                "file": "04 Architecture/Repo Map.md",
-                "mode": "source",
-                "source": false
-              },
-              "icon": "lucide-file",
-              "title": "Repo Map"
+              "title": "Known Issues"
             }
           }
         ]
@@ -226,14 +184,20 @@
       "bases:Create new base": false
     }
   },
-  "active": "b72a2d0283e53e9d",
+  "active": "fb152add3a8dd63b",
   "lastOpenFiles": [
+    "00 Inbox/START HERE.md",
+    "06 Deployment/Railway Guide.md",
+    "05 Features/Feature Status.md",
+    "09 Bugs and Blockers/Known Issues.md",
+    "04 Architecture/Parser Deep Dive.md",
+    "04 Architecture/System Architecture.md",
+    "04 Architecture/Repo Map.md",
+    "02 Build Log/Latest Handoff.md",
+    "03 Current Focus/Now.md",
     "01 Home/Project Overview.md",
     "Untitled.canvas",
     "Untitled",
-    "03 Current Focus/Now.md",
-    "02 Build Log/Latest Handoff.md",
-    "04 Architecture/Repo Map.md",
     "01 Home/Home.md",
     "00 Inbox/Untitled.md",
     "Welcome.md",

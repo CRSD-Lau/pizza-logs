@@ -1,34 +1,25 @@
 # Pizza Logs HQ
 
-## Quick Links
-- [[Project Overview]]
-- [[Now]]
-- [[Latest Handoff]]
-- [[Architecture]]
-- [[Repo Map]]
-- [[Deployment]]
-- [[Security]]
-- [[Claude Prompts]]
-- [[Bugs and Blockers]]
-- [[Ideas]]
+## Navigation
+- [[START HERE]] ← Claude reads this first every session
+- [[Latest Handoff]] ← last session recap
+- [[Now]] ← current focus
+- [[System Architecture]]
+- [[Parser Deep Dive]]
+- [[Feature Status]]
+- [[Railway Guide]]
+- [[Known Issues]]
 
 ---
 
 ## Current Goal
-Get Pizza Logs live and usable for PizzaWarriors.
+Accurate WoW combat log analytics for PizzaWarriors. Best DPS/HPS tracker for Warmane ICC.
 
 ## Current Reality
-- Project exists
-- Repo active
-- Deployment in progress
-- Database setup in progress
-- Parser service pending production validation
-
-## This Week
-- Finish Railway config
-- Confirm DB migrations
-- Bring parser online
-- Test full upload flow
+- App is live and functional
+- Upload → parse → DB → leaderboards working end-to-end
+- Class colors, boss order (ICC first), real SSE progress bar all shipped
+- Minor DPS accuracy discrepancy vs uwu-logs under investigation
 
 ## Rule
-Build more. Organize less.
+Build more. Organize less. One working feature at a time.

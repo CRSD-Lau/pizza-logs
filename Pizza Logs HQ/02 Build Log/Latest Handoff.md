@@ -4,34 +4,31 @@
 2026-04-19
 
 ## Last Completed
-- All parser accuracy + class color + boss order fixes
-- Speed pass: csv_split → C csv module, boss name caching, batched DB writes
-- **SSE real progress streaming (shipped):**
-  - Python `/parse-stream` endpoint streams progress every 50k lines
-  - Next.js upload route forwards SSE, does DB writes on `done` event, sends `complete`
-  - Browser reads streaming response directly — progress bar shows real parser %
-  - Eliminated fake time-estimate bar entirely
+- SSE real progress streaming (parser → Next.js → browser)
+- Fixed UploadFile "read of closed file" bug (write to disk before StreamingResponse)
+- Deleted temporary reset-db endpoint
+- Added Python __pycache__ to .gitignore
+- Built out Obsidian vault (START HERE, Architecture, Parser Deep Dive, Feature Status, Railway Guide, Known Issues)
+- Updated CLAUDE.md to enforce vault reads at session start
 
 ## Current State
-- App live: https://pizza-logs-production.up.railway.app
-- DB has data from latest upload
-- Temporary reset-db endpoint still exists — DELETE when done testing
-- All changes on main branch, pushed to GitHub
-
-## Known Issues / Investigating
-- Marrowgar: app shows 9.45k, reference shows 9.3k — under investigation
-
-## Known Limitations
-- Heroic difficulty undetectable (no ENCOUNTER_START on Warmane)
-- Gunship Battle undetectable (timing overlap with Saurfang)
+- App: https://pizza-logs-production.up.railway.app
+- DB: **EMPTY** — was cleared for SSE test, needs re-upload
+- Git: main branch, all changes pushed
+- SSE streaming: shipped but **not yet tested** — needs upload after Railway deploy
 
 ## Exact Next Step
-1. Test SSE upload end-to-end (re-upload log, verify real progress bar)
-2. Delete app/api/admin/reset-db/route.ts
-3. Investigate Marrowgar DPS discrepancy
+1. Wait for Railway deploy (~2-3 min after last push)
+2. Re-upload WoWCombatLog.txt — verify:
+   - SSE progress bar shows real % (not fake time curve)
+   - Encounters appear correctly
+   - Class colors visible
+3. Investigate Marrowgar DPS over-count (app 9.45k vs reference 9.3k)
 
-## Key Files
-- parser/parser_core.py — progress_cb in _iter_lines
-- parser/main.py — /parse-stream SSE endpoint
-- app/api/upload/route.ts — streams SSE from parser to browser, does DB on done
-- components/upload/UploadZone.tsx — reads streaming response, real progress bar
+## Known Issues
+See [[Known Issues]] for full list.
+- Marrowgar DPS slightly over reference
+- SSE needs E2E test
+
+## Notes
+- reset-db endpoint is DELETED — to clear DB again, see Railway Guide
