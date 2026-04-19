@@ -211,22 +211,25 @@ class CombatLogParser:
         Group lines into encounter segments.
 
         Strategy (priority order):
-          1. ENCOUNTER_START / ENCOUNTER_END events
-          2. Heuristic: known boss name appears in dst_name + gap detection
+          1. ENCOUNTER_START / ENCOUNTER_END events (modern private servers)
+          2. Heuristic: anchor on boss-name events, then collect ALL events
+             during the fight window (so healer/player events are included)
         """
         segments: list[list[tuple[str, list[str], float]]] = []
 
-        # ── Path A: ENCOUNTER_START/END present ─────────────────
-        # We do a quick scan first to see if the file has these events.
-        # If yes, we use them exclusively. If not, we fall back to heuristic.
-        # Because the file can be huge, we do a single-pass approach that
-        # buffers the current encounter.
-
+        # ── Path A: ENCOUNTER_START/END ──────────────────────────
         current_segment: list[tuple[str, list[str], float]] = []
         in_encounter = False
         has_encounter_events = False
-        heuristic_boss: Optional[BossDef] = None
-        last_ts: float = 0.0
+
+        # ── Path B: heuristic state ───────────────────────────────
+        # We collect ALL events while a boss fight is active.
+        # A fight starts when a boss-name event appears.
+        # A fight ends when 30s pass with no boss-name event.
+        heuristic_active = False
+        last_boss_ts: float = 0.0
+        heuristic_segment: list[tuple[str, list[str], float]] = []
+        all_buffer: list[tuple[str, list[str], float]] = []  # rolling buffer of recent events
 
         for ts_str, parts, ts in lines:
             event = parts[0]
@@ -249,27 +252,50 @@ class CombatLogParser:
                 in_encounter = False
                 continue
 
-            # ── Damage / Heal events ─────────────────────────────
-            if event in DMG_EVENTS or event in HEAL_EVENTS or event == UNIT_DIED_EVENT:
-                if in_encounter or (not has_encounter_events and self._is_boss_event(parts)):
-                    # Gap detection (heuristic path only)
-                    if not has_encounter_events and current_segment:
-                        gap = ts - last_ts
-                        if gap > ENCOUNTER_GAP_SECONDS:
-                            if len(current_segment) >= MIN_ENCOUNTER_EVENTS:
-                                segments.append(current_segment)
-                            current_segment = []
-                            heuristic_boss = None
+            # ── ENCOUNTER_START/END path: collect everything ──────
+            if has_encounter_events:
+                if in_encounter and (event in DMG_EVENTS or event in HEAL_EVENTS or event == UNIT_DIED_EVENT):
                     current_segment.append((ts_str, parts, ts))
-                    last_ts = ts
+                continue
 
-                    # Start heuristic encounter if not in one
-                    if not has_encounter_events and not current_segment[:-1]:
-                        heuristic_boss = self._detect_boss_from_parts(parts)
+            # ── Heuristic path (no ENCOUNTER_START in file) ───────
+            if event not in DMG_EVENTS and event not in HEAL_EVENTS and event != UNIT_DIED_EVENT:
+                continue
+
+            is_boss = self._is_boss_event(parts)
+
+            if heuristic_active:
+                if is_boss:
+                    # Extend active window
+                    last_boss_ts = ts
+                    heuristic_segment.append((ts_str, parts, ts))
+                elif ts - last_boss_ts <= ENCOUNTER_GAP_SECONDS:
+                    # Still within window — collect ALL events (heals, player dmg, deaths)
+                    heuristic_segment.append((ts_str, parts, ts))
+                else:
+                    # Gap exceeded — close this encounter
+                    if len(heuristic_segment) >= MIN_ENCOUNTER_EVENTS:
+                        segments.append(heuristic_segment)
+                    heuristic_segment = []
+                    heuristic_active = False
+                    # Check if this line itself starts a new boss fight
+                    if is_boss:
+                        heuristic_active = True
+                        last_boss_ts = ts
+                        heuristic_segment = [(ts_str, parts, ts)]
+            else:
+                if is_boss:
+                    heuristic_active = True
+                    last_boss_ts = ts
+                    heuristic_segment = [(ts_str, parts, ts)]
 
         # Flush trailing segment
-        if current_segment and len(current_segment) >= MIN_ENCOUNTER_EVENTS:
-            segments.append(current_segment)
+        if has_encounter_events:
+            if current_segment and len(current_segment) >= MIN_ENCOUNTER_EVENTS:
+                segments.append(current_segment)
+        else:
+            if heuristic_segment and len(heuristic_segment) >= MIN_ENCOUNTER_EVENTS:
+                segments.append(heuristic_segment)
 
         return segments
 
