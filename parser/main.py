@@ -264,36 +264,50 @@ async def parse_log_stream(
     """
     Like /parse but streams SSE progress events while processing.
     Final event: {"type":"done","data":{...ParseResponse fields...}}
+
+    IMPORTANT: We must write the file to disk BEFORE returning StreamingResponse.
+    FastAPI closes UploadFile when the endpoint function returns, so the async
+    generator cannot read from `file` after that point.
     """
+    # ── Write file to disk NOW (before returning StreamingResponse) ──
+    sha256     = hashlib.sha256()
+    first_chunk= b""
+    tmp_path: Optional[str] = None
+    try:
+        with tempfile.NamedTemporaryFile(mode="wb", suffix=".txt", delete=False) as tmp:
+            tmp_path = tmp.name
+            while True:
+                chunk = await file.read(8 * 1024 * 1024)
+                if not chunk:
+                    break
+                sha256.update(chunk)
+                if not first_chunk:
+                    first_chunk = chunk[:4096]
+                tmp.write(chunk)
+    except Exception as exc:
+        if tmp_path and os.path.exists(tmp_path):
+            os.unlink(tmp_path)
+        raise HTTPException(500, f"Failed to receive file: {exc}") from exc
+
+    file_hash = sha256.hexdigest()
+    file_year = year_hint if year_hint > 2000 else _infer_year(first_chunk)
+    orig_filename = file.filename or "WoWCombatLog.txt"
+
     loop = asyncio.get_running_loop()
     queue: asyncio.Queue[Optional[dict]] = asyncio.Queue()
 
     async def event_stream() -> AsyncGenerator[str, None]:
-        sha256   = hashlib.sha256()
-        tmp_path: Optional[str] = None
-
-        # ── Phase 1: receive file ─────────────────────────────────
-        yield _sse({"type": "progress", "pct": 5, "msg": "Receiving file…"})
+        # ── Phase 2: count lines ──────────────────────────────────
+        yield _sse({"type": "progress", "pct": 28, "msg": "Counting lines…"})
         try:
-            with tempfile.NamedTemporaryFile(mode="wb", suffix=".txt", delete=False) as tmp:
-                tmp_path = tmp.name
-                first_chunk = b""
-                while True:
-                    chunk = await file.read(8 * 1024 * 1024)
-                    if not chunk:
-                        break
-                    sha256.update(chunk)
-                    if not first_chunk:
-                        first_chunk = chunk[:4096]
-                    tmp.write(chunk)
+            with open(tmp_path, "r", encoding="utf-8", errors="replace") as fh:
+                total_lines = sum(1 for _ in fh)
         except Exception as exc:
-            if tmp_path and os.path.exists(tmp_path):
-                os.unlink(tmp_path)
-            yield _sse({"type": "error", "msg": f"Failed to receive file: {exc}"})
+            os.unlink(tmp_path)
+            yield _sse({"type": "error", "msg": f"Line count failed: {exc}"})
             return
 
-        file_hash = sha256.hexdigest()
-        file_year = year_hint if year_hint > 2000 else _infer_year(first_chunk)
+        yield _sse({"type": "progress", "pct": 33, "msg": "Parser reading combat events…"})
 
         # ── Phase 2: count lines (fast sequential scan) ───────────
         yield _sse({"type": "progress", "pct": 28, "msg": "Counting lines…"})
@@ -356,7 +370,7 @@ async def parse_log_stream(
         yield _sse({
             "type": "done",
             "data": {
-                "filename":     file.filename or "WoWCombatLog.txt",
+                "filename":     orig_filename,
                 "fileHash":     file_hash,
                 "rawLineCount": parser.raw_count,
                 "encounters":   encounters_out,
