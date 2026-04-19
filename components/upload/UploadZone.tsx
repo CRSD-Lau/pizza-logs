@@ -34,7 +34,24 @@ export function UploadZone({ onComplete }: UploadZoneProps) {
   const [realmHost, setRealmHost] = useState("warmane");
   const [guildName, setGuildName] = useState("");
 
+  // Request notification permission once when the user first drops a file
+  const requestNotificationPermission = useCallback(async () => {
+    if (typeof Notification === "undefined") return;
+    if (Notification.permission === "default") {
+      await Notification.requestPermission();
+    }
+  }, []);
+
+  const sendNotification = useCallback((title: string, body: string) => {
+    if (typeof Notification === "undefined") return;
+    if (Notification.permission !== "granted") return;
+    const n = new Notification(title, { body, icon: "/favicon.ico" });
+    // Auto-close after 8s
+    setTimeout(() => n.close(), 8000);
+  }, []);
+
   const processFile = useCallback(async (file: File) => {
+    void requestNotificationPermission();
     const startTime = Date.now();
     // Estimate total duration: ~80 KB/s end-to-end throughput on Railway free tier
     const estimatedMs = Math.max(30_000, (file.size / (80 * 1024)) * 1000);
@@ -92,13 +109,23 @@ export function UploadZone({ onComplete }: UploadZoneProps) {
       const result = { ...data, filename: file.name };
       setState({ stage: "done", progress: 100, message: "Done", elapsed, result });
       onComplete?.(result);
+      // Browser notification — fires even if the tab is in the background
+      const stored = result.encountersInserted;
+      sendNotification(
+        "✅ Upload complete",
+        stored > 0
+          ? `${stored} encounter${stored !== 1 ? "s" : ""} stored from ${file.name}`
+          : `${file.name} processed — no new encounters`,
+      );
     } catch (err) {
       clearInterval(ticker);
-      setState({ stage: "error", progress: 0, message: "", elapsed: 0, error: String(err instanceof Error ? err.message : err) });
+      const msg = String(err instanceof Error ? err.message : err);
+      setState({ stage: "error", progress: 0, message: "", elapsed: 0, error: msg });
+      sendNotification("❌ Upload failed", msg);
     } finally {
       window.removeEventListener("beforeunload", onBeforeUnload);
     }
-  }, [realmName, realmHost, guildName, onComplete]);
+  }, [realmName, realmHost, guildName, onComplete, requestNotificationPermission, sendNotification]);
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop: files => {

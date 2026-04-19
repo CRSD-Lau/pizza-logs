@@ -3,44 +3,43 @@
 ## Date
 2026-04-19
 
-## Session Summary
-Full parser debug session comparing output against uwu-logs.xyz reference.
-
-## Completed This Session
-- Fixed SPELL_HEAL parsing (len check was < 15, should be < 11 — caused HPS = 0 on all encounters)
-- Fixed heal crit field (was parts[14], correct is parts[13])
-- Fixed Valithria Dreamwalker KILL detection (no UNIT_DIED on success — detect "Green Dragon Combat Trigger" death instead)
-- Added false positive filter (0 damage + < 60s duration = discard)
-- Added Gunship Battle boss aliases to bosses.py
-- Fixed TypeScript build error in UploadZone.tsx (missing `elapsed` field in reset state)
+## Last Completed
+- Fixed SPELL_HEAL parsing (len < 15 → < 11, crit index 14 → 13)
+- Fixed Valithria KILL detection
+- Added false positive filter
+- Added Gunship Battle aliases
+- Fixed TypeScript build error in UploadZone
 - Added SPELL_CLASS_MAP — all 10 WoW classes detected from spell names
-- Fixed KILL duration: use boss death timestamp instead of last segment event (removes 30s post-fight tail inflation)
-- Wired class colors in UI (already in DamageMeter, LeaderboardBar, weekly page)
-- Added temporary admin reset-db endpoint (DELETE after next session)
-- DB cleared and ready for re-upload
+- Fixed KILL duration: use boss death timestamp
+- Class colors wired in UI — working after re-upload
+- Reordered bosses: ICC first, Naxx last
+- Added browser notification on upload success/failure
+- Vault + CLAUDE.md established
 
 ## Current State
-- App live at: https://pizza-logs-production.up.railway.app
-- DB is EMPTY — needs re-upload
-- Latest git: main branch, commit 4149e7d
-- Parser: 18 valid encounters detected from Rimeclaw log (11 kills, 7 wipes)
-- Class colors: working after re-upload
+- App live: https://pizza-logs-production.up.railway.app
+- DB has data — log was re-uploaded after class color fix
+- Latest git: main branch
+- Temporary reset-db endpoint still exists — DELETE when done testing
+
+## Known Issues / Investigating
+- Marrowgar: app shows 9.45k, reference shows 9.3k — app is OVER not under
+- Deathbringer Saurfang accuracy TBD
+- Progress bar is fake (time-estimate only, not real parser progress)
 
 ## Known Limitations
-- Heroic difficulty undetectable (Warmane has no ENCOUNTER_START with difficulty flag)
-- Gunship Battle undetectable (timing overlap with Deathbringer Saurfang pull)
-- DPS still slightly off vs reference — investigating
+- Heroic difficulty undetectable (no ENCOUNTER_START on Warmane)
+- Gunship Battle undetectable (timing overlap with Saurfang)
 
 ## Exact Next Step
-1. Re-upload WoWCombatLog.txt
-2. Compare Marrowgar DPS (app 9.45k vs reference 9.3k) — app is OVER not under now
-3. Check Deathbringer Saurfang numbers
-4. Delete app/api/admin/reset-db/route.ts when done testing
+1. Investigate Marrowgar DPS over-count vs uwu-logs reference
+2. Delete app/api/admin/reset-db/route.ts
+3. Consider real progress via SSE (bigger change)
 
 ## Key Files
-- parser/parser_core.py — main parser logic
-- parser/bosses.py — boss definitions and aliases
-- app/api/upload/route.ts — upload handler + DB write
-- components/upload/UploadZone.tsx — upload UI
+- parser/parser_core.py — core parsing logic
+- parser/bosses.py — boss definitions
+- app/api/upload/route.ts — upload handler
+- components/upload/UploadZone.tsx — upload UI + notifications
+- lib/constants/bosses.ts — boss order + definitions
 - lib/constants/classes.ts — class colors
-- prisma/schema.prisma — DB schema
