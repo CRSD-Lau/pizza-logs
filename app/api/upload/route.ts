@@ -32,11 +32,10 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       const parserRes = await fetch(`${parserUrl}/parse`, {
         method: "POST",
         headers: { "content-type": contentType },
-        // @ts-expect-error duplex is required for streaming request bodies
         body: req.body,
         duplex: "half",
         signal: AbortSignal.timeout(240_000),
-      });
+      } as RequestInit & { duplex: string });
       if (!parserRes.ok) {
         const errText = await parserRes.text();
         throw new Error(`Parser returned ${parserRes.status}: ${errText}`);
