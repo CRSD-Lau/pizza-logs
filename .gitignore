@@ -14,8 +14,8 @@ dist/
 .env.local
 .env*.local
 
-# uploads
-uploads/
+# uploads (file storage at repo root only)
+/uploads/
 
 # debug
 npm-debug.log*
