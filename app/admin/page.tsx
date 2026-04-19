@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { db } from "@/lib/db";
 import { SectionHeader } from "@/components/ui/SectionHeader";
 import { StatCard } from "@/components/ui/StatCard";
-import { formatBytes } from "@/lib/utils";
+import { formatBytes, formatDuration } from "@/lib/utils";
 
 export const metadata: Metadata = { title: "Admin / Diagnostics" };
 export const dynamic = "force-dynamic";
@@ -14,6 +14,7 @@ export default async function AdminPage() {
     playersTotal,
     milestonesTotal,
     recentErrors,
+    recentUploads,
     topPlayers,
     parserHealth,
     bossCount,
@@ -27,6 +28,12 @@ export default async function AdminPage() {
       orderBy: { createdAt: "desc" },
       take:    5,
       select:  { id: true, filename: true, errorMessage: true, createdAt: true },
+    }),
+    db.upload.findMany({
+      where:   { status: "DONE", parsedAt: { not: null } },
+      orderBy: { createdAt: "desc" },
+      take:    10,
+      select:  { id: true, filename: true, fileSize: true, rawLineCount: true, createdAt: true, parsedAt: true },
     }),
     db.player.findMany({
       take:    10,
@@ -95,6 +102,40 @@ export default async function AdminPage() {
           ))}
         </div>
       </section>
+
+      {/* Recent upload timings */}
+      {recentUploads.length > 0 && (
+        <section>
+          <SectionHeader title="Recent Upload Timings" sub="Parse duration per log" />
+          <div className="bg-bg-panel border border-gold-dim rounded divide-y divide-gold-dim">
+            {recentUploads.map(u => {
+              const elapsedMs = u.parsedAt ? u.parsedAt.getTime() - u.createdAt.getTime() : null;
+              const elapsedSec = elapsedMs ? Math.round(elapsedMs / 1000) : null;
+              return (
+                <div key={u.id} className="flex items-center justify-between px-4 py-2.5 gap-4 flex-wrap">
+                  <div>
+                    <span className="text-sm text-text-primary font-medium">{u.filename}</span>
+                    <span className="text-xs text-text-dim ml-2">{formatBytes(u.fileSize)}</span>
+                    {u.rawLineCount && (
+                      <span className="text-xs text-text-dim ml-2">{u.rawLineCount.toLocaleString()} lines</span>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-4 text-xs tabular-nums text-text-secondary">
+                    {elapsedSec !== null && (
+                      <span className="text-gold font-semibold">
+                        {elapsedSec < 60 ? `${elapsedSec}s` : `${Math.floor(elapsedSec / 60)}m ${elapsedSec % 60}s`}
+                      </span>
+                    )}
+                    <span className="text-text-dim">
+                      {u.createdAt.toLocaleDateString("en-US", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}
+                    </span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </section>
+      )}
 
       {/* Failed uploads */}
       {recentErrors.length > 0 && (

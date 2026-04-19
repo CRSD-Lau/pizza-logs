@@ -16,6 +16,7 @@ interface UploadState {
   stage:    Stage;
   progress: number; // 0-100
   message:  string;
+  elapsed:  number; // seconds
   result?:  UploadResponse & { filename: string };
   error?:   string;
 }
@@ -25,6 +26,7 @@ export function UploadZone({ onComplete }: UploadZoneProps) {
     stage:    "idle",
     progress: 0,
     message:  "",
+    elapsed:  0,
   });
 
   // Form metadata state
@@ -33,68 +35,66 @@ export function UploadZone({ onComplete }: UploadZoneProps) {
   const [guildName, setGuildName] = useState("");
 
   const processFile = useCallback(async (file: File) => {
-    setState({ stage: "uploading", progress: 5, message: "Preparing upload…" });
+    const startTime = Date.now();
+    // Estimate total duration: ~80 KB/s end-to-end throughput on Railway free tier
+    const estimatedMs = Math.max(30_000, (file.size / (80 * 1024)) * 1000);
 
-    // Warn if user tries to close tab during upload
-    const onBeforeUnload = (e: BeforeUnloadEvent) => {
-      e.preventDefault();
-      e.returnValue = "";
+    const getProgress = () => {
+      const elapsed = Date.now() - startTime;
+      // Asymptotic curve: approaches 92% but never reaches it until server responds
+      return Math.min(92, Math.round(3 + 89 * (1 - Math.exp(-elapsed / estimatedMs))));
     };
+
+    const getElapsed = () => {
+      const s = Math.floor((Date.now() - startTime) / 1000);
+      return s < 60 ? `${s}s` : `${Math.floor(s / 60)}m ${s % 60}s`;
+    };
+
+    const getMessage = (pct: number) => {
+      if (pct < 15) return "Streaming file to parser…";
+      if (pct < 30) return "Parser reading combat events…";
+      if (pct < 50) return "Detecting boss encounters…";
+      if (pct < 65) return "Aggregating DPS and HPS…";
+      if (pct < 80) return "Building encounter fingerprints…";
+      return "Finalising — almost done…";
+    };
+
+    setState({ stage: "uploading", progress: 3, message: "Streaming file to parser…", elapsed: 0 });
+
+    const onBeforeUnload = (e: BeforeUnloadEvent) => { e.preventDefault(); e.returnValue = ""; };
     window.addEventListener("beforeunload", onBeforeUnload);
 
     const params = new URLSearchParams({
-      realmName,
-      realmHost,
-      filename: file.name,
-      fileSize: String(file.size),
+      realmName, realmHost, filename: file.name, fileSize: String(file.size),
     });
     if (guildName.trim()) params.set("guildName", guildName.trim());
 
     const form = new FormData();
     form.append("file", file);
 
-    // Cycle through status messages while waiting
-    const messages = [
-      "Uploading log to parser…",
-      "Streaming file to parser service…",
-      "Parser is reading combat events…",
-      "Detecting boss encounters…",
-      "Aggregating DPS and HPS…",
-      "Building encounter fingerprints…",
-      "Almost there — saving to database…",
-    ];
-    let msgIdx = 0;
-    const msgInterval = setInterval(() => {
-      msgIdx = (msgIdx + 1) % messages.length;
-      const progress = Math.min(75, 10 + msgIdx * 10);
-      setState(s => s.stage === "uploading" ? { ...s, progress, message: messages[msgIdx] } : s);
-    }, 4000);
-
-    setState(s => ({ ...s, progress: 10, message: messages[0] }));
+    const ticker = setInterval(() => {
+      const pct = getProgress();
+      const elapsed = Math.floor((Date.now() - startTime) / 1000);
+      setState(s => s.stage === "uploading"
+        ? { ...s, progress: pct, message: getMessage(pct), elapsed }
+        : s);
+    }, 500);
 
     try {
       const res = await fetch(`/api/upload?${params}`, { method: "POST", body: form });
-
-      clearInterval(msgInterval);
-      setState(s => ({ ...s, progress: 85, message: "Saving encounters to database…" }));
+      clearInterval(ticker);
+      const elapsed = Math.floor((Date.now() - startTime) / 1000);
+      setState(s => ({ ...s, progress: 95, message: "Saving to database…", elapsed }));
 
       const data = await res.json() as UploadResponse;
-      if (!res.ok) {
-        throw new Error((data as { error?: string }).error ?? `HTTP ${res.status}`);
-      }
+      if (!res.ok) throw new Error((data as { error?: string }).error ?? `HTTP ${res.status}`);
 
-      setState(s => ({ ...s, progress: 100, message: "Done!" }));
       const result = { ...data, filename: file.name };
-      setState({ stage: "done", progress: 100, message: "Done", result });
+      setState({ stage: "done", progress: 100, message: "Done", elapsed, result });
       onComplete?.(result);
     } catch (err) {
-      clearInterval(msgInterval);
-      setState({
-        stage:    "error",
-        progress: 0,
-        message:  "",
-        error:    String(err instanceof Error ? err.message : err),
-      });
+      clearInterval(ticker);
+      setState({ stage: "error", progress: 0, message: "", elapsed: 0, error: String(err instanceof Error ? err.message : err) });
     } finally {
       window.removeEventListener("beforeunload", onBeforeUnload);
     }
@@ -189,21 +189,20 @@ export function UploadZone({ onComplete }: UploadZoneProps) {
             <p className="heading-cinzel text-lg text-gold-light mb-1">{state.message}</p>
             <p className="text-xs text-text-dim">Large logs can take 1–3 minutes — do not close this tab</p>
           </div>
-          <div className="max-w-sm mx-auto space-y-1">
+          <div className="max-w-sm mx-auto space-y-1.5">
+            <div className="flex justify-between text-[11px] text-text-dim tabular-nums">
+              <span>{state.progress}%</span>
+              <span>{state.elapsed < 60
+                ? `${state.elapsed}s elapsed`
+                : `${Math.floor(state.elapsed / 60)}m ${state.elapsed % 60}s elapsed`}
+              </span>
+            </div>
             <div className="h-2 rounded-full bg-bg-hover overflow-hidden">
               <div
-                className="h-full bg-gold rounded-full transition-all duration-[3000ms] ease-out"
+                className="h-full bg-gold rounded-full transition-all duration-500 ease-out"
                 style={{ width: `${state.progress}%` }}
               />
             </div>
-            <p className="text-[11px] text-text-dim text-right tabular-nums">{state.progress}%</p>
-          </div>
-          <div className="text-xs text-text-dim space-y-0.5">
-            <p>✓ File streaming to parser</p>
-            {state.progress >= 30 && <p>✓ Combat events being parsed</p>}
-            {state.progress >= 50 && <p>✓ Boss encounters detected</p>}
-            {state.progress >= 70 && <p>✓ DPS / HPS aggregated</p>}
-            {state.progress >= 85 && <p>✓ Saving to database…</p>}
           </div>
         </div>
       )}
