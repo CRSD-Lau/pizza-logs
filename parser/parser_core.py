@@ -396,8 +396,10 @@ class CombatLogParser:
                 is_crit  = parts[13] == "1"
                 spell_name = "Auto Attack"
             elif is_heal:
-                # SPELL_HEAL: ...spellID,spellName,spellSchool,amount,overhealing,absorbed,critical
-                if len(parts) < 15:
+                # SPELL_HEAL format: event,srcGUID,srcName,srcFlags,dstGUID,dstName,dstFlags,
+                #   spellID,spellName,spellSchool,amount,overhealing,absorbed,critical
+                # → 14 fields (indices 0-13); critical is at index 13
+                if len(parts) < 11:
                     continue
                 src_guid, src_name = parts[1], parts[2].strip('"').strip()
                 dst_guid, dst_name = parts[4], parts[5].strip('"').strip()
@@ -405,7 +407,7 @@ class CombatLogParser:
                 school     = _safe_int(parts[9]) or 2
                 amount     = _safe_float(parts[10])
                 overkill   = 0.0
-                is_crit    = len(parts) > 14 and parts[14] == "1"
+                is_crit    = len(parts) > 13 and parts[13] == "1"
             else:
                 # SPELL_DAMAGE / SPELL_PERIODIC_DAMAGE / RANGE_DAMAGE etc.
                 if len(parts) < 15:
@@ -489,6 +491,11 @@ class CombatLogParser:
         total_healing = sum(a.total_healing for a in actors.values())
         total_taken   = sum(a.damage_taken  for a in actors.values())
 
+        # Discard false-positive segments: no player output AND very short
+        # (pre-pull buffs / noise captured before first real pull)
+        if total_damage == 0 and duration < 60:
+            return None
+
         started_at = parse_ts_to_iso(first_ts_str, self.file_year)
         ended_at   = parse_ts_to_iso(last_ts_str,  self.file_year)
 
@@ -552,10 +559,25 @@ class CombatLogParser:
     def _infer_outcome(
         self, segment: list[tuple[str, list[str], float]], boss_name: Optional[str]
     ) -> str:
-        """Heuristic: boss died = KILL, else WIPE."""
+        """Heuristic: boss died = KILL, else WIPE.
+        Special case: Valithria Dreamwalker is a healing encounter — she never
+        dies on a successful attempt. A KILL is signalled by the combat trigger
+        NPC dying when she reaches 100% HP."""
         if not boss_name:
             return "UNKNOWN"
         bn = boss_name.lower()
+
+        # Valithria: "Green Dragon Combat Trigger" dying = KILL; Valithria dying = WIPE
+        if "valithria" in bn:
+            for _, parts, _ in segment:
+                if parts[0] == UNIT_DIED_EVENT and len(parts) >= 6:
+                    name = parts[5].strip('"').strip().lower()
+                    if name == "valithria dreamwalker":
+                        return "WIPE"
+                    if "combat trigger" in name or "green dragon" in name:
+                        return "KILL"
+            return "WIPE"
+
         for _, parts, _ in segment:
             if parts[0] == UNIT_DIED_EVENT and len(parts) >= 6:
                 name = parts[5].strip('"').strip().lower()

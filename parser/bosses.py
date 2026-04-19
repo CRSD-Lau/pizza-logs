@@ -77,7 +77,7 @@ BOSSES: list[BossDef] = [
     BossDef("Lord Marrowgar",        "lord-marrowgar",       "Icecrown Citadel",        36612),
     BossDef("Lady Deathwhisper",     "lady-deathwhisper",    "Icecrown Citadel",        36855),
     BossDef("Gunship Battle",        "gunship-battle",       "Icecrown Citadel",        37813,
-            ["Skybreaker", "Orgrim's Hammer"]),
+            ["Skybreaker", "Orgrim's Hammer", "Muradin Bronzebeard", "High Overlord Saurfang"]),
     BossDef("Deathbringer Saurfang", "deathbringer-saurfang","Icecrown Citadel",        37813),
     BossDef("Festergut",             "festergut",            "Icecrown Citadel",        36626),
     BossDef("Rotface",               "rotface",              "Icecrown Citadel",        36627),
