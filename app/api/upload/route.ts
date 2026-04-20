@@ -32,7 +32,13 @@ export async function POST(req: NextRequest) {
 
   const stream = new ReadableStream({
     async start(controller) {
-      const send = (data: object) => controller.enqueue(sse(data));
+      // Safe send/close — swallow ERR_INVALID_STATE if client disconnected
+      const send = (data: object) => {
+        try { controller.enqueue(sse(data)); } catch { /* client gone */ }
+      };
+      const close = () => {
+        try { controller.close(); } catch { /* already closed */ }
+      };
 
       try {
         // ── Forward to parser SSE endpoint ──────────────────────
@@ -43,18 +49,16 @@ export async function POST(req: NextRequest) {
             headers: { "content-type": contentType },
             body:    req.body,
             duplex:  "half",
-            signal:  AbortSignal.timeout(240_000),
+            signal:  AbortSignal.timeout(270_000),
           } as RequestInit & { duplex: string });
         } catch (err) {
           send({ type: "error", msg: `Parser unreachable: ${String(err)}` });
-          controller.close();
           return;
         }
 
         if (!parserRes.ok || !parserRes.body) {
           const text = await parserRes.text().catch(() => "");
           send({ type: "error", msg: `Parser ${parserRes.status}: ${text}` });
-          controller.close();
           return;
         }
 
@@ -100,7 +104,6 @@ export async function POST(req: NextRequest) {
         }
 
         if (!parseResult) {
-          controller.close();
           return;
         }
 
@@ -121,7 +124,6 @@ export async function POST(req: NextRequest) {
               warnings:            ["This exact file has already been uploaded."],
             },
           });
-          controller.close();
           return;
         }
 
@@ -286,7 +288,7 @@ export async function POST(req: NextRequest) {
         console.error("[upload] unhandled error:", err);
         send({ type: "error", msg: "Internal server error: " + String(err) });
       } finally {
-        controller.close();
+        close();
       }
     },
   });
