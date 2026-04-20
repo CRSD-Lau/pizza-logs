@@ -35,7 +35,7 @@ export function UploadZone({ onComplete }: UploadZoneProps) {
 
   // Form metadata state
   const [characterName, setCharacterName] = useState("");
-  const [realmName, setRealmName]         = useState("Lordaeron");
+  const [realmName, setRealmName]         = useState("Icecrown");
   const [realmHost, setRealmHost]         = useState("warmane");
   const [guildName, setGuildName]         = useState("");
 
@@ -179,9 +179,10 @@ export function UploadZone({ onComplete }: UploadZoneProps) {
               onChange={e => setRealmName(e.target.value)}
               className="bg-bg-card border border-gold-dim rounded px-3 py-1.5 text-sm text-text-primary outline-none focus:border-gold transition-colors"
             >
-              <option value="Lordaeron">Lordaeron</option>
               <option value="Icecrown">Icecrown</option>
-              <option value="Frostmourne">Frostmourne</option>
+              <option value="Lordaeron">Lordaeron</option>
+              <option value="Onyxia">Onyxia</option>
+              <option value="Blackrock">Blackrock</option>
             </select>
           </div>
           <div className="flex items-center gap-2">
