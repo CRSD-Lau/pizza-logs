@@ -11,7 +11,7 @@
 
 ### 🟡 Gunship Battle — Not Detected
 - **Symptom**: Gunship Battle never appears in results
-- **Cause**: High Overlord Saurfang events at 06:03:30 overlap with Deathbringer Saurfang pull at 06:03:23 — heuristic cannot separate them
+- **Cause**: Fight is entirely NPC-vs-NPC (troops, ships); players deal damage to Kor'kron/Alliance soldiers who aren't in ALL_BOSS_NAMES. No player events touch the boss aliases. Heuristic can't detect it.
 - **Status**: Accepted known limitation. Cannot fix without ENCOUNTER_START.
 
 ---
@@ -24,6 +24,8 @@
 | Valithria both WIPEs | Added "Green Dragon Combat Trigger" death detection | c630c12 |
 | False positive Sindragosa 10N | Added `total_damage == 0 and duration < 60` filter | c630c12 |
 | Gunship adds triggering Saurfang KILL | Removed add NPC aliases from Gunship def | c630c12 |
+| False Deathbringer Saurfang WIPE (230s) | Gunship wow_boss_id=37813 conflicted with Saurfang; removed Gunship aliases | 5340523 |
+| Blood Prince Council kill duration wrong | boss_died_ts now checks aliases (Prince Valanar → BPC) | 5340523 |
 | TypeScript build error (UploadZone reset) | Missing `elapsed: 0` in reset state | 9e70a1e |
 | DPS too low (post-fight tail) | Use boss death timestamp for KILL duration | 975756d |
 | Class colors not showing | Parser never set `wow_class` — fixed with SPELL_CLASS_MAP | 975756d |

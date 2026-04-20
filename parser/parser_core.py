@@ -278,10 +278,10 @@ class CombatLogParser:
             progress_cb:  callable(lines_done: int, total: int) — called every 50k lines
         """
         lines = self._iter_lines(fh, total_lines, progress_cb)
-        segments = self._segment_encounters(lines)
+        segments, pet_owner = self._segment_encounters(lines)
         encounters: list[ParsedEncounter] = []
         for seg in segments:
-            enc = self._aggregate_segment(seg)
+            enc = self._aggregate_segment(seg, pet_owner)
             if enc:
                 encounters.append(enc)
         self._assign_session_indices(encounters)
@@ -349,7 +349,7 @@ class CombatLogParser:
 
     def _segment_encounters(
         self, lines: Generator[tuple[str, list[str], float], None, None]
-    ) -> list[list[tuple[str, list[str], float]]]:
+    ) -> tuple[list[list[tuple[str, list[str], float]]], dict[str, tuple[str, str]]]:
         """
         Group lines into encounter segments.
 
@@ -357,8 +357,13 @@ class CombatLogParser:
           1. ENCOUNTER_START / ENCOUNTER_END events (modern private servers)
           2. Heuristic: anchor on boss-name events, then collect ALL events
              during the fight window (so healer/player events are included)
+
+        Also builds a global pet_owner map (pet_guid → (owner_guid, owner_name))
+        from SPELL_SUMMON events so pet/summon damage can be credited to owners.
         """
         segments: list[list[tuple[str, list[str], float]]] = []
+        # pet_guid → (owner_guid, owner_name)
+        pet_owner: dict[str, tuple[str, str]] = {}
 
         # ── Path A: ENCOUNTER_START/END ──────────────────────────
         current_segment: list[tuple[str, list[str], float]] = []
@@ -376,6 +381,15 @@ class CombatLogParser:
 
         for ts_str, parts, ts in lines:
             event = parts[0]
+
+            # ── SPELL_SUMMON: build pet→owner map (global, outside segments) ──
+            if event == "SPELL_SUMMON" and len(parts) >= 5:
+                owner_guid = parts[1]
+                owner_name = parts[2].strip('"').strip()
+                pet_guid   = parts[4]
+                if _is_player(owner_guid) and pet_guid:
+                    pet_owner[pet_guid] = (owner_guid, owner_name)
+                continue
 
             # ── ENCOUNTER_START ──────────────────────────────────
             if event == ENCOUNTER_START:
@@ -440,7 +454,7 @@ class CombatLogParser:
             if heuristic_segment and len(heuristic_segment) >= MIN_ENCOUNTER_EVENTS:
                 segments.append(heuristic_segment)
 
-        return segments
+        return segments, pet_owner
 
     def _is_boss_event(self, parts: list[str]) -> bool:
         """Quick check: does this event involve a known boss?"""
@@ -465,7 +479,9 @@ class CombatLogParser:
     # ── Internal: aggregation ────────────────────────────────────
 
     def _aggregate_segment(
-        self, segment: list[tuple[str, list[str], float]]
+        self,
+        segment: list[tuple[str, list[str], float]],
+        pet_owner: Optional[dict[str, tuple[str, str]]] = None,
     ) -> Optional[ParsedEncounter]:
         """Turn a list of raw log lines into a ParsedEncounter."""
         if not segment:
@@ -580,11 +596,18 @@ class CombatLogParser:
 
             # Only count player sources as DPS/HPS
             if not _is_player(src_guid):
-                # Track damage taken by players from boss
-                if _is_player(dst_guid) and dst_name:
-                    a = _get_actor(actors, dst_name, dst_guid)
-                    a.damage_taken += amount
-                continue
+                # Remap pet/summon damage to owner if known
+                if pet_owner and src_guid in pet_owner:
+                    owner_guid, owner_name = pet_owner[src_guid]
+                    src_guid = owner_guid
+                    src_name = owner_name
+                    # fall through to player accounting below
+                else:
+                    # Track damage taken by players from boss
+                    if _is_player(dst_guid) and dst_name:
+                        a = _get_actor(actors, dst_name, dst_guid)
+                        a.damage_taken += amount
+                    continue
 
             if not src_name:
                 continue
