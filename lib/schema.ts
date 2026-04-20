@@ -49,7 +49,7 @@ export type ParticipantResult = z.infer<typeof ParticipantResultSchema>;
 
 export const EncounterResultSchema = z.object({
   bossName:        z.string(),
-  bossId:          z.number().optional(),
+  bossId:          z.number().nullable().optional(),
   difficulty:      z.string(),
   groupSize:       z.number(),
   outcome:         z.enum(["KILL", "WIPE", "UNKNOWN"]),
