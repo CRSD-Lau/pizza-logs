@@ -150,14 +150,24 @@ export function UploadZone({ onComplete }: UploadZoneProps) {
     }
   }, [characterName, realmName, realmHost, guildName, onComplete, requestNotificationPermission, sendNotification]);
 
+  const isLocked = !characterName.trim();
+
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop: files => {
       if (files[0]) processFile(files[0]);
     },
     accept: { "text/plain": [".txt", ".log"] },
     multiple: false,
-    disabled: state.stage === "uploading" || !characterName.trim(),
+    disabled: state.stage === "uploading" || isLocked,
   });
+
+  // When locked, block browser-native drag/drop (otherwise the file opens in a tab)
+  const lockedProps = {
+    onDragOver: (e: React.DragEvent) => e.preventDefault(),
+    onDragEnter: (e: React.DragEvent) => e.preventDefault(),
+    onDrop: (e: React.DragEvent) => e.preventDefault(),
+    onClick: (e: React.MouseEvent) => e.preventDefault(),
+  };
 
   const reset = () => setState({ stage: "idle", progress: 0, message: "", elapsed: 0, stalled: false });
 
@@ -215,17 +225,17 @@ export function UploadZone({ onComplete }: UploadZoneProps) {
       {/* Drop zone */}
       {state.stage === "idle" && (
         <div
-          {...getRootProps()}
+          {...(isLocked ? lockedProps : getRootProps())}
           className={cn(
             "relative border border-dashed rounded-sm px-10 py-16 text-center transition-all duration-200 overflow-hidden",
-            !characterName.trim()
+            isLocked
               ? "cursor-not-allowed opacity-40 border-gold/20 bg-[rgba(180,140,60,0.01)]"
               : isDragActive
                 ? "cursor-pointer border-gold bg-[rgba(180,140,60,0.06)] shadow-gold-glow"
                 : "cursor-pointer border-gold/40 bg-[rgba(180,140,60,0.02)] hover:border-gold hover:bg-[rgba(180,140,60,0.04)]"
           )}
         >
-          <input {...getInputProps()} />
+          {!isLocked && <input {...getInputProps()} />}
           <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_60%_40%_at_50%_50%,rgba(180,140,60,0.05)_0%,transparent_70%)]" />
           <div className="relative">
             <UploadIcon className="mx-auto mb-4 text-gold/60" />
