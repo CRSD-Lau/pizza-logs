@@ -22,6 +22,25 @@ from bosses import BossDef, lookup_boss, lookup_boss_by_id, ALL_BOSS_NAMES
 
 # ── Constants ─────────────────────────────────────────────────────
 
+# Spell names that only appear in heroic difficulty encounters.
+# Used to upgrade "25N"/"10N" to "25H"/"10H" when ENCOUNTER_START is absent.
+HEROIC_SPELL_MARKERS: frozenset[str] = frozenset({
+    # Lord Marrowgar (ICC) — multi-target cleave only present in heroic
+    "bone slice",
+    # Deathbringer Saurfang (ICC) — heroic debuff DoT
+    "rune of blood",
+    # Blood Prince Council (ICC) — empowered abilities are heroic-only
+    "empowered shock vortex",
+    "empowered shadow lance",
+    "empowered blood",
+    # Blood-Queen Lana'thel (ICC) — heroic group link mechanic
+    "pact of the darkfallen",
+    # Professor Putricide (ICC) — spreads between players in heroic only
+    "unbound plague",
+    # Sindragosa (ICC) — self-damage from Unchained Magic stacks (heroic only)
+    "backlash",
+})
+
 DMG_EVENTS = {
     "SPELL_DAMAGE",
     "SWING_DAMAGE",
@@ -480,6 +499,8 @@ class CombatLogParser:
             boss_name, boss_id = self._infer_boss(segment)
             group_size, difficulty = self._infer_difficulty(segment)
             outcome = self._infer_outcome(segment, boss_name)
+            if self._detect_heroic(segment):
+                difficulty = difficulty.replace("N", "H")
 
         if not boss_name:
             return None  # Cannot identify boss — skip
@@ -710,6 +731,17 @@ class CombatLogParser:
         if n <= 12:
             return 10, "10N"
         return 25, "25N"
+
+    def _detect_heroic(self, segment: list[tuple[str, list[str], float]]) -> bool:
+        """Return True if any heroic-only spell marker appears in the segment."""
+        for _, parts, _ in segment:
+            if parts[0] == "SWING_DAMAGE" or parts[0] == UNIT_DIED_EVENT:
+                continue
+            if len(parts) > 8:
+                spell = parts[8].strip('"').strip().lower()
+                if spell in HEROIC_SPELL_MARKERS:
+                    return True
+        return False
 
     def _infer_outcome(
         self, segment: list[tuple[str, list[str], float]], boss_name: Optional[str]
