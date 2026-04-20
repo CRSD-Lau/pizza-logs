@@ -3,29 +3,29 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { verifyAdminSecret } from "./actions";
 
 export default function AdminLoginPage() {
   const router = useRouter();
   const [secret, setSecret] = useState("");
   const [error, setError] = useState(false);
+  const [loading, setLoading] = useState(false);
 
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!secret.trim()) return;
 
-    document.cookie = `x-admin-secret=${secret.trim()}; path=/; SameSite=Strict`;
+    setLoading(true);
+    const valid = await verifyAdminSecret(secret.trim());
 
-    // Verify by attempting a fetch — if admin loads, cookie is valid
-    fetch("/admin", { method: "HEAD" }).then((res) => {
-      if (res.ok || res.redirected === false) {
-        router.push("/admin");
-      } else {
-        // Wrong secret — clear the bad cookie
-        document.cookie = "x-admin-secret=; path=/; max-age=0";
-        setError(true);
-        setSecret("");
-      }
-    });
+    if (valid) {
+      document.cookie = `x-admin-secret=${secret.trim()}; path=/; SameSite=Strict`;
+      router.push("/admin");
+    } else {
+      setError(true);
+      setSecret("");
+      setLoading(false);
+    }
   }
 
   return (
@@ -64,10 +64,10 @@ export default function AdminLoginPage() {
 
             <button
               type="submit"
-              disabled={!secret.trim()}
+              disabled={!secret.trim() || loading}
               className="w-full bg-gold/10 hover:bg-gold/20 border border-gold-mid text-gold-light heading-cinzel text-sm tracking-widest py-2 rounded transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
             >
-              Enter
+              {loading ? "Verifying…" : "Enter"}
             </button>
           </form>
         </div>
