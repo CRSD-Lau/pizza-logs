@@ -116,7 +116,7 @@ export function UploadZone({ onComplete }: UploadZoneProps) {
             } else if (event.type === "complete" && event.result) {
               clearInterval(ticker);
               const result = { ...event.result, filename: file.name };
-              setState({ stage: "done", progress: 100, message: "Done", elapsed, result });
+              setState({ stage: "done", progress: 100, message: "Done", elapsed, stalled: false, result });
               onComplete?.(result);
               const stored = result.encountersInserted;
               sendNotification(
@@ -135,7 +135,7 @@ export function UploadZone({ onComplete }: UploadZoneProps) {
     } catch (err) {
       clearInterval(ticker);
       const msg = String(err instanceof Error ? err.message : err);
-      setState({ stage: "error", progress: 0, message: "", elapsed: 0, error: msg });
+      setState({ stage: "error", progress: 0, message: "", elapsed: 0, stalled: false, error: msg });
       sendNotification("❌ Upload failed", msg);
     } finally {
       clearInterval(ticker);
@@ -152,7 +152,7 @@ export function UploadZone({ onComplete }: UploadZoneProps) {
     disabled: state.stage === "uploading",
   });
 
-  const reset = () => setState({ stage: "idle", progress: 0, message: "", elapsed: 0 });
+  const reset = () => setState({ stage: "idle", progress: 0, message: "", elapsed: 0, stalled: false });
 
   return (
     <div className="space-y-4">

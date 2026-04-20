@@ -5,11 +5,12 @@ import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 
 const NAV_LINKS = [
-  { href: "/",        label: "Upload"  },
+  { href: "/",        label: "Upload"    },
+  { href: "/raids",   label: "Raids"     },
   { href: "/weekly",  label: "This Week" },
-  { href: "/bosses",  label: "Bosses"  },
-  { href: "/uploads", label: "History" },
-  { href: "/admin",   label: "Admin"   },
+  { href: "/bosses",  label: "Bosses"    },
+  { href: "/uploads", label: "History"   },
+  { href: "/admin",   label: "Admin"     },
 ] as const;
 
 export function Nav() {

@@ -123,9 +123,7 @@ export default async function SessionDetailPage({ params }: Props) {
     <div className="pt-10 space-y-8">
       {/* Breadcrumb */}
       <div className="text-xs text-text-dim flex items-center gap-1 flex-wrap">
-        <Link href="/uploads" className="hover:text-gold">History</Link>
-        <span>›</span>
-        <Link href={`/uploads/${id}`} className="hover:text-gold truncate max-w-[200px]">{upload.filename}</Link>
+        <Link href="/raids" className="hover:text-gold">Raids</Link>
         <span>›</span>
         <span className="text-text-secondary">
           {sessionCount === 1 ? "Raid Session" : `Session ${sessionIndex + 1} of ${sessionCount}`}
@@ -252,7 +250,7 @@ export default async function SessionDetailPage({ params }: Props) {
             {Array.from(playerSet.entries()).map(([name, cls]) => (
               <Link
                 key={name}
-                href={`/players/${encodeURIComponent(name)}`}
+                href={`/uploads/${id}/sessions/${sessionIndex}/players/${encodeURIComponent(name)}`}
                 className="text-xs px-2 py-1 rounded border border-gold-dim bg-bg-card hover:border-gold transition-colors"
               >
                 <span className="text-text-primary font-medium">{name}</span>
