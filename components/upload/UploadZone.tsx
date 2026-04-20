@@ -1,6 +1,7 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useRef, useState } from "react";
+import Link from "next/link";
 import { useDropzone } from "react-dropzone";
 import { cn, formatBytes } from "@/lib/utils";
 import { Button } from "@/components/ui/Button";
@@ -17,6 +18,7 @@ interface UploadState {
   progress: number; // 0-100
   message:  string;
   elapsed:  number; // seconds
+  stalled:  boolean; // true if no SSE event for >90s (stream likely dropped)
   result?:  UploadResponse & { filename: string };
   error?:   string;
 }
@@ -27,7 +29,9 @@ export function UploadZone({ onComplete }: UploadZoneProps) {
     progress: 0,
     message:  "",
     elapsed:  0,
+    stalled:  false,
   });
+  const lastEventAt = useRef<number>(Date.now());
 
   // Form metadata state
   const [realmName, setRealmName] = useState("Lordaeron");
@@ -54,16 +58,20 @@ export function UploadZone({ onComplete }: UploadZoneProps) {
     void requestNotificationPermission();
     const startTime = Date.now();
 
-    setState({ stage: "uploading", progress: 2, message: "Uploading file…", elapsed: 0 });
+    lastEventAt.current = Date.now();
+    setState({ stage: "uploading", progress: 2, message: "Uploading file…", elapsed: 0, stalled: false });
 
     const onBeforeUnload = (e: BeforeUnloadEvent) => { e.preventDefault(); e.returnValue = ""; };
     window.addEventListener("beforeunload", onBeforeUnload);
 
-    // Elapsed-only ticker — progress % now comes from real SSE events
+    // Ticker: update elapsed + detect stalled stream (no event for >90s)
+    const STALL_THRESHOLD = 90_000;
     const ticker = setInterval(() => {
-      setState(s => s.stage === "uploading"
-        ? { ...s, elapsed: Math.floor((Date.now() - startTime) / 1000) }
-        : s);
+      setState(s => {
+        if (s.stage !== "uploading") return s;
+        const stalled = (Date.now() - lastEventAt.current) > STALL_THRESHOLD;
+        return { ...s, elapsed: Math.floor((Date.now() - startTime) / 1000), stalled };
+      });
     }, 1000);
 
     const params = new URLSearchParams({
@@ -100,8 +108,9 @@ export function UploadZone({ onComplete }: UploadZoneProps) {
             const elapsed = Math.floor((Date.now() - startTime) / 1000);
 
             if (event.type === "progress" && event.pct !== undefined) {
+              lastEventAt.current = Date.now();
               setState(s => s.stage === "uploading"
-                ? { ...s, progress: event.pct!, message: event.msg ?? "", elapsed }
+                ? { ...s, progress: event.pct!, message: event.msg ?? "", elapsed, stalled: false }
                 : s);
 
             } else if (event.type === "complete" && event.result) {
@@ -221,7 +230,16 @@ export function UploadZone({ onComplete }: UploadZoneProps) {
           <Spinner className="mx-auto" />
           <div>
             <p className="heading-cinzel text-lg text-gold-light mb-1">{state.message}</p>
-            <p className="text-xs text-text-dim">Large logs can take 1–3 minutes — do not close this tab</p>
+            {state.stalled ? (
+              <p className="text-xs text-warning mt-1">
+                Stream connection lost — your data may have saved successfully.{" "}
+                <Link href="/uploads" className="text-gold hover:text-gold-light underline">
+                  Check History →
+                </Link>
+              </p>
+            ) : (
+              <p className="text-xs text-text-dim">Large logs can take 1–3 minutes — do not close this tab</p>
+            )}
           </div>
           <div className="max-w-sm mx-auto space-y-1.5">
             <div className="flex justify-between text-[11px] text-text-dim tabular-nums">

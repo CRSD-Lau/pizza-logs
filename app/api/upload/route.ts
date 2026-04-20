@@ -157,7 +157,7 @@ export async function POST(req: NextRequest) {
           },
         });
 
-        send({ type: "progress", pct: 93, msg: "Saving to database…" });
+        send({ type: "progress", pct: 92, msg: "Saving to database…" });
 
         // ── Batch pre-fetch ──────────────────────────────────────
         const bossNames    = [...new Set(parseResult.encounters.map(e => e.bossName))];
@@ -176,6 +176,8 @@ export async function POST(req: NextRequest) {
         const newEncounters = parseResult.encounters.filter(
           enc => bossMap.has(enc.bossName) && !existingFps.has(enc.fingerprint)
         );
+
+        send({ type: "progress", pct: 94, msg: "Saving players…" });
 
         // ── Batch player upserts ─────────────────────────────────
         const playerClassMap = new Map(
@@ -199,6 +201,8 @@ export async function POST(req: NextRequest) {
             )
           );
         }
+
+        send({ type: "progress", pct: 96, msg: "Saving encounters…" });
 
         const dbPlayers = await db.player.findMany({
           where:  { name: { in: allPlayerNames }, realmId: realm.id },
@@ -265,6 +269,8 @@ export async function POST(req: NextRequest) {
             encountersInserted++;
           })
         );
+
+        send({ type: "progress", pct: 98, msg: "Computing milestones…" });
 
         const milestones = await computeMilestones(milestoneChecks);
 
