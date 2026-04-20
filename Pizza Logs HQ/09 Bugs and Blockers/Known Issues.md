@@ -9,10 +9,10 @@
 - **Status**: Under investigation — not yet root-caused
 - **Reference**: https://uwu-logs.xyz/reports/26-04-17--18-47--Rimeclaw--Lordaeron/player/Lausudo/?boss=lord-marrowgar&mode=25H&attempt=1&s=3297&f=3633
 
-### 🟡 Gunship Battle — Not Detected
-- **Symptom**: Gunship Battle never appears in results
-- **Cause**: Fight is entirely NPC-vs-NPC (troops, ships); players deal damage to Kor'kron/Alliance soldiers who aren't in ALL_BOSS_NAMES. No player events touch the boss aliases. Heuristic can't detect it.
-- **Status**: Accepted known limitation. Cannot fix without ENCOUNTER_START.
+### 🟡 Gunship Battle — Kill/Wipe outcome uncertain
+- **Symptom**: Encounter detected but outcome may show as WIPE (no reliable kill signal)
+- **Cause**: The fight ends when ship HP reaches 0, which may not produce a standard UNIT_DIED event for a tracked alias
+- **Status**: Detection restored via Skybreaker crew aliases. Outcome accuracy TBD.
 
 ---
 

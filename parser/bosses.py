@@ -76,10 +76,11 @@ BOSSES: list[BossDef] = [
     # Icecrown Citadel
     BossDef("Lord Marrowgar",        "lord-marrowgar",       "Icecrown Citadel",        36612),
     BossDef("Lady Deathwhisper",     "lady-deathwhisper",    "Icecrown Citadel",        36855),
-    BossDef("Gunship Battle",        "gunship-battle",       "Icecrown Citadel"),
-            # Aliases removed: Skybreaker/Orgrim's Hammer/Muradin are NPC-vs-NPC events;
-            # players never deal damage to these targets on Horde-side Warmane logs,
-            # so any detected segment would be a false positive. Gunship is undetectable.
+    BossDef("Gunship Battle",        "gunship-battle",       "Icecrown Citadel",        None,
+            # Horde side: players jetpack to The Skybreaker and kill these crew members.
+            # High Captain Justin Bartlett is the Alliance NPC whose death signals a kill.
+            ["Muradin Bronzebeard", "High Captain Justin Bartlett",
+             "Skybreaker Sorcerer", "Skybreaker Rifleman", "Skybreaker Sergeant"]),
     BossDef("Deathbringer Saurfang", "deathbringer-saurfang","Icecrown Citadel",        37813),
     BossDef("Festergut",             "festergut",            "Icecrown Citadel",        36626),
     BossDef("Rotface",               "rotface",              "Icecrown Citadel",        36627),
