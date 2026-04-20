@@ -5,7 +5,7 @@ import { db } from "@/lib/db";
 import { DamageMeter } from "@/components/meter/DamageMeter";
 import { MobBreakdown, type MobEntry } from "@/components/meter/MobBreakdown";
 import { StatCard } from "@/components/ui/StatCard";
-import { SectionHeader } from "@/components/ui/SectionHeader";
+import { AccordionSection } from "@/components/ui/AccordionSection";
 import { Badge } from "@/components/ui/Badge";
 import { formatDuration, formatNumber } from "@/lib/utils";
 
@@ -169,43 +169,51 @@ export default async function EncounterPage({ params }: Props) {
 
       {/* DPS Meter */}
       {dpsParts.length > 0 && (
-        <section>
-          <SectionHeader title="Damage Breakdown" sub="Click a row to expand spell details" />
+        <AccordionSection
+          title="Damage Breakdown"
+          sub="Click a row to expand spell details"
+          count={dpsParts.length}
+          defaultOpen
+        >
           <div className="bg-bg-panel border border-gold-dim rounded overflow-hidden">
             <DamageMeter participants={dpsParts} metric="dps" />
           </div>
-        </section>
+        </AccordionSection>
       )}
 
       {/* Healing Meter */}
       {healParts.length > 0 && (
-        <section>
-          <SectionHeader title="Healing Breakdown" />
+        <AccordionSection
+          title="Healing Breakdown"
+          count={healParts.length}
+          defaultOpen
+        >
           <div className="bg-bg-panel border border-gold-dim rounded overflow-hidden">
             <DamageMeter participants={healParts} metric="hps" />
           </div>
-        </section>
+        </AccordionSection>
       )}
 
       {/* Mob / Target Breakdown */}
       {mobEntries.length > 0 && (
-        <section>
-          <SectionHeader
-            title="Target Breakdown"
-            sub="Damage dealt to each mob — click a row to see per-player split"
-          />
+        <AccordionSection
+          title="Target Breakdown"
+          sub="Damage dealt to each mob — click a row to see per-player split"
+          count={mobEntries.length}
+          defaultOpen={false}
+        >
           <div className="bg-bg-panel border border-gold-dim rounded overflow-hidden">
             <MobBreakdown mobs={mobEntries} />
           </div>
-        </section>
+        </AccordionSection>
       )}
 
       {/* Full roster */}
-      <section>
-        <SectionHeader
-          title="Full Roster"
-          sub={`${encounter.participants.length} participants`}
-        />
+      <AccordionSection
+        title="Full Roster"
+        count={encounter.participants.length}
+        defaultOpen={false}
+      >
         <div className="bg-bg-panel border border-gold-dim rounded divide-y divide-gold-dim">
           {encounter.participants.map(p => (
             <div key={p.id} className="flex items-center justify-between px-4 py-2.5 hover:bg-bg-hover transition-colors">
@@ -231,7 +239,7 @@ export default async function EncounterPage({ params }: Props) {
             </div>
           ))}
         </div>
-      </section>
+      </AccordionSection>
     </div>
   );
 }

@@ -3,7 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { db } from "@/lib/db";
 import { StatCard } from "@/components/ui/StatCard";
-import { SectionHeader } from "@/components/ui/SectionHeader";
+import { AccordionSection } from "@/components/ui/AccordionSection";
 import { SessionLineChart } from "@/components/charts/SessionLineChart";
 import type { ChartPoint, PlayerLine } from "@/components/charts/SessionLineChart";
 import { formatDps, formatDuration, cn } from "@/lib/utils";
@@ -181,15 +181,15 @@ export default async function SessionPlayerPage({ params }: Props) {
 
       {/* DPS/HPS Line Chart */}
       {chartData.length > 1 && (
-        <section>
-          <SectionHeader
-            title={`${metric} by Encounter`}
-            sub={
-              classmateNames.size > 0
-                ? `Comparing ${name} vs ${[...classmateNames].join(", ")} (${playerClass})`
-                : `${name} — ${metric} across this session`
-            }
-          />
+        <AccordionSection
+          title={`${metric} by Encounter`}
+          sub={
+            classmateNames.size > 0
+              ? `Comparing ${name} vs ${[...classmateNames].join(", ")} (${playerClass})`
+              : `${name} — ${metric} across this session`
+          }
+          defaultOpen
+        >
           <div className="bg-bg-panel border border-gold-dim rounded p-4">
             <SessionLineChart
               data={chartData}
@@ -197,15 +197,15 @@ export default async function SessionPlayerPage({ params }: Props) {
               metric={metric}
             />
           </div>
-        </section>
+        </AccordionSection>
       )}
 
       {/* Per-encounter table */}
-      <section>
-        <SectionHeader
-          title="Encounter Breakdown"
-          sub={`${myStats.length} pull${myStats.length !== 1 ? "s" : ""} this session`}
-        />
+      <AccordionSection
+        title="Encounter Breakdown"
+        count={myStats.length}
+        defaultOpen
+      >
         <div className="bg-bg-panel border border-gold-dim rounded divide-y divide-gold-dim overflow-hidden">
           {myStats.map(e => (
             <Link
@@ -259,7 +259,7 @@ export default async function SessionPlayerPage({ params }: Props) {
             </Link>
           ))}
         </div>
-      </section>
+      </AccordionSection>
 
       {totalDeaths > 0 && (
         <p className="text-xs text-text-dim">

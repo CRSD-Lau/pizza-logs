@@ -3,7 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { db } from "@/lib/db";
 import { StatCard } from "@/components/ui/StatCard";
-import { SectionHeader } from "@/components/ui/SectionHeader";
+import { AccordionSection } from "@/components/ui/AccordionSection";
 import { Badge } from "@/components/ui/Badge";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { formatNumber, formatDps, formatDuration } from "@/lib/utils";
@@ -104,8 +104,7 @@ export default async function PlayerPage({ params }: Props) {
 
       {/* Milestones */}
       {player.milestones.length > 0 && (
-        <section>
-          <SectionHeader title="All-Time Records" sub="Current rankings, kills only" />
+        <AccordionSection title="All-Time Records" sub="Current rankings, kills only" count={player.milestones.length} defaultOpen>
           <div className="grid sm:grid-cols-2 gap-2">
             {player.milestones.map(m => (
               <div key={m.id} className="milestone-banner flex items-center justify-between text-sm">
@@ -136,13 +135,12 @@ export default async function PlayerPage({ params }: Props) {
               </div>
             ))}
           </div>
-        </section>
+        </AccordionSection>
       )}
 
       {/* Per-boss bests */}
       {Object.values(perBoss).length > 0 && (
-        <section>
-          <SectionHeader title="Per-Boss Summary" />
+        <AccordionSection title="Per-Boss Summary" count={Object.values(perBoss).length} defaultOpen>
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-2">
             {Object.values(perBoss)
               .sort((a, b) => b.bestDps - a.bestDps)
@@ -169,12 +167,11 @@ export default async function PlayerPage({ params }: Props) {
                 </Link>
               ))}
           </div>
-        </section>
+        </AccordionSection>
       )}
 
       {/* Recent encounters */}
-      <section>
-        <SectionHeader title="Recent Encounters" sub={`Last ${participants.length} encounters`} />
+      <AccordionSection title="Recent Encounters" count={participants.length} defaultOpen={false}>
         {participants.length > 0 ? (
           <div className="bg-bg-panel border border-gold-dim rounded divide-y divide-gold-dim">
             {participants.slice(0, 20).map(p => (
@@ -203,7 +200,7 @@ export default async function PlayerPage({ params }: Props) {
         ) : (
           <EmptyState title="No encounters recorded" />
         )}
-      </section>
+      </AccordionSection>
     </div>
   );
 }

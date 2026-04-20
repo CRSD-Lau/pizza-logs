@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 import { db } from "@/lib/db";
 import { MobBreakdown, type MobEntry } from "@/components/meter/MobBreakdown";
 import { StatCard } from "@/components/ui/StatCard";
-import { SectionHeader } from "@/components/ui/SectionHeader";
+import { AccordionSection } from "@/components/ui/AccordionSection";
 import { formatBytes, formatDuration, formatNumber } from "@/lib/utils";
 import { cn } from "@/lib/utils";
 
@@ -181,8 +181,8 @@ export default async function SessionDetailPage({ params }: Props) {
       </div>
 
       {/* Encounters by raid zone */}
-      <section className="space-y-4">
-        <SectionHeader title="Encounters" sub={`${encounters.length} pulls`} />
+      <AccordionSection title="Encounters" count={encounters.length} defaultOpen>
+        <div className="space-y-4">
         {Array.from(raidGroups.entries()).map(([raidName, encs]) => (
           <div key={raidName} className="space-y-1">
             <p className="text-xs font-semibold text-text-dim uppercase tracking-widest px-1">{raidName}</p>
@@ -227,25 +227,26 @@ export default async function SessionDetailPage({ params }: Props) {
             </div>
           </div>
         ))}
-      </section>
+        </div>
+      </AccordionSection>
 
       {/* Session-wide mob damage */}
       {mobEntries.length > 0 && (
-        <section>
-          <SectionHeader
-            title="Mob Damage — Full Session"
-            sub="Aggregate damage to every target across all pulls · click to drill down by player"
-          />
+        <AccordionSection
+          title="Mob Damage — Full Session"
+          sub="Aggregate damage to every target across all pulls · click to drill down by player"
+          count={mobEntries.length}
+          defaultOpen={false}
+        >
           <div className="bg-bg-panel border border-gold-dim rounded overflow-hidden">
             <MobBreakdown mobs={mobEntries} />
           </div>
-        </section>
+        </AccordionSection>
       )}
 
       {/* Roster */}
       {playerSet.size > 0 && (
-        <section>
-          <SectionHeader title="Raid Roster" sub={`${playerSet.size} players`} />
+        <AccordionSection title="Raid Roster" count={playerSet.size} defaultOpen>
           <div className="bg-bg-panel border border-gold-dim rounded p-4 flex flex-wrap gap-2">
             {Array.from(playerSet.entries()).map(([name, cls]) => (
               <Link
@@ -258,7 +259,7 @@ export default async function SessionDetailPage({ params }: Props) {
               </Link>
             ))}
           </div>
-        </section>
+        </AccordionSection>
       )}
     </div>
   );
