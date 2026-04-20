@@ -18,7 +18,7 @@ interface UploadState {
   progress: number; // 0-100
   message:  string;
   elapsed:  number; // seconds
-  stalled:  boolean; // true if no SSE event for >90s (stream likely dropped)
+  stalled:  boolean; // true if no SSE event for >150s (stream likely dropped)
   result?:  UploadResponse & { filename: string };
   error?:   string;
 }
@@ -65,8 +65,8 @@ export function UploadZone({ onComplete }: UploadZoneProps) {
     const onBeforeUnload = (e: BeforeUnloadEvent) => { e.preventDefault(); e.returnValue = ""; };
     window.addEventListener("beforeunload", onBeforeUnload);
 
-    // Ticker: update elapsed + detect stalled stream (no event for >90s)
-    const STALL_THRESHOLD = 90_000;
+    // Ticker: update elapsed + detect stalled stream (no event for >150s)
+    const STALL_THRESHOLD = 150_000;
     const ticker = setInterval(() => {
       setState(s => {
         if (s.stage !== "uploading") return s;
