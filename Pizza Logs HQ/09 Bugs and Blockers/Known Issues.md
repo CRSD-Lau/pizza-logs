@@ -9,11 +9,6 @@
 - **Status**: Under investigation — not yet root-caused
 - **Reference**: https://uwu-logs.xyz/reports/26-04-17--18-47--Rimeclaw--Lordaeron/player/Lausudo/?boss=lord-marrowgar&mode=25H&attempt=1&s=3297&f=3633
 
-### 🟡 SSE Progress Streaming — Needs E2E Test
-- **Symptom**: Just shipped (2026-04-19), not yet tested after Railway deploy
-- **Fix applied**: UploadFile closed-before-generator bug fixed (write to disk before StreamingResponse)
-- **Status**: Awaiting test upload
-
 ### 🟡 Gunship Battle — Not Detected
 - **Symptom**: Gunship Battle never appears in results
 - **Cause**: High Overlord Saurfang events at 06:03:30 overlap with Deathbringer Saurfang pull at 06:03:23 — heuristic cannot separate them

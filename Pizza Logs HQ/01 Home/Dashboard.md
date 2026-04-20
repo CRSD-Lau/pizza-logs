@@ -53,11 +53,13 @@ Upload a combat log → parsed server-side → boss encounters stored → DPS/HP
 - [[Security Checklist]] — what's protected, what's not
 - [[Technical Debt]] — known shortcuts and their cost
 
-### AI Sessions
+### AI Control Center
 - [[Claude Resume Prompt]] — paste this to start a session
 - [[Prompt Library]] — reusable prompts for common ops
 - [[Repeated Fixes & Gotchas]] — don't solve the same bug twice
 - [[What Claude Forgets]] — things to remind Claude every session
+- [[AI Operating System]]  
+- [[Superpowers Index]]
 
 ### Ideas
 - [[Growth & Business]] — positioning, monetization, roadmap

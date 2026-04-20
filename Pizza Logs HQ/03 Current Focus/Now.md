@@ -1,24 +1,23 @@
 # Now
 
 ## Active
-- Vault link audit + redundancy refactor (in progress)
+- Session ended — vault updated, DB empty, ready for next session
 
-## Next Up (from [[Backlog]])
-- Footer text fix: "client-side" → "server-side" (5 min)
-- Admin page auth: simple secret middleware
-- Absorbs / damage mitigations / parry-dodge-block (parser work)
-- Consumable tracking (complex parser work — separate session)
-- Gunship + Saurfang detection fix (investigate log events)
+## Immediate Next Steps
+1. Set `ADMIN_SECRET` in Railway → Web Service → Variables
+2. Test upload: enter character name → confirm drop zone unlocks → upload completes cleanly (no false "network error")
+3. Pick next feature from [[Backlog]] — absorbs tracking is highest value
 
 ## Bugs
-See [[Known Issues]] for full list.
+See [[Known Issues]] for full list. No new bugs this session.
 
 ## Recently Shipped (2026-04-20)
-- Raids tab: `/raids` page listing sessions by calendar day
-- Session-scoped player pages: `/uploads/[id]/sessions/[idx]/players/[name]`
-- DPS/HPS line chart: recharts, same-class comparison per session
-- Accordion sections on all data-heavy pages
-- Upload status stuck at PARSING — fixed
+- Footer text corrected (server-side, not client-side)
+- Admin auth: `/admin/login` branded page + middleware + ADMIN_SECRET env var
+- Upload form: mandatory Character field, Realm dropdown (Lordaeron/Icecrown/Onyxia/Blackrock), locked drop zone UX
+- False "network error" after successful upload — fixed (succeeded flag)
+- Drop zone browser-native file open when locked — fixed (explicit preventDefault handlers)
+- Vault audit: archived superseded files, cross-linked orphaned notes
 
 ## Not Working On
 - Heroic detection (impossible without ENCOUNTER_START)
