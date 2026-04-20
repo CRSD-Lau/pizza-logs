@@ -70,6 +70,7 @@ model Upload {
   realmId      String?
   realm        Realm?       @relation(fields: [realmId], references: [id])
   encounters   Encounter[]
+  uploaderName String?      // character name of the person who uploaded
   errorMessage String?
   parsedAt     DateTime?
   rawLineCount Int?

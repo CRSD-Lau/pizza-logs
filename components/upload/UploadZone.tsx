@@ -34,9 +34,10 @@ export function UploadZone({ onComplete }: UploadZoneProps) {
   const lastEventAt = useRef<number>(Date.now());
 
   // Form metadata state
-  const [realmName, setRealmName] = useState("Lordaeron");
-  const [realmHost, setRealmHost] = useState("warmane");
-  const [guildName, setGuildName] = useState("");
+  const [characterName, setCharacterName] = useState("");
+  const [realmName, setRealmName]         = useState("Lordaeron");
+  const [realmHost, setRealmHost]         = useState("warmane");
+  const [guildName, setGuildName]         = useState("");
 
   // Request notification permission once when the user first drops a file
   const requestNotificationPermission = useCallback(async () => {
@@ -75,6 +76,7 @@ export function UploadZone({ onComplete }: UploadZoneProps) {
     }, 1000);
 
     const params = new URLSearchParams({
+      uploaderName: characterName.trim(),
       realmName, realmHost, filename: file.name, fileSize: String(file.size),
     });
     if (guildName.trim()) params.set("guildName", guildName.trim());
@@ -141,7 +143,7 @@ export function UploadZone({ onComplete }: UploadZoneProps) {
       clearInterval(ticker);
       window.removeEventListener("beforeunload", onBeforeUnload);
     }
-  }, [realmName, realmHost, guildName, onComplete, requestNotificationPermission, sendNotification]);
+  }, [characterName, realmName, realmHost, guildName, onComplete, requestNotificationPermission, sendNotification]);
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop: files => {
@@ -149,7 +151,7 @@ export function UploadZone({ onComplete }: UploadZoneProps) {
     },
     accept: { "text/plain": [".txt", ".log"] },
     multiple: false,
-    disabled: state.stage === "uploading",
+    disabled: state.stage === "uploading" || !characterName.trim(),
   });
 
   const reset = () => setState({ stage: "idle", progress: 0, message: "", elapsed: 0, stalled: false });
@@ -160,25 +162,36 @@ export function UploadZone({ onComplete }: UploadZoneProps) {
       {state.stage === "idle" && (
         <div className="flex flex-wrap gap-3 items-center">
           <div className="flex items-center gap-2">
-            <label className="text-xs text-text-secondary uppercase tracking-wide">Realm</label>
+            <label className="text-xs text-text-secondary uppercase tracking-wide">
+              Character <span className="text-danger">*</span>
+            </label>
             <input
+              value={characterName}
+              onChange={e => setCharacterName(e.target.value)}
+              placeholder="Your character name"
+              className="bg-bg-card border border-gold-dim rounded px-3 py-1.5 text-sm text-text-primary outline-none focus:border-gold transition-colors w-44"
+            />
+          </div>
+          <div className="flex items-center gap-2">
+            <label className="text-xs text-text-secondary uppercase tracking-wide">Realm</label>
+            <select
               value={realmName}
               onChange={e => setRealmName(e.target.value)}
-              placeholder="Lordaeron"
-              className="bg-bg-card border border-gold-dim rounded px-3 py-1.5 text-sm text-text-primary outline-none focus:border-gold-dim w-32"
-            />
+              className="bg-bg-card border border-gold-dim rounded px-3 py-1.5 text-sm text-text-primary outline-none focus:border-gold transition-colors"
+            >
+              <option value="Lordaeron">Lordaeron</option>
+              <option value="Icecrown">Icecrown</option>
+              <option value="Frostmourne">Frostmourne</option>
+            </select>
           </div>
           <div className="flex items-center gap-2">
             <label className="text-xs text-text-secondary uppercase tracking-wide">Server</label>
             <select
               value={realmHost}
               onChange={e => setRealmHost(e.target.value)}
-              className="bg-bg-card border border-gold-dim rounded px-3 py-1.5 text-sm text-text-primary outline-none focus:border-gold-dim"
+              className="bg-bg-card border border-gold-dim rounded px-3 py-1.5 text-sm text-text-primary outline-none focus:border-gold transition-colors"
             >
               <option value="warmane">Warmane</option>
-              <option value="blizzard">Blizzard</option>
-              <option value="kronos">Kronos</option>
-              <option value="other">Other</option>
             </select>
           </div>
           <div className="flex items-center gap-2">
@@ -187,7 +200,7 @@ export function UploadZone({ onComplete }: UploadZoneProps) {
               value={guildName}
               onChange={e => setGuildName(e.target.value)}
               placeholder="PizzaWarriors (optional)"
-              className="bg-bg-card border border-gold-dim rounded px-3 py-1.5 text-sm text-text-primary outline-none focus:border-gold-dim w-48"
+              className="bg-bg-card border border-gold-dim rounded px-3 py-1.5 text-sm text-text-primary outline-none focus:border-gold transition-colors w-48"
             />
           </div>
         </div>

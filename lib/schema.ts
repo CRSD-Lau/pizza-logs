@@ -1,10 +1,11 @@
 import { z } from "zod";
 
 export const UploadRequestSchema = z.object({
-  guildName:  z.string().min(1).max(64).optional(),
-  realmName:  z.string().min(1).max(64).default("Lordaeron"),
-  realmHost:  z.string().min(1).max(64).default("warmane"),
-  expansion:  z.enum(["wotlk", "cata", "mop", "retail"]).default("wotlk"),
+  uploaderName: z.string().min(1).max(32),
+  guildName:    z.string().min(1).max(64).optional(),
+  realmName:    z.string().min(1).max(64).default("Lordaeron"),
+  realmHost:    z.string().min(1).max(64).default("warmane"),
+  expansion:    z.enum(["wotlk", "cata", "mop", "retail"]).default("wotlk"),
 });
 export type UploadRequest = z.infer<typeof UploadRequestSchema>;
 

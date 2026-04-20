@@ -15,10 +15,11 @@ export async function POST(req: NextRequest) {
   const fileSize = parseInt(searchParams.get("fileSize") ?? "0", 10);
 
   const meta = UploadRequestSchema.safeParse({
-    guildName: searchParams.get("guildName") ?? undefined,
-    realmName: searchParams.get("realmName") ?? "Lordaeron",
-    realmHost: searchParams.get("realmHost") ?? "warmane",
-    expansion: searchParams.get("expansion") ?? "wotlk",
+    uploaderName: searchParams.get("uploaderName") ?? undefined,
+    guildName:    searchParams.get("guildName") ?? undefined,
+    realmName:    searchParams.get("realmName") ?? "Lordaeron",
+    realmHost:    searchParams.get("realmHost") ?? "warmane",
+    expansion:    searchParams.get("expansion") ?? "wotlk",
   });
   if (!meta.success) {
     return new Response(
@@ -26,7 +27,7 @@ export async function POST(req: NextRequest) {
       { status: 400, headers: { "Content-Type": "text/event-stream" } },
     );
   }
-  const { guildName, realmName, realmHost, expansion } = meta.data;
+  const { uploaderName, guildName, realmName, realmHost, expansion } = meta.data;
   const parserUrl = process.env.PARSER_SERVICE_URL ?? "http://localhost:8000";
   const contentType = req.headers.get("content-type") ?? "";
 
@@ -153,6 +154,7 @@ export async function POST(req: NextRequest) {
             status:       "PARSING",
             realmId:      realm.id,
             guildId:      guildId ?? null,
+            uploaderName: uploaderName,
             rawLineCount: parseResult.rawLineCount,
           },
         });
