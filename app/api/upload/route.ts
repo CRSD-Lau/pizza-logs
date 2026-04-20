@@ -270,14 +270,16 @@ export async function POST(req: NextRequest) {
           })
         );
 
-        send({ type: "progress", pct: 98, msg: "Computing milestones…" });
-
-        const milestones = await computeMilestones(milestoneChecks);
-
+        // Mark DONE now — encounters are saved. Milestones are best-effort;
+        // if they fail or the stream drops, the upload still shows correctly.
         await db.upload.update({
           where: { id: upload.id },
           data:  { status: "DONE", parsedAt: new Date() },
         });
+
+        send({ type: "progress", pct: 98, msg: "Computing milestones…" });
+
+        const milestones = await computeMilestones(milestoneChecks);
 
         send({
           type: "complete",

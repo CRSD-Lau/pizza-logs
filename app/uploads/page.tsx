@@ -46,11 +46,14 @@ export default async function UploadsPage() {
           {uploads.map(u => {
             const kills = u.encounters.filter(e => e.outcome === "KILL").length;
             const wipes = u.encounters.filter(e => e.outcome === "WIPE").length;
-            const statusVariant = u.status === "DONE"
+            // Treat PARSING-with-encounters as effectively DONE (status can get stuck if stream drops)
+            const effectivelyDone = u.status === "DONE" || (u.status === "PARSING" && u.encounters.length > 0);
+            const statusVariant = effectivelyDone
               ? "kill"
               : u.status === "FAILED" ? "wipe"
               : u.status === "DUPLICATE" ? "normal"
               : "gold";
+            const statusLabel = effectivelyDone ? "DONE" : u.status;
 
             return (
               <div
@@ -68,7 +71,7 @@ export default async function UploadsPage() {
                         {u.filename}
                       </Link>
                       <Badge variant={statusVariant as Parameters<typeof Badge>[0]["variant"]}>
-                        {u.status}
+                        {statusLabel}
                       </Badge>
                     </div>
                     <div className="text-xs text-text-dim mt-0.5">
@@ -119,7 +122,7 @@ export default async function UploadsPage() {
                   <p className="text-xs text-danger">{u.errorMessage}</p>
                 )}
 
-                {u.status === "DONE" && (
+                {effectivelyDone && (
                   <div>
                     <Link
                       href={`/uploads/${u.id}`}

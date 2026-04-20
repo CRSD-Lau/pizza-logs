@@ -8,7 +8,7 @@ export const dynamic = "force-dynamic";
 
 export default async function RaidsPage() {
   const uploads = await db.upload.findMany({
-    where:    { status: "DONE" },
+    where:    { encounters: { some: {} } },
     orderBy:  { createdAt: "desc" },
     take:     50,
     select: {
