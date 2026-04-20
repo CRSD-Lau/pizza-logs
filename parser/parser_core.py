@@ -492,6 +492,7 @@ class CombatLogParser:
         boss_died_ts: Optional[float] = None  # for accurate KILL duration
 
         boss_name_lower = boss_name.lower() if boss_name else ""
+        boss_alias_set  = {a.lower() for a in boss_def.aliases} if boss_def else set()
 
         for ts_str, parts, ts in segment:
             event = parts[0]
@@ -502,9 +503,11 @@ class CombatLogParser:
                 if len(parts) >= 6:
                     dead_name = parts[5].strip('"').strip()
                     dead_lower = dead_name.lower()
-                    # Track boss death for accurate KILL duration
+                    # Track boss death for accurate KILL duration.
+                    # Also check aliases — e.g. Blood Prince Council dies as "Prince Valanar".
                     if boss_died_ts is None and (
                         dead_lower == boss_name_lower
+                        or dead_lower in boss_alias_set
                         or ("valithria" in boss_name_lower and (
                             "combat trigger" in dead_lower or "green dragon" in dead_lower))
                     ):

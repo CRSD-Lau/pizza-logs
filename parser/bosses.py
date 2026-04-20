@@ -52,7 +52,7 @@ BOSSES: list[BossDef] = [
     BossDef("Ignis the Furnace Master","ignis",              "Ulduar",                  33118),
     BossDef("Razorscale",            "razorscale",           "Ulduar",                  33186),
     BossDef("XT-002 Deconstructor",  "xt-002",               "Ulduar",                  33293),
-    BossDef("Assembly of Iron",      "assembly-of-iron",     "Ulduar",                  33271,
+    BossDef("Assembly of Iron",      "assembly-of-iron",     "Ulduar",                  None,
             ["Steelbreaker", "Molgeim", "Brundir"]),
     BossDef("Kologarn",              "kologarn",             "Ulduar",                  32930),
     BossDef("Auriaya",               "auriaya",              "Ulduar",                  33515),
@@ -76,8 +76,10 @@ BOSSES: list[BossDef] = [
     # Icecrown Citadel
     BossDef("Lord Marrowgar",        "lord-marrowgar",       "Icecrown Citadel",        36612),
     BossDef("Lady Deathwhisper",     "lady-deathwhisper",    "Icecrown Citadel",        36855),
-    BossDef("Gunship Battle",        "gunship-battle",       "Icecrown Citadel",        37813,
-            ["Skybreaker", "Orgrim's Hammer", "Muradin Bronzebeard", "High Overlord Saurfang"]),
+    BossDef("Gunship Battle",        "gunship-battle",       "Icecrown Citadel"),
+            # Aliases removed: Skybreaker/Orgrim's Hammer/Muradin are NPC-vs-NPC events;
+            # players never deal damage to these targets on Horde-side Warmane logs,
+            # so any detected segment would be a false positive. Gunship is undetectable.
     BossDef("Deathbringer Saurfang", "deathbringer-saurfang","Icecrown Citadel",        37813),
     BossDef("Festergut",             "festergut",            "Icecrown Citadel",        36626),
     BossDef("Rotface",               "rotface",              "Icecrown Citadel",        36627),
