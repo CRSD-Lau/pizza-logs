@@ -2,17 +2,11 @@
 
 ## Active Bugs
 
-### 🔴 Marrowgar DPS Over-Count
+### 🟡 Marrowgar DPS Over-Count
 - **Symptom**: App shows ~9.45k for Lausudo on Marrowgar; uwu-logs reference shows 9.3k
-- **Direction**: App is OVER (was under before boss-death duration fix, now slightly over)
-- **Hypothesis**: Parser may be including events slightly before the pull, or the reference site excludes certain event types we include
-- **Status**: Under investigation — not yet root-caused
+- **Direction**: App is OVER — `DAMAGE_SHIELD` exclusion (2026-04-21) should reduce this gap
+- **Status**: Partially addressed — re-upload needed to confirm residual delta
 - **Reference**: https://uwu-logs.xyz/reports/26-04-17--18-47--Rimeclaw--Lordaeron/player/Lausudo/?boss=lord-marrowgar&mode=25H&attempt=1&s=3297&f=3633
-
-### 🟡 Gunship Battle — Kill/Wipe outcome uncertain
-- **Symptom**: Encounter detected but outcome may show as WIPE (no reliable kill signal)
-- **Cause**: The fight ends when ship HP reaches 0, which may not produce a standard UNIT_DIED event for a tracked alias
-- **Status**: Detection restored via Skybreaker crew aliases. Outcome accuracy TBD.
 
 ---
 
@@ -24,6 +18,8 @@
 | Valithria both WIPEs | Added "Green Dragon Combat Trigger" death detection | c630c12 |
 | False positive Sindragosa 10N | Added `total_damage == 0 and duration < 60` filter | c630c12 |
 | Gunship adds triggering Saurfang KILL | Removed add NPC aliases from Gunship def | c630c12 |
+| Gunship shows as WIPE | Added Gunship-specific kill detection (crew UNIT_DIED = KILL) mirroring Valithria pattern | TBD |
+| Session total ~13M over UWU | Removed DAMAGE_SHIELD from DMG_EVENTS (retribution aura/thorns not player DPS) | TBD |
 | False Deathbringer Saurfang WIPE (230s) | Gunship wow_boss_id=37813 conflicted with Saurfang; removed Gunship aliases | 5340523 |
 | Blood Prince Council kill duration wrong | boss_died_ts now checks aliases (Prince Valanar → BPC) | 5340523 |
 | TypeScript build error (UploadZone reset) | Missing `elapsed: 0` in reset state | 9e70a1e |
@@ -38,6 +34,6 @@
 | Limitation | Reason |
 |---|---|
 | Heroic difficulty undetectable | Warmane uses same NPC/spell IDs for 25N and 25H; no ENCOUNTER_START difficulty flag |
-| Gunship Battle undetectable | See above |
+| Gunship damage ±small vs UWU | Persistent pets (Hunter beast, Warlock demon pre-summoned) have no SPELL_SUMMON — orphaned until resolved |
 | DPS accuracy ±1-2% vs uwu-logs | Different event inclusion rules; fingerprint-level accuracy probably not achievable |
 | Progress bar fake before file received | File write to parser happens before SSE can start; first event is at 28% |

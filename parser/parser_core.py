@@ -46,8 +46,9 @@ DMG_EVENTS = {
     "SWING_DAMAGE",
     "RANGE_DAMAGE",
     "SPELL_PERIODIC_DAMAGE",
-    "DAMAGE_SHIELD",
     "SPELL_BUILDING_DAMAGE",
+    # DAMAGE_SHIELD excluded: reflects retribution aura/thorns triggered by boss
+    # attacks, not player-initiated output. Excluded by UWU and Warcraft Logs.
 }
 
 HEAL_EVENTS = {
@@ -785,6 +786,21 @@ class CombatLogParser:
                     if name == "valithria dreamwalker":
                         return "WIPE"
                     if "combat trigger" in name or "green dragon" in name:
+                        return "KILL"
+            return "WIPE"
+
+        # Gunship Battle: ends via scripted ship destruction, not a named boss UNIT_DIED.
+        # High Captain Justin Bartlett does NOT produce UNIT_DIED at fight end on Warmane.
+        # A KILL is confirmed by any Skybreaker crew member dying during the segment.
+        if "gunship" in bn:
+            _gunship_crew = {
+                "muradin bronzebeard", "high captain justin bartlett",
+                "skybreaker sorcerer", "skybreaker rifleman", "skybreaker sergeant",
+            }
+            for _, parts, _ in segment:
+                if parts[0] == UNIT_DIED_EVENT and len(parts) >= 6:
+                    name = parts[5].strip('"').strip().lower()
+                    if name in _gunship_crew:
                         return "KILL"
             return "WIPE"
 

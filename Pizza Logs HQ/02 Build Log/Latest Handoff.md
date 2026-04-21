@@ -1,37 +1,30 @@
 # Latest Handoff
 
 ## Date
-2026-04-20
+2026-04-21
 
 ## Git
-**Latest:** `c2276a1` — main branch, pushed, Railway deploying
-
-## DB
-EMPTY — cleared after each feature this session
+**Latest:** `TBD after commit` — main branch
 
 ---
 
 ## Completed This Session
 
-### Technical Debt ✅
-- **Footer fix**: "client-side, no data leaves your browser" → "All parsing handled server-side on Railway" (`app/layout.tsx`)
-- **Admin auth middleware** (`middleware.ts`): protects `/admin/*` — checks `x-admin-secret` cookie or header against `ADMIN_SECRET` env var; redirects to `/admin/login` if missing/wrong
-- **Admin login page** (`app/admin/login/page.tsx` + `actions.ts`): branded Pizza Logs UI, server action verifies secret, sets cookie, hard-redirects to `/admin` on success; shows error on wrong secret
+### Forensic Code Review + Two Root-Cause Fixes
 
-### Upload Form ✅
-- **Character field** (new, mandatory): uploader's character name — stored as `uploaderName String?` on Upload model; drop zone locked until filled
-- **Realm** → dropdown: Lordaeron (default) / Icecrown / Onyxia / Blackrock
-- **Server** → locked to Warmane (single option, label preserved)
-- **Guild** → unchanged, optional
+**Problem**: Session total damage 289.38M vs UWU 276.04M (+13.33M); Gunship Battle showing as WIPE.
 
-### Upload Bug Fixes ✅
-- **False "network error" after success**: `succeeded` flag set on `complete` event — stream-close errors after that are silently ignored
-- **File opening in browser tab**: when locked (no character name), explicit `onDragOver` / `onDragEnter` / `onDrop` / `onClick` handlers call `preventDefault()` — browser never gets the file; hidden file input not rendered
+#### Fix 1 — DAMAGE_SHIELD removed from DMG_EVENTS (`parser/parser_core.py`)
+- `DAMAGE_SHIELD` events = Retribution Aura / Thorns reflect damage, triggered by boss attacks on players
+- NOT player-initiated output — UWU and Warcraft Logs both exclude this event type
+- Was accumulating 10–15M across a full ICC clear in a 25-player raid with Paladin/Druid tanks
+- One-line deletion from the `DMG_EVENTS` set
 
-### Vault Audit ✅
-- Archived 5 superseded files → `99 Archive/`
-- Cross-linked all orphaned notes (Technical Debt, Security Checklist, Growth & Business, Prompt Library)
-- Now.md refactored to link → `[[Known Issues]]`
+#### Fix 2 — Gunship kill detection special case (`parser/parser_core.py`, `_infer_outcome`)
+- Gunship Battle ends via scripted ship destruction, not a named boss UNIT_DIED
+- High Captain Justin Bartlett does NOT produce UNIT_DIED at fight end on Warmane 3.3.5a
+- General loop found no matching event → fell through to `return "WIPE"`
+- Fix: added Gunship-specific block (mirroring existing Valithria pattern) — any Skybreaker crew UNIT_DIED within the segment = KILL
 
 ---
 
@@ -39,40 +32,29 @@ EMPTY — cleared after each feature this session
 
 | File | Change |
 |---|---|
-| `app/layout.tsx` | Footer copy fixed |
-| `middleware.ts` | NEW — admin route guard |
-| `app/admin/login/page.tsx` | NEW — branded login form |
-| `app/admin/login/actions.ts` | NEW — server action to verify ADMIN_SECRET |
-| `prisma/schema.prisma` | `Upload.uploaderName String?` added |
-| `lib/schema.ts` | `UploadRequestSchema` — uploaderName required |
-| `app/api/upload/route.ts` | reads + stores uploaderName |
-| `components/upload/UploadZone.tsx` | Character field, realm dropdown, lock UX, succeeded flag |
-| `Pizza Logs HQ/*` | Vault audit — archive, cross-links, Now.md refactor |
+| `parser/parser_core.py` | Removed `DAMAGE_SHIELD` from `DMG_EVENTS`; added Gunship kill detection block in `_infer_outcome` |
+| `Pizza Logs HQ/09 Bugs and Blockers/Known Issues.md` | Closed Gunship/damage bugs, downgraded Marrowgar to yellow |
 
 ---
 
-## Architecture Notes (new this session)
-- `ADMIN_SECRET` env var must be set in Railway → Web Service → Variables
-- Login via: `document.cookie = "x-admin-secret=SECRET; path=/; SameSite=Strict"` or the `/admin/login` page
-- `uploaderName` is nullable in DB — old uploads unaffected; new uploads require it in the form
-- Drop zone: when `isLocked`, `lockedProps` replaces `getRootProps()` entirely (not just `disabled`)
-- Server action (`"use server"`) used for secret verification — avoids fetch/redirect detection race
+## Architecture Notes
+- `DAMAGE_SHIELD` was also used as an encounter window extension event — removing it is correct, encounter detection should not be driven by thorns procs
+- Gunship special case placed after the Valithria block, before the general UNIT_DIED loop
+- `"gunship" in bn` check is safe — `bn` is already lowercase at that point
 
 ---
 
 ## Exact Next Steps
-1. Set `ADMIN_SECRET` in Railway → Web Service → Variables (if not done)
-2. Upload a log via `/` — enter character name, confirm drop zone unlocks, upload completes with success (not "network error")
-3. Next feature: pick from Backlog — absorbs tracking is next highest-value item
+1. **Deploy**: push to Railway, wait for parser-py to redeploy
+2. **Re-upload**: clear DB at `/admin` → upload same log
+3. **Verify**:
+   - Session total should drop from 289.38M toward ~276M
+   - Gunship Battle should show as **KILL**
+   - Marrowgar Lausudo DPS should drop from ~9.45k toward 9.3k
+4. If Gunship still WIPE: run `diagnose.py` locally to confirm crew UNIT_DIED events fall within segment window
+5. If total still significantly over UWU: check `diagnose.py` orphan pets section (Hunter beast, Warlock demon)
 
 ## Pending Features
 - **Absorbs tracking**: parse `SPELL_ABSORBED` events — parser + schema + UI work (L effort)
+- **Persistent pet attribution**: Hunter beasts / Warlock demons summoned before log starts — no SPELL_SUMMON to key off
 - **Damage mitigation stats**: `SPELL_MISSED` subtypes (ABSORB, BLOCK, PARRY, DODGE)
-- **Consumable tracking**: buff applications from consumable spells (XL effort)
-- **Gunship + Saurfang fix**: known limitation — investigate if fixable
-- **Marrowgar DPS over-count**: ~9.45k vs uwu-logs 9.3k — not root-caused
-
-## Not Working On
-- Heroic detection (impossible without ENCOUNTER_START)
-- Major redesigns
-- Monetization
