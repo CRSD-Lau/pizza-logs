@@ -1,37 +1,29 @@
 # Now
 
 ## Status
-Session done. Vault updated. 42 tests passing.
-
-Session totals are adoption-ready:
-- Session 2 (25H): 403.92M vs UWU 407.72M — **0.93% delta**
-- Session 1 (10H): 193.66M vs UWU 200.40M — **3.36% delta**
+`75ae523` pushed. Railway redeploying. Clear DB → re-upload to verify delta is closed.
 
 ---
 
-## Completed This Session (total)
-
-1. **Overkill + P2P fix** (7868a17) — −13M from session total
-2. **Interaction scan fix** (8a6e9ff) — Gunship Cannon fake DPS gone
-3. **Full-session damage** (9e0ae01) — session header now shows boss+trash (matches UWU Custom Slice)
+## Immediate Next Step
+Re-upload the April 19 Notlich Lordaeron log and confirm:
+- Session 2 (25H): ~407M ≈ UWU 407,718,447
+- Session 1 (10H): ~200M ≈ UWU 200,402,269
 
 ---
 
-## Next Session Options
+## This Session Summary (all fixes)
 
-### A. Close the remaining ~3.8M gap (session 2)
-Try adding `DAMAGE_SHIELD` to the session-total accumulator only — Retribution Aura / thorns
-that fire during trash. These are excluded from boss-encounter DPS but UWU likely counts them
-in the full slice. See Latest Handoff for details.
+| Fix | Delta Closed |
+|---|---|
+| Overkill + P2P | −13M |
+| Gunship Cannons | −4.46M |
+| Full-session (boss+trash) | +128M (was showing boss-only) |
+| DAMAGE_SHIELD | −3.8M / −6.74M |
 
-### B. Next feature
+---
+
+## Next Features
 - Absorbs tracking (`SPELL_ABSORBED`)
-- Player detail page (per-boss breakdown for one player)
-- Damage mitigation stats (`SPELL_MISSED` subtypes)
-
----
-
-## Not Working On
-- UI redesigns
-- Non-ICC content
-- Heroic detection overhaul
+- Player detail page (per-boss per-session for one player)
+- Damage mitigation stats

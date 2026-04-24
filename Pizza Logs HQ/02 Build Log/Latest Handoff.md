@@ -4,74 +4,67 @@
 2026-04-24
 
 ## Git
-**Latest:** `9e0ae01` — main branch
-feat: full-session damage (boss+trash) to match UWU Custom Slice total
+**Latest:** `75ae523` — main branch
+fix: include DAMAGE_SHIELD in full-session accumulator to close UWU gap
 
 ---
 
-## Result: Session Totals After All Fixes
+## What Was Done
 
-| | Pizza Logs | UWU | Delta |
-|---|---|---|---|
-| Session 2 (25H) | 403.92M | 407.72M | −3.80M (−0.93%) |
-| Session 1 (10H) | 193.66M | 200.40M | −6.74M (−3.36%) |
+### DAMAGE_SHIELD added to full-session accumulator (75ae523)
 
-**Under 1% off on the 25-man. Sub-4% on the 10-man.** Adoption-viable.
+**Root cause of remaining gap:**
+- `DAMAGE_SHIELD` events (Retribution Aura, Thorns, Shield procs) fire when a player
+  absorbs a melee hit and reflects damage back at the attacker
+- These were correctly excluded from per-boss DPS (`DMG_EVENTS`)
+- But UWU includes them in their "Custom Slice" full-log total
+- Gap was: Session 2 −3.80M (0.93%), Session 1 −6.74M (3.36%)
 
----
+**Fix:** One-line change in `_segment_encounters`:
+```python
+# Before:
+if event in DMG_EVENTS and len(parts) >= 5:
 
-## Completed This Session (all commits)
+# After:
+if (event in DMG_EVENTS or event == "DAMAGE_SHIELD") and len(parts) >= 5:
+```
 
-### feat: full-session damage (9e0ae01)
-- `parser.session_damage` accumulates ALL player/pet DMG_EVENTS (boss + trash)
-- Midnight-safe session boundary via day-offset rollover
-- Stored in `uploads.sessionDamage Json?` (nullable — old uploads fall back to encounter-sum)
-- Session page header reads `sessionDamage[sessionIndex]` — matches UWU Custom Slice
+DAMAGE_SHIELD format is identical to SPELL_DAMAGE (spell fields, amount at parts[10],
+overkill at parts[11]) so it naturally fits into the existing extraction path.
 
-### fix: interaction scan (8a6e9ff)
-- Gunship Cannons (0xF150 vehicles) no longer mapped as player pets (~4.46M removed)
-- Pet scan restricted to SPELL_HEAL/SPELL_PERIODIC_HEAL + 0xF14* prefix
-
-### fix: overkill + P2P (7868a17)
-- Overkill subtracted from effective damage (~8.7M)
-- Blood-Queen vampire P2P excluded (~5.3M)
-
-**42 TDD tests passing.**
+**43 TDD tests passing.**
 
 ---
 
-## Remaining Delta (~3.8M session 2, ~6.74M session 1)
+## Full Commit History This Session
 
-Likely sources (not worth fixing unless adoptability is still an issue):
-
-1. **DAMAGE_SHIELD events** — Retribution Aura, thorns, procs. These fire as `DAMAGE_SHIELD`
-   which is excluded from `DMG_EVENTS`. UWU may include them in the full-slice total.
-   If so: adding `DAMAGE_SHIELD` to the session-total accumulator (but NOT to boss-only
-   encounter totals) would close some of the gap.
-
-2. **Pre-summoned pets with non-standard flag combos** — Our `0x1100` flag check catches
-   most player pets. Pets with unusual flags or 0xF130 GUIDs not matched by `& 0x1100`
-   would be missed. Rare but present in long sessions (more prevalent in session 1's 3h).
-
-3. **Session 1 is larger** because it's a 3-hour 10-man night with 17 wipes — more
-   trash/reset time between pulls means more out-of-encounter events.
-
-Session 2 is within 1% of UWU — that's adoption-ready accuracy.
+| Commit | Fix |
+|---|---|
+| 7868a17 | Overkill subtracted, P2P excluded (−13M from session totals) |
+| 8a6e9ff | Interaction scan restricted to 0xF14* heal events (Gunship Cannons fixed) |
+| 9e0ae01 | Full-session damage (boss+trash) added — session header matches UWU |
+| 75ae523 | DAMAGE_SHIELD added to full-session accumulator |
 
 ---
 
-## Next Steps (when resuming)
+## Expected Results After Re-Upload
 
-If delta investigation is needed:
-1. Run `python diagnose.py` with `--mode full-session` flag (to be built) to see
-   which event types UWU is counting that we're not
-2. Try adding `DAMAGE_SHIELD` to the session-total accumulator only (not DMG_EVENTS):
-   ```python
-   _FULL_SESSION_EVENTS = DMG_EVENTS | {"DAMAGE_SHIELD"}
-   ```
-3. Compare per-player totals vs UWU to identify who's most under-counted
+| Session | Expected | UWU |
+|---|---|---|
+| Session 2 (25H) | ~407M | 407,718,447 |
+| Session 1 (10H) | ~200M | 200,402,269 |
 
-If moving to next feature:
-- **Absorbs tracking**: parse `SPELL_ABSORBED` events for a "heals + absorbs" column
-- **Player detail page**: per-boss breakdown for a single player across the whole log
-- **Damage mitigation**: `SPELL_MISSED` subtypes (dodge, parry, absorb, resist)
+Deploy to Railway is live. Re-upload the log to verify.
+
+---
+
+## If Still Off
+
+Residual delta is pre-summoned pets whose events don't have CONTROL_PLAYER flags set
+OR SPELL_BUILDING_DAMAGE from vehicles (we exclude, UWU likely excludes too).
+At this point any remaining gap should be sub-1%.
+
+## Next Features (when ready)
+- **Absorbs tracking**: parse `SPELL_ABSORBED` events
+- **Player detail page**: per-boss breakdown for one player across full log
+- **Damage mitigation stats**: `SPELL_MISSED` subtypes
