@@ -768,3 +768,105 @@ def test_pet_already_in_pet_owner_not_overwritten_by_interaction():
     phyre = next((p for p in enc.participants if p["name"] == "Phyre"), None)
     assert phyre is not None, "damage not credited to original owner"
     assert phyre["totalDamage"] == pytest.approx(50_000, rel=0.01)
+
+
+# ── Full-session damage (parser.session_damage) ───────────────────────────────
+#
+# parser.session_damage[session_idx] must equal the sum of ALL player/pet damage
+# across the entire session (boss pulls + trash), matching what UWU shows.
+
+import io as _io
+
+
+def _make_full_log(*lines: str) -> str:
+    return "".join(lines)
+
+
+def _pdmg(ts: str, src: str, dst: str, dst_name: str, amount: int,
+          overkill: int = 0) -> str:
+    """Format a SPELL_DAMAGE log line for parse_file."""
+    return (f'{ts}  SPELL_DAMAGE,{src},"Phyre",0x512,'
+            f'{dst},"{dst_name}",0xa48,133,"Frostbolt",4,'
+            f'{amount},{overkill},4,0,0,0,0,0\n')
+
+
+def _enc_start(ts: str, boss: str = "Lord Marrowgar",
+               bid: int = 1234, diff: int = 6, size: int = 25) -> str:
+    return f'{ts}  ENCOUNTER_START,{bid},"{boss}",{diff},{size}\n'
+
+
+def _enc_end(ts: str, boss: str = "Lord Marrowgar",
+             bid: int = 1234, diff: int = 6, size: int = 25,
+             success: int = 1) -> str:
+    return f'{ts}  ENCOUNTER_END,{bid},"{boss}",{diff},{size},{success}\n'
+
+
+def _died(ts: str, guid: str, name: str) -> str:
+    return (f'{ts}  UNIT_DIED,{PLAYER_GUID},"Phyre",0x512,'
+            f'{guid},"{name}",0xa48,0\n')
+
+
+def test_session_damage_starts_empty():
+    """parser.session_damage is an empty dict before parse_file is called."""
+    parser = CombatLogParser()
+    assert hasattr(parser, "session_damage")
+    assert parser.session_damage == {}
+
+
+def test_session_damage_includes_pre_encounter_trash():
+    """Damage that lands before ENCOUNTER_START must appear in session_damage."""
+    PG = PLAYER_GUID
+    NG = NPC_GUID
+    BG = "0xF130000000000002"
+
+    trash_amount = 77_777
+    boss_amount  = 55_555
+
+    boss_hits = "".join(
+        _pdmg(f"4/19 13:01:{10+i:02d}.000", PG, BG, "Lord Marrowgar", boss_amount)
+        for i in range(10)
+    )
+
+    log = _make_full_log(
+        _pdmg("4/19 13:00:00.000", PG, NG, "Trash Mob", trash_amount),
+        _enc_start("4/19 13:01:00.000"),
+        boss_hits,
+        _died("4/19 13:02:00.000", BG, "Lord Marrowgar"),
+        _enc_end("4/19 13:03:21.000"),
+    )
+
+    parser = CombatLogParser()
+    parser.parse_file(_io.StringIO(log))
+
+    expected = trash_amount + boss_amount * 10
+    assert 0 in parser.session_damage, "session 0 must be populated"
+    assert parser.session_damage[0] == pytest.approx(expected, rel=0.01)
+
+
+def test_session_damage_excludes_player_to_player():
+    """P2P damage (Blood-Queen vampires etc.) must not appear in session_damage."""
+    PG1 = PLAYER_GUID
+    PG2 = "0x0600000000000099"  # second player
+    BG  = "0xF130000000000002"
+
+    p2p_amount  = 99_999
+    boss_amount =  50_000
+
+    boss_hits = "".join(
+        _pdmg(f"4/19 13:01:{10+i:02d}.000", PG1, BG, "Lord Marrowgar", boss_amount)
+        for i in range(10)
+    )
+
+    log = _make_full_log(
+        _pdmg("4/19 13:00:00.000", PG1, PG2, "Player2", p2p_amount),
+        _enc_start("4/19 13:01:00.000"),
+        boss_hits,
+        _died("4/19 13:02:00.000", BG, "Lord Marrowgar"),
+        _enc_end("4/19 13:03:21.000"),
+    )
+
+    parser = CombatLogParser()
+    parser.parse_file(_io.StringIO(log))
+
+    expected = boss_amount * 10  # p2p excluded
+    assert parser.session_damage.get(0, 0) == pytest.approx(expected, rel=0.01)

@@ -260,9 +260,10 @@ def parse_ts_to_iso(ts_str: str, year_hint: int = 2024) -> str:
 
 class CombatLogParser:
     def __init__(self, file_year: int = 2024):
-        self.file_year   = file_year
-        self.raw_count   = 0
+        self.file_year    = file_year
+        self.raw_count    = 0
         self.warnings: list[str] = []
+        self.session_damage: dict[int, float] = {}
         # Cache boss name set once — this is hit millions of times during segmentation
         self._boss_name_set: set[str] = ALL_BOSS_NAMES
 
@@ -408,8 +409,53 @@ class CombatLogParser:
         heuristic_segment: list[tuple[str, list[str], float]] = []
         all_buffer: list[tuple[str, list[str], float]] = []  # rolling buffer of recent events
 
+        # ── Full-session damage accumulator ──────────────────────
+        # Counts ALL player/pet damage (boss + trash) to match UWU "Custom Slice".
+        # Session boundaries use the same 3600s gap as _assign_session_indices.
+        # Midnight rollover: when ts jumps backward >12 h we add a day offset so
+        # the absolute timestamp increases monotonically.
+        _full_dmg: dict[int, float] = {}
+        _full_session_idx: int = 0
+        _last_local_ts: float = 0.0
+        _day_offset: float = 0.0
+        _last_abs_ts: float = -1.0
+        _SESSION_BREAK = 3600.0
+
         for ts_str, parts, ts in lines:
             event = parts[0]
+
+            # ── Midnight-safe session boundary detection ──────────
+            if ts < _last_local_ts - 43200.0:  # ts jumped back >12 h = new calendar day
+                _day_offset += 86400.0
+            abs_ts = _day_offset + ts
+            if _last_abs_ts >= 0 and abs_ts - _last_abs_ts > _SESSION_BREAK:
+                _full_session_idx += 1
+            _last_local_ts = ts
+            _last_abs_ts   = abs_ts
+
+            # ── Accumulate full-session player/pet damage ─────────
+            if event in DMG_EVENTS and len(parts) >= 5:
+                src_guid  = parts[1]
+                dst_guid  = parts[4]
+                src_flags = parts[3] if len(parts) > 3 else "0"
+                is_player = _is_player(src_guid)
+                is_pet    = False
+                if not is_player:
+                    try:
+                        is_pet = (int(src_flags, 16) & 0x1100) == 0x1100
+                    except (ValueError, TypeError):
+                        pass
+                if (is_player or is_pet) and not _is_player(dst_guid):
+                    try:
+                        if event == "SWING_DAMAGE" and len(parts) >= 9:
+                            eff = max(0.0, float(parts[7]) - float(parts[8]))
+                        elif len(parts) >= 12:
+                            eff = max(0.0, float(parts[10]) - float(parts[11]))
+                        else:
+                            eff = 0.0
+                        _full_dmg[_full_session_idx] = _full_dmg.get(_full_session_idx, 0.0) + eff
+                    except (ValueError, IndexError):
+                        pass
 
             # ── SPELL_SUMMON: build pet→owner map (global, outside segments) ──
             if event == "SPELL_SUMMON" and len(parts) >= 5:
@@ -504,6 +550,7 @@ class CombatLogParser:
             if heuristic_segment and len(heuristic_segment) >= MIN_ENCOUNTER_EVENTS:
                 segments.append(heuristic_segment)
 
+        self.session_damage = _full_dmg
         return segments, pet_owner
 
     def _is_boss_event(self, parts: list[str]) -> bool:

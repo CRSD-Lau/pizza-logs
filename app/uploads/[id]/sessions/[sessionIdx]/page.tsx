@@ -25,6 +25,7 @@ export default async function SessionDetailPage({ params }: Props) {
     where: { id },
     select: {
       id: true, filename: true, fileSize: true, rawLineCount: true,
+      sessionDamage: true,
       realm: { select: { name: true, host: true } },
       guild: { select: { name: true } },
     },
@@ -47,9 +48,14 @@ export default async function SessionDetailPage({ params }: Props) {
   // ── Session-level aggregates ───────────────────────────────────────
   const kills     = encounters.filter(e => e.outcome === "KILL").length;
   const wipes     = encounters.filter(e => e.outcome === "WIPE").length;
-  const totalDmg  = encounters.reduce((s, e) => s + e.totalDamage, 0);
   const totalHeal = encounters.reduce((s, e) => s + e.totalHealing, 0);
   const totalSecs = encounters.reduce((s, e) => s + e.durationSeconds, 0);
+
+  // Full-session damage (boss + trash) — matches UWU "Custom Slice" total.
+  // Falls back to sum of encounter totals for uploads pre-dating this field.
+  const sessionDmgMap = (upload.sessionDamage ?? {}) as Record<string, number>;
+  const fullSessionDmg = sessionDmgMap[String(sessionIndex)];
+  const totalDmg = fullSessionDmg ?? encounters.reduce((s, e) => s + e.totalDamage, 0);
   const startedAt = encounters[0].startedAt;
   const endedAt   = encounters[encounters.length - 1].endedAt;
 

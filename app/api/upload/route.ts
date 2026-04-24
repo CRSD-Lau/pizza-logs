@@ -276,7 +276,11 @@ export async function POST(req: NextRequest) {
         // if they fail or the stream drops, the upload still shows correctly.
         await db.upload.update({
           where: { id: upload.id },
-          data:  { status: "DONE", parsedAt: new Date() },
+          data:  {
+            status:        "DONE",
+            parsedAt:      new Date(),
+            sessionDamage: parseResult.sessionDamage ?? {},
+          },
         });
 
         send({ type: "progress", pct: 98, msg: "Computing milestones…" });

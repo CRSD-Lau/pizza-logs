@@ -66,11 +66,12 @@ export const EncounterResultSchema = z.object({
 export type EncounterResult = z.infer<typeof EncounterResultSchema>;
 
 export const ParseResultSchema = z.object({
-  filename:     z.string(),
-  fileHash:     z.string(),
-  rawLineCount: z.number(),
-  encounters:   z.array(EncounterResultSchema),
-  warnings:     z.array(z.string()).optional(),
+  filename:      z.string(),
+  fileHash:      z.string(),
+  rawLineCount:  z.number(),
+  encounters:    z.array(EncounterResultSchema),
+  warnings:      z.array(z.string()).optional(),
+  sessionDamage: z.record(z.string(), z.number()).optional().default({}),
 });
 export type ParseResult = z.infer<typeof ParseResultSchema>;
 

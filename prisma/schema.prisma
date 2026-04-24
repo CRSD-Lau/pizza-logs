@@ -60,22 +60,23 @@ model Boss {
 // ─────────────────────────────────────────────
 
 model Upload {
-  id           String       @id @default(cuid())
-  filename     String
-  fileHash     String       @unique // SHA-256 hex — prevents exact duplicate uploads
-  fileSize     Int          // bytes
-  status       UploadStatus @default(PENDING)
-  guildId      String?
-  guild        Guild?       @relation(fields: [guildId], references: [id])
-  realmId      String?
-  realm        Realm?       @relation(fields: [realmId], references: [id])
-  encounters   Encounter[]
-  uploaderName String?      // character name of the person who uploaded
-  errorMessage String?
-  parsedAt     DateTime?
-  rawLineCount Int?
-  createdAt    DateTime     @default(now())
-  updatedAt    DateTime     @updatedAt
+  id             String       @id @default(cuid())
+  filename       String
+  fileHash       String       @unique // SHA-256 hex — prevents exact duplicate uploads
+  fileSize       Int          // bytes
+  status         UploadStatus @default(PENDING)
+  guildId        String?
+  guild          Guild?       @relation(fields: [guildId], references: [id])
+  realmId        String?
+  realm          Realm?       @relation(fields: [realmId], references: [id])
+  encounters     Encounter[]
+  uploaderName   String?      // character name of the person who uploaded
+  errorMessage   String?
+  parsedAt       DateTime?
+  rawLineCount   Int?
+  sessionDamage  Json?        // { "0": 407718447.0, "1": 200402269.0, … } full-log dmg per session
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
 
   @@map("uploads")
 }

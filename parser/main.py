@@ -82,11 +82,12 @@ class EncounterOut(BaseModel):
 
 
 class ParseResponse(BaseModel):
-    filename:     str
-    fileHash:     str
-    rawLineCount: int
-    encounters:   list[EncounterOut]
-    warnings:     list[str] = []
+    filename:      str
+    fileHash:      str
+    rawLineCount:  int
+    encounters:    list[EncounterOut]
+    warnings:      list[str] = []
+    sessionDamage: dict[str, float] = {}
 
 
 # ── Routes ────────────────────────────────────────────────────────
@@ -169,11 +170,12 @@ async def parse_log(
         ))
 
     return ParseResponse(
-        filename     = file.filename or "WoWCombatLog.txt",
-        fileHash     = file_hash,
-        rawLineCount = parser.raw_count,
-        encounters   = encounters_out,
-        warnings     = warnings,
+        filename      = file.filename or "WoWCombatLog.txt",
+        fileHash      = file_hash,
+        rawLineCount  = parser.raw_count,
+        encounters    = encounters_out,
+        warnings      = warnings,
+        sessionDamage = {str(k): v for k, v in parser.session_damage.items()},
     )
 
 
@@ -218,11 +220,12 @@ async def parse_log_by_path(body: dict) -> ParseResponse:
     ]
 
     return ParseResponse(
-        filename     = p.name,
-        fileHash     = file_hash,
-        rawLineCount = parser.raw_count,
-        encounters   = encounters_out,
-        warnings     = parser.warnings,
+        filename      = p.name,
+        fileHash      = file_hash,
+        rawLineCount  = parser.raw_count,
+        encounters    = encounters_out,
+        warnings      = parser.warnings,
+        sessionDamage = {str(k): v for k, v in parser.session_damage.items()},
     )
 
 
@@ -371,11 +374,12 @@ async def parse_log_stream(
         yield _sse({
             "type": "done",
             "data": {
-                "filename":     orig_filename,
-                "fileHash":     file_hash,
-                "rawLineCount": parser.raw_count,
-                "encounters":   encounters_out,
-                "warnings":     warnings,
+                "filename":      orig_filename,
+                "fileHash":      file_hash,
+                "rawLineCount":  parser.raw_count,
+                "encounters":    encounters_out,
+                "warnings":      warnings,
+                "sessionDamage": {str(k): v for k, v in parser.session_damage.items()},
             },
         })
 
