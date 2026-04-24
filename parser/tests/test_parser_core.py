@@ -870,3 +870,37 @@ def test_session_damage_excludes_player_to_player():
 
     expected = boss_amount * 10  # p2p excluded
     assert parser.session_damage.get(0, 0) == pytest.approx(expected, rel=0.01)
+
+
+def test_session_damage_includes_damage_shield_from_player():
+    """DAMAGE_SHIELD (Retribution Aura, thorns) from a player source must be
+    included in session_damage to match UWU Custom Slice totals.
+    These are excluded from per-boss DPS but UWU counts them in the full slice."""
+    PG = PLAYER_GUID
+    BG = "0xF130000000000002"
+
+    shield_amount = 12_345   # e.g. Retribution Aura proc
+    boss_hits = "".join(
+        _pdmg(f"4/19 13:01:{10+i:02d}.000", PG, BG, "Lord Marrowgar", 50_000)
+        for i in range(10)
+    )
+
+    def dmg_shield(ts: str, src: str, dst: str, dst_name: str, amount: int) -> str:
+        return (f'{ts}  DAMAGE_SHIELD,{src},"Phyre",0x512,'
+                f'{dst},"{dst_name}",0xa48,20066,"Retribution Aura",2,'
+                f'{amount},0,2,0,0,0,0,0\n')
+
+    log = _make_full_log(
+        dmg_shield("4/19 13:00:30.000", PG, BG, "Boss", shield_amount),
+        _enc_start("4/19 13:01:00.000"),
+        boss_hits,
+        _died("4/19 13:02:00.000", BG, "Lord Marrowgar"),
+        _enc_end("4/19 13:03:21.000"),
+    )
+
+    parser = CombatLogParser()
+    parser.parse_file(_io.StringIO(log))
+
+    expected = shield_amount + 50_000 * 10
+    assert 0 in parser.session_damage, "session 0 must be populated"
+    assert parser.session_damage[0] == pytest.approx(expected, rel=0.01)

@@ -434,7 +434,10 @@ class CombatLogParser:
             _last_abs_ts   = abs_ts
 
             # ── Accumulate full-session player/pet damage ─────────
-            if event in DMG_EVENTS and len(parts) >= 5:
+            # Includes DAMAGE_SHIELD (Retribution Aura, thorns) in addition to
+            # DMG_EVENTS — these are excluded from per-boss DPS but UWU counts
+            # them in the full Custom Slice total, closing the ~3-7M gap.
+            if (event in DMG_EVENTS or event == "DAMAGE_SHIELD") and len(parts) >= 5:
                 src_guid  = parts[1]
                 dst_guid  = parts[4]
                 src_flags = parts[3] if len(parts) > 3 else "0"
