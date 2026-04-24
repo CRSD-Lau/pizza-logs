@@ -1,37 +1,37 @@
 # Now
 
-## Active
-Full-session damage feature complete. 42 tests passing. Needs Railway deploy + `prisma db push`.
+## Status
+Session done. Vault updated. 42 tests passing.
+
+Session totals are adoption-ready:
+- Session 2 (25H): 403.92M vs UWU 407.72M — **0.93% delta**
+- Session 1 (10H): 193.66M vs UWU 200.40M — **3.36% delta**
 
 ---
 
-## Completed This Session
+## Completed This Session (total)
 
-### Full-session damage matches UWU
-- Session page "Total Damage" now shows full-log damage (boss + trash) = matches UWU Custom Slice
-- Session 2 should show ~407M, Session 1 ~200M after re-upload
-- `parser.session_damage` accumulates ALL player/pet DMG_EVENTS across the full log
-- Midnight-safe session boundary detection (day-offset rollover)
-- Nullable fallback: old uploads still show encounter-sum total
-
-### Interaction scan fix (8a6e9ff)
-- Gunship Cannons (0xF150) no longer mis-attributed as player pets (~4.46M removed)
-
-### Delta fix (7868a17)
-- Overkill subtracted, P2P excluded (~13M removed)
+1. **Overkill + P2P fix** (7868a17) — −13M from session total
+2. **Interaction scan fix** (8a6e9ff) — Gunship Cannon fake DPS gone
+3. **Full-session damage** (9e0ae01) — session header now shows boss+trash (matches UWU Custom Slice)
 
 ---
 
-## Immediate Next Steps
+## Next Session Options
 
-1. Push to Railway (git push already done)
-2. In Railway shell: `npx prisma db push`
-3. Clear DB at `/admin` → re-upload same log
-4. Verify: Session 2 = ~407M, Session 1 = ~200M
+### A. Close the remaining ~3.8M gap (session 2)
+Try adding `DAMAGE_SHIELD` to the session-total accumulator only — Retribution Aura / thorns
+that fire during trash. These are excluded from boss-encounter DPS but UWU likely counts them
+in the full slice. See Latest Handoff for details.
+
+### B. Next feature
+- Absorbs tracking (`SPELL_ABSORBED`)
+- Player detail page (per-boss breakdown for one player)
+- Damage mitigation stats (`SPELL_MISSED` subtypes)
 
 ---
 
 ## Not Working On
 - UI redesigns
 - Non-ICC content
-- Absorbs tracking (backlog)
+- Heroic detection overhaul
