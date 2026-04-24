@@ -904,3 +904,48 @@ def test_session_damage_includes_damage_shield_from_player():
     expected = shield_amount + 50_000 * 10
     assert 0 in parser.session_damage, "session 0 must be populated"
     assert parser.session_damage[0] == pytest.approx(expected, rel=0.01)
+
+
+def test_session_damage_includes_guardian_from_player():
+    """TYPE_GUARDIAN units (Mirror Images, Treants, Army-of-the-Dead ghouls) that
+    are player-controlled must be counted in session_damage.
+
+    Guardian flags: TYPE_GUARDIAN (0x2000) | CONTROL_PLAYER (0x0100) | FRIENDLY
+    (0x0020) | RAID (0x0004) = 0x2124.  Current code checks (flags & 0x1100) ==
+    0x1100 which misses 0x2000 guardians — this test asserts the fix is in place.
+    """
+    PG = PLAYER_GUID
+    GUARDIAN_GUID  = "0xF140000000000002"
+    GUARDIAN_FLAGS = "0x2124"   # TYPE_GUARDIAN | CONTROL_PLAYER | FRIENDLY | RAID
+    BG = "0xF130000000000002"
+
+    guardian_amount = 33_333
+    boss_hits = "".join(
+        _pdmg(f"4/19 13:01:{10+i:02d}.000", PG, BG, "Lord Marrowgar", 50_000)
+        for i in range(10)
+    )
+
+    def guardian_dmg(ts: str, src: str, dst: str, dst_name: str, amount: int) -> str:
+        return (
+            f'{ts}  SPELL_DAMAGE,{src},"Mirror Image",{GUARDIAN_FLAGS},'
+            f'{dst},"{dst_name}",0xa48,58833,"Frostbolt",4,'
+            f'{amount},0,4,0,0,0,0,0\n'
+        )
+
+    log = _make_full_log(
+        _enc_start("4/19 13:01:00.000"),
+        boss_hits,
+        guardian_dmg("4/19 13:01:30.000", GUARDIAN_GUID, BG, "Lord Marrowgar",
+                     guardian_amount),
+        _died("4/19 13:02:00.000", BG, "Lord Marrowgar"),
+        _enc_end("4/19 13:03:21.000"),
+    )
+
+    parser = CombatLogParser()
+    parser.parse_file(_io.StringIO(log))
+
+    expected = 50_000 * 10 + guardian_amount   # player hits + guardian hits
+    assert 0 in parser.session_damage, "session 0 must be populated"
+    assert parser.session_damage[0] == pytest.approx(expected, rel=0.01), (
+        "Guardian (TYPE_GUARDIAN | CONTROL_PLAYER) damage missing from session total"
+    )

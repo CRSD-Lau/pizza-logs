@@ -445,7 +445,13 @@ class CombatLogParser:
                 is_pet    = False
                 if not is_player:
                     try:
-                        is_pet = (int(src_flags, 16) & 0x1100) == 0x1100
+                        flags = int(src_flags, 16)
+                        # Accept TYPE_PET (0x1000) or TYPE_GUARDIAN (0x2000) when
+                        # CONTROL_PLAYER (0x0100) is also set.  This covers:
+                        #   • Regular pets (Hunter, Warlock, DK ghoul, Shadowfiend)
+                        #   • Guardians (Mirror Images, Force of Nature Treants,
+                        #     Army of the Dead ghouls, Shaman elementals/totems)
+                        is_pet = bool(flags & 0x0100) and bool(flags & 0x3000)
                     except (ValueError, TypeError):
                         pass
                 if (is_player or is_pet) and not _is_player(dst_guid):
