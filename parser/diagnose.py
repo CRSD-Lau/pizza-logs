@@ -156,7 +156,7 @@ def main():
     print(f"PET OWNER MAP  ({len(parser._pet_owner)} entries)")
     print("-"*50)
     for pg, (og, on_) in list(parser._pet_owner.items())[:30]:
-        print(f"  {pg[:30]:<32}  →  {on_}")
+        print(f"  {pg[:30]:<32}  ->  {on_}")
     if len(parser._pet_owner) > 30:
         print(f"  ... and {len(parser._pet_owner)-30} more")
     print()

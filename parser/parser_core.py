@@ -420,6 +420,27 @@ class CombatLogParser:
                     pet_owner[pet_guid] = (owner_guid, owner_name)
                 continue
 
+            # ── Global player→pet interaction scan ───────────────
+            # Catches pre-summoned pets (no SPELL_SUMMON in log) via heal events.
+            # Restricted to SPELL_HEAL / SPELL_PERIODIC_HEAL so we don't
+            # mis-map AoE buffs (e.g. Blessing of Might hitting every pet in
+            # the raid, assigning all pets to the Paladin) and don't mis-map
+            # vehicle NPCs (Gunship Cannons with CONTROL_PLAYER flags).
+            # Also restricted to 0xF14* GUID prefix (true WotLK pet GUIDs);
+            # 0xF130 = NPC, 0xF150 = vehicle — these are never pre-summoned pets.
+            if (event in ("SPELL_HEAL", "SPELL_PERIODIC_HEAL")
+                and len(parts) >= 7
+                and _is_player(parts[1])
+                and not _is_player(parts[4])
+                and parts[4].upper().startswith("0XF14")
+                and parts[4] not in pet_owner
+            ):
+                try:
+                    if (int(parts[6], 16) & 0x1100) == 0x1100:
+                        pet_owner[parts[4]] = (parts[1], parts[2].strip('"').strip())
+                except (ValueError, IndexError):
+                    pass
+
             # ── ENCOUNTER_START ──────────────────────────────────
             if event == ENCOUNTER_START:
                 has_encounter_events = True
@@ -579,6 +600,24 @@ class CombatLogParser:
 
         boss_name_lower = boss_name.lower() if boss_name else ""
         boss_alias_set  = {a.lower() for a in boss_def.aliases} if boss_def else set()
+
+        # Pre-pass: resolve pre-summoned pets that have no SPELL_SUMMON entry.
+        # Scan every event for player→pet interactions (Mend Pet ticks, buffs,
+        # Feed Pet, etc.) — dst_flags TYPE_PET(0x1000)|CONTROL_PLAYER(0x0100)
+        # identifies player-owned pets. Running this before the main loop means
+        # ordering doesn't matter: pet damage that lands before the first Mend
+        # Pet tick is still attributed correctly.
+        for _, _p, _ in segment:
+            if (len(_p) >= 7
+                and _is_player(_p[1])
+                and not _is_player(_p[4])
+                and _p[4] not in pet_owner
+            ):
+                try:
+                    if (int(_p[6], 16) & 0x1100) == 0x1100:
+                        pet_owner[_p[4]] = (_p[1], _p[2].strip('"').strip())
+                except (ValueError, IndexError):
+                    pass
 
         for ts_str, parts, ts in segment:
             event = parts[0]

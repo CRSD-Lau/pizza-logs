@@ -1,36 +1,40 @@
 # Now
 
 ## Active
-Pushed 7868a17 — awaiting Railway redeploy. Session 2 total should land ~275-276M.
+All 39 tests green. Interaction scan fix ready to commit + push → Railway redeploy.
 
 ---
 
 ## Completed This Session
 
-### Delta fix: overkill subtraction + P2P filter
+### Interaction scan fix (pre-summoned pet / Gunship cannon)
 
-- **Overkill**: `eff_amount = max(0, amount - overkill)` — BPC had 7.8M overkill alone
-- **P2P**: skip damage where `_is_player(dst_guid)` — Blood-Queen vampires were adding 3.8M
-- Combined: 289.26M → ~275M vs UWU 276.045M (residual ~1M = pre-summoned pets, expected)
-- 31 TDD tests passing
+- **Root cause**: global scan ran on ALL events → Gunship Cannons (`0xF150`) were mapped as player pets → 4.46M fake DPS
+- **Fix**: restrict to `SPELL_HEAL`/`SPELL_PERIODIC_HEAL` + `0xF14*` GUID prefix only
+- **Tests**: 4 new TDD tests (vehicle, NPC, hunter pet mapped, pet damage attributed); 39/39 passing
+- **Expected improvement**: session 2 drops from ~284M → ~279.8M vs UWU 276.045M
 
-### Gunship difficulty normalization (previous commit)
-- `_normalize_session_difficulty` upgrades Gunship to session heroic difficulty
-- Gunship should now show 25H KILL
+### Delta fix: overkill subtraction + P2P filter (previous commit 7868a17)
+- Overkill: `eff_amount = max(0, amount - overkill)` — BPC had 7.8M overkill alone
+- P2P: skip damage where `_is_player(dst_guid)` — Blood-Queen vampires were adding 3.8M
+- Combined: 289.26M → ~284M
 
 ---
 
 ## Immediate Next Steps
 
-1. Wait for Railway deploy
-2. Clear DB → re-upload same log
-3. Verify: BPC ~41.7M, Blood-Queen ~70M, session total ~275-276M, Gunship = 25H KILL
+1. Commit + push interaction scan fix
+2. Wait for Railway deploy
+3. Clear DB → re-upload same log
+4. Verify: session total ~279–280M, Gunship = 25H KILL, no bogus Gunship pet entries
 
 ---
 
 ## Known Remaining Limitation
 
-~1M under UWU = pre-summoned pets (Hunter beasts, Warlock demons summoned before log start have no SPELL_SUMMON → unattributed). Not a bug.
+~3.7M under UWU still expected = pre-summoned pets (Hunter beasts, Warlock demons whose
+SPELL_SUMMON isn't in the log) + minor methodology differences. Phase 2 would need
+NPC entry ID → class lookup table.
 
 ---
 

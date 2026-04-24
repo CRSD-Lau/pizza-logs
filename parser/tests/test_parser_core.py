@@ -78,8 +78,14 @@ def _unit_died_parts(dead_name: str) -> list[str]:
     ]
 
 
-PLAYER_GUID = "0x0600000000000001"
-NPC_GUID    = "0xF130000000000001"
+PLAYER_GUID      = "0x0600000000000001"
+NPC_GUID         = "0xF130000000000001"
+TRUE_PET_GUID    = "0xF140000000000001"  # 0xF140 = true WotLK pet GUID prefix
+VEHICLE_GUID     = "0xF150000000000001"  # 0xF150 = vehicle GUID prefix
+
+# dst_flags: 0x1114 = TYPE_PET | CONTROL_PLAYER | FRIENDLY | RAID (player-owned pet)
+PET_DST_FLAGS     = "0x1114"
+VEHICLE_DST_FLAGS = "0x1114"
 
 
 def make_gunship_segment(
@@ -495,3 +501,270 @@ def test_player_to_npc_damage_still_counted():
     enc = parser._aggregate_segment(seg, {})
     assert enc is not None
     assert enc.total_damage == pytest.approx(300_000, rel=0.01)
+
+
+# ── Pet owner inference — interaction scan ────────────────────────────────────
+
+def _aoe_buff_parts(caster_guid: str, caster_name: str,
+                    target_guid: str, target_name: str,
+                    target_flags: str = PET_DST_FLAGS) -> list[str]:
+    """SPELL_AURA_APPLIED representing an AoE buff hitting a pet (e.g. BoM)."""
+    return [
+        "SPELL_AURA_APPLIED",
+        caster_guid, f'"{caster_name}"', "0x512",
+        target_guid, f'"{target_name}"', target_flags,
+        "19506", '"Blessing of Might"', "2", "BUFF",
+    ]
+
+
+def _run_segment_encounters(events: list[tuple[str, list[str], float]]):
+    """Run _segment_encounters on a pre-built event list."""
+    parser = CombatLogParser()
+    def gen():
+        yield from events
+    return parser._segment_encounters(gen())
+
+
+def test_vehicle_not_mapped_as_pet_via_aoe_buff():
+    """A vehicle GUID (0xF150) that receives an AoE buff from a player
+    must NOT be added to pet_owner. Gunship Cannons were 4.46M of fake DPS."""
+    ts = 46800.0
+    events = [
+        # Player buffs a vehicle-flagged target (like stepping into a cannon seat)
+        ("4/19 13:00:00.000",
+         _aoe_buff_parts(PLAYER_GUID, "Phyre", VEHICLE_GUID, "Skybreaker Cannon",
+                         target_flags=VEHICLE_DST_FLAGS),
+         ts),
+        ("4/19 13:01:00.000",
+         [ENCOUNTER_START, "1234", '"Gunship Battle"', "4", "25"], ts + 60),
+        ("4/19 13:02:00.000",
+         [ENCOUNTER_END, "1234", '"Gunship Battle"', "4", "25", "0"], ts + 120),
+    ]
+    _, pet_owner = _run_segment_encounters(events)
+    assert VEHICLE_GUID not in pet_owner, "Vehicle GUID must not be mapped as a player pet"
+
+
+def test_npc_guid_not_mapped_via_non_heal_event():
+    """A regular NPC GUID (0xF130) interacted with via a non-heal event
+    must NOT enter pet_owner — only true 0xF140 pet GUIDs can be inferred."""
+    ts = 46800.0
+    events = [
+        # Player casts a buff on something with pet flags but 0xF130 GUID
+        ("4/19 13:00:00.000",
+         _aoe_buff_parts(PLAYER_GUID, "Phyre", NPC_GUID, "SomeNPC"),
+         ts),
+        ("4/19 13:01:00.000",
+         [ENCOUNTER_START, "1234", '"Lord Marrowgar"', "6", "25"], ts + 60),
+        ("4/19 13:02:00.000",
+         [ENCOUNTER_END, "1234", '"Lord Marrowgar"', "6", "25", "1"], ts + 120),
+    ]
+    _, pet_owner = _run_segment_encounters(events)
+    assert NPC_GUID not in pet_owner, "0xF130 NPC must not be mapped via non-heal event"
+
+
+def test_hunter_pet_mapped_via_mend_pet():
+    """A 0xF140 pet GUID with no SPELL_SUMMON must be attributed to its owner
+    via SPELL_PERIODIC_HEAL (Mend Pet). This is the Phase-1 pre-summon fix."""
+    ts = 46800.0
+    events = [
+        # Mend Pet fires before ENCOUNTER_START — owner inference
+        ("4/19 13:00:30.000",
+         _mend_pet_parts(PLAYER_GUID, "Phyre", TRUE_PET_GUID, "Fido"),
+         ts + 30),
+        ("4/19 13:01:00.000",
+         [ENCOUNTER_START, "1234", '"Lord Marrowgar"', "6", "25"], ts + 60),
+        ("4/19 13:02:00.000",
+         [ENCOUNTER_END, "1234", '"Lord Marrowgar"', "6", "25", "1"], ts + 120),
+    ]
+    _, pet_owner = _run_segment_encounters(events)
+    assert TRUE_PET_GUID in pet_owner, "0xF140 pet must be mapped via Mend Pet"
+    assert pet_owner[TRUE_PET_GUID][1] == "Phyre"
+
+
+def test_pet_damage_attributed_to_owner_via_mend_pet():
+    """Damage from a pre-summoned 0xF140 pet must be credited to its owner
+    when the owner is inferred from a SPELL_PERIODIC_HEAL (Mend Pet)."""
+    ts = 46800.0
+    # Build 8 filler player hits so segment reaches MIN_ENCOUNTER_EVENTS (10)
+    filler = [
+        (f"4/19 13:01:{10+i:02d}.000",
+         _spell_damage_parts(PLAYER_GUID, "Phyre", NPC_GUID, "Lord Marrowgar", 10_000),
+         ts + 70 + i)
+        for i in range(8)
+    ]
+    events = [
+        ("4/19 13:00:30.000",
+         _mend_pet_parts(PLAYER_GUID, "Phyre", TRUE_PET_GUID, "Fido"),
+         ts + 30),
+        ("4/19 13:01:00.000",
+         [ENCOUNTER_START, "1234", '"Lord Marrowgar"', "6", "25"], ts + 60),
+        *filler,
+        # Pet attacks the boss during the encounter
+        ("4/19 13:01:30.000",
+         _spell_damage_parts(TRUE_PET_GUID, "Fido", NPC_GUID, "Lord Marrowgar", 80_000),
+         ts + 90),
+        ("4/19 13:02:00.000",
+         _unit_died_parts("Lord Marrowgar"),
+         ts + 120),
+        ("4/19 13:03:21.000",
+         [ENCOUNTER_END, "1234", '"Lord Marrowgar"', "6", "25", "1"], ts + 201),
+    ]
+    segments, pet_owner = _run_segment_encounters(events)
+    assert len(segments) == 1
+    enc = CombatLogParser()._aggregate_segment(segments[0], pet_owner)
+    assert enc is not None
+    # total = 8×10k filler + 80k pet = 160k
+    assert enc.total_damage == pytest.approx(160_000, rel=0.01)
+    phyre = next((p for p in enc.participants if p["name"] == "Phyre"), None)
+    assert phyre is not None, "Phyre must appear as participant via pet attribution"
+    assert phyre["totalDamage"] == pytest.approx(160_000, rel=0.01)
+
+
+# ── Pre-summoned pet attribution via interaction scan ──────────────────────────
+#
+# When a pet was alive before the log started there is no SPELL_SUMMON event.
+# The parser must infer ownership from any player→pet event during the fight
+# (Mend Pet, Feed Pet, any buff).  The dst_flags bitmask identifies a pet:
+#   0x1000 = TYPE_PET   0x0100 = CONTROL_PLAYER  → both must be set.
+
+PET_GUID  = "0xF1300007AC000042"   # realistic non-player NPC GUID for a pet
+PET_FLAGS = "0x1114"               # TYPE_PET | CONTROL_PLAYER | FRIENDLY | RAID
+
+PLAYER2_GUID  = "0x0600000000000002"
+PLAYER2_FLAGS = "0x514"            # TYPE_PLAYER | CONTROL_PLAYER | FRIENDLY | RAID
+
+
+def _mend_pet_parts(owner_guid: str, owner_name: str,
+                    pet_guid: str, pet_name: str,
+                    amount: int = 3000) -> list[str]:
+    """SPELL_PERIODIC_HEAL — Mend Pet tick (player heals their pet)."""
+    return [
+        "SPELL_PERIODIC_HEAL",
+        owner_guid, f'"{owner_name}"', PLAYER2_FLAGS,
+        pet_guid,   f'"{pet_name}"',   PET_FLAGS,
+        "13544", '"Mend Pet"', "8",
+        str(amount), "0", "0", "0",
+    ]
+
+
+def _pet_spell_damage_parts(pet_guid: str, pet_name: str,
+                             dst_guid: str, dst_name: str,
+                             amount: int, spell: str = "Claw") -> list[str]:
+    """SPELL_DAMAGE from a player-controlled pet (PET_FLAGS as src_flags)."""
+    return [
+        "SPELL_DAMAGE",
+        pet_guid, f'"{pet_name}"', PET_FLAGS,
+        dst_guid, f'"{dst_name}"', "0xa48",
+        "16827", f'"{spell}"', "1",
+        str(amount), "0", "1", "0", "0", "0", "0", "0",
+    ]
+
+
+def test_presummoned_pet_attributed_via_mend_pet():
+    """Pet has no SPELL_SUMMON but owner fires Mend Pet during the fight.
+    The pre-pass in _aggregate_segment must infer ownership and credit
+    pet damage to the Hunter/owner."""
+    parser = CombatLogParser()
+    ts = 46800.0
+    seg = [
+        ("4/19 13:00:00.000",
+         [ENCOUNTER_START, "1234", '"Lord Marrowgar"', "6", "25"], ts),
+        # Mend Pet tick fires → establishes owner
+        ("4/19 13:00:10.000",
+         _mend_pet_parts(PLAYER_GUID, "Phyre", PET_GUID, "Growl"),
+         ts + 10),
+        # Pet attacks boss → should be credited to Phyre
+        ("4/19 13:01:00.000",
+         _pet_spell_damage_parts(PET_GUID, "Growl", NPC_GUID, "Lord Marrowgar", 100_000),
+         ts + 60),
+        ("4/19 13:02:00.000",
+         _unit_died_parts("Lord Marrowgar"),
+         ts + 120),
+        ("4/19 13:03:21.000",
+         [ENCOUNTER_END, "1234", '"Lord Marrowgar"', "6", "25", "1"], ts + 201),
+    ]
+    enc = parser._aggregate_segment(seg, {})
+    assert enc is not None
+    phyre = next((p for p in enc.participants if p["name"] == "Phyre"), None)
+    assert phyre is not None, "pet damage not attributed to owner"
+    assert phyre["totalDamage"] == pytest.approx(100_000, rel=0.01)
+
+
+def test_presummoned_pet_attributed_when_damage_comes_before_mend_pet():
+    """Even if the pet deals damage BEFORE Mend Pet fires, the pre-pass
+    over the whole segment must still attribute the damage correctly."""
+    parser = CombatLogParser()
+    ts = 46800.0
+    seg = [
+        ("4/19 13:00:00.000",
+         [ENCOUNTER_START, "1234", '"Lord Marrowgar"', "6", "25"], ts),
+        # Pet attacks first — before any owner interaction
+        ("4/19 13:00:30.000",
+         _pet_spell_damage_parts(PET_GUID, "Growl", NPC_GUID, "Lord Marrowgar", 80_000),
+         ts + 30),
+        # Mend Pet fires later in the fight
+        ("4/19 13:01:00.000",
+         _mend_pet_parts(PLAYER_GUID, "Phyre", PET_GUID, "Growl"),
+         ts + 60),
+        ("4/19 13:02:00.000",
+         _unit_died_parts("Lord Marrowgar"),
+         ts + 120),
+        ("4/19 13:03:21.000",
+         [ENCOUNTER_END, "1234", '"Lord Marrowgar"', "6", "25", "1"], ts + 201),
+    ]
+    enc = parser._aggregate_segment(seg, {})
+    assert enc is not None
+    phyre = next((p for p in enc.participants if p["name"] == "Phyre"), None)
+    assert phyre is not None, "pre-pass did not resolve ordering"
+    assert phyre["totalDamage"] == pytest.approx(80_000, rel=0.01)
+
+
+def test_presummoned_pet_without_interaction_remains_unattributed():
+    """A pet with no SPELL_SUMMON and no owner interaction must NOT be
+    credited to any player — better to under-count than misattribute."""
+    parser = CombatLogParser()
+    ts = 46800.0
+    seg = [
+        ("4/19 13:00:00.000",
+         [ENCOUNTER_START, "1234", '"Lord Marrowgar"', "6", "25"], ts),
+        ("4/19 13:01:00.000",
+         _pet_spell_damage_parts(PET_GUID, "Growl", NPC_GUID, "Lord Marrowgar", 100_000),
+         ts + 60),
+        ("4/19 13:02:00.000",
+         _unit_died_parts("Lord Marrowgar"),
+         ts + 120),
+        ("4/19 13:03:21.000",
+         [ENCOUNTER_END, "1234", '"Lord Marrowgar"', "6", "25", "1"], ts + 201),
+    ]
+    enc = parser._aggregate_segment(seg, {})
+    assert enc is not None
+    assert enc.total_damage == pytest.approx(0, abs=1)
+
+
+def test_pet_already_in_pet_owner_not_overwritten_by_interaction():
+    """If a pet is already in the pet_owner map (from SPELL_SUMMON), a
+    player→pet interaction for a DIFFERENT player must not overwrite it."""
+    parser = CombatLogParser()
+    ts = 46800.0
+    established_owner = {PET_GUID: (PLAYER_GUID, "Phyre")}  # Phyre owns the pet
+    seg = [
+        ("4/19 13:00:00.000",
+         [ENCOUNTER_START, "1234", '"Lord Marrowgar"', "6", "25"], ts),
+        # Some other player heals the pet (e.g. paladin aura, not Mend Pet)
+        ("4/19 13:00:10.000",
+         _mend_pet_parts(PLAYER2_GUID, "Notlich", PET_GUID, "Growl"),
+         ts + 10),
+        ("4/19 13:01:00.000",
+         _pet_spell_damage_parts(PET_GUID, "Growl", NPC_GUID, "Lord Marrowgar", 50_000),
+         ts + 60),
+        ("4/19 13:02:00.000",
+         _unit_died_parts("Lord Marrowgar"),
+         ts + 120),
+        ("4/19 13:03:21.000",
+         [ENCOUNTER_END, "1234", '"Lord Marrowgar"', "6", "25", "1"], ts + 201),
+    ]
+    enc = parser._aggregate_segment(seg, established_owner)
+    assert enc is not None
+    phyre = next((p for p in enc.participants if p["name"] == "Phyre"), None)
+    assert phyre is not None, "damage not credited to original owner"
+    assert phyre["totalDamage"] == pytest.approx(50_000, rel=0.01)

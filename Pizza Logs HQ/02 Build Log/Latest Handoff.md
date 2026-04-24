@@ -1,51 +1,52 @@
 # Latest Handoff
 
 ## Date
-2026-04-21
+2026-04-24
 
 ## Git
-**Latest:** `7868a17` — main branch
-fix: subtract overkill from total_damage; exclude player-to-player damage
+**Latest:** pending commit — main branch
+fix: restrict interaction scan to 0xF140 SPELL_PERIODIC_HEAL; 39 tests green
 
 ---
 
 ## Completed This Session
 
-### Root-cause fix for 289M vs 276M delta vs UWU
+### Phase 1: Pre-summoned pet fix — interaction scan
 
-Ran `diagnose.py` against the live log, identified two independent bugs via targeted scripts.
+Root cause: `_segment_encounters` global scan ran on ALL events, so Alliance Gunship Cannons
+(`0xF150` vehicle GUIDs with `CONTROL_PLAYER` flags) were mapped as player pets → 4.46M
+fake DPS attributed to whoever last buffed/hit them.
 
-#### Bug 1 — Overkill not subtracted (−8.7M)
-- Parser used raw `amount` from SPELL_DAMAGE/SWING_DAMAGE, never subtracted `overkill`
-- Blood Prince Council: 7.846M overkill alone — three princes die simultaneously, every player's last hit overkills massively
-- Fix: `eff_amount = max(0, amount - overkill)` used throughout `_aggregate_segment`
+Fix in `parser_core.py` — `_segment_encounters`, global interaction scan:
+```python
+# Restricted to SPELL_HEAL / SPELL_PERIODIC_HEAL + 0xF14* GUID prefix
+if (event in ("SPELL_HEAL", "SPELL_PERIODIC_HEAL")
+    and len(parts) >= 7
+    and _is_player(parts[1])
+    and not _is_player(parts[4])
+    and parts[4].upper().startswith("0XF14")
+    and parts[4] not in pet_owner
+):
+    try:
+        if (int(parts[6], 16) & 0x1100) == 0x1100:
+            pet_owner[parts[4]] = (parts[1], parts[2].strip('"').strip())
+    except (ValueError, IndexError):
+        pass
+```
 
-#### Bug 2 — Player-to-player damage counted (−5.3M)
-- No `dst_guid` check before accumulating damage
-- Blood-Queen: bitten vampires attack each other (Pact of the Darkfallen 1.49M, Blood Mirror 1.37M, Vampiric Bite, Starfire, etc.) → 3.79M over
-- BPC: Empowered Shadow Lance etc. → 1.14M over
-- Fix: `if not is_heal and _is_player(dst_guid): continue`
+- `0xF150` (vehicles) and `0xF130` (generic NPCs) no longer enter `pet_owner`
+- Hunter/Warlock pre-summoned pets (`0xF140` prefix) still mapped via Mend Pet
 
-#### Combined result
-| Boss | Before | After | Diff |
-|---|---|---|---|
-| Marrowgar | 51.12M | 50.34M | −0.78M |
-| Deathwhisper | 47.55M | 47.30M | −0.26M |
-| Gunship | 19.07M | 18.94M | −0.13M |
-| Saurfang | 46.82M | 46.63M | −0.19M |
-| **BPC** | 50.65M | **41.67M** | **−8.98M** |
-| **Blood-Queen** | 74.04M | **70.12M** | **−3.92M** |
-| **Session 2 total** | **289.26M** | **~275M** | **−14.3M** |
-| UWU | — | 276.045M | residual ~1M |
+### Test suite cleanup
+- Renamed conflicting `PET_GUID` module-level constant to `TRUE_PET_GUID` to avoid
+  shadowing by the existing `PET_GUID = "0xF1300007AC000042"` at line 644
+- Removed duplicate `_mend_pet_parts` helper (kept existing one at line 651)
+- All 39 tests passing
 
-Residual ~1M under UWU = pre-summoned pets (Hunter beasts, Warlock demons) whose SPELL_SUMMON isn't in the log. Not a bug — a known limitation.
-
-#### TDD tests added (5 new, 31 total passing)
-- `test_overkill_not_counted_in_spell_damage`
-- `test_overkill_not_counted_in_swing_damage`
-- `test_zero_overkill_unchanged`
-- `test_player_to_player_damage_not_counted`
-- `test_player_to_npc_damage_still_counted`
+### Expected session 2 delta improvement
+- Before: ~284M (overkill+P2P fix applied, Gunship cannon still mis-attributed)
+- After: ~279.8M (cannon entries removed from pet_owner → ~4.46M drop)
+- UWU: 276.045M — residual ~3.7M = pre-summoned pets + methodology differences
 
 ---
 
@@ -53,22 +54,22 @@ Residual ~1M under UWU = pre-summoned pets (Hunter beasts, Warlock demons) whose
 
 | File | Change |
 |---|---|
-| `parser/parser_core.py` | `_aggregate_segment`: overkill subtracted from eff_amount; P2P damage skipped |
-| `parser/tests/test_parser_core.py` | 5 new TDD tests; `_spell_damage_parts` now accepts `overkill` param; new `_swing_damage_parts` helper |
+| `parser/parser_core.py` | `_segment_encounters`: interaction scan restricted to SPELL_HEAL/SPELL_PERIODIC_HEAL + 0xF14* prefix |
+| `parser/tests/test_parser_core.py` | 4 new TDD tests; renamed `PET_GUID` → `TRUE_PET_GUID`; removed duplicate helper; 39 tests passing |
 
 ---
 
 ## Exact Next Steps
-1. **Deploy**: Railway picks up the push; wait for parser-py to redeploy (~2 min)
+1. **Deploy**: push to Railway, wait for parser-py redeploy (~2 min)
 2. **Re-upload**: clear DB at `/admin` → upload same log (2026-04-19 Notlich Lordaeron)
 3. **Verify**:
-   - Session 2 total should be ~275-276M (down from 289M)
+   - Session 2 total should be ~279–280M (down from ~284M)
    - Gunship = 25H KILL
-   - BPC total should drop from 50.6M to ~41.7M
-   - Blood-Queen should drop from 74M to ~70M
-4. If still off: check pre-summoned pets — run `diagnose.py --encounter <boss>` per boss and compare per-player totals to UWU
+   - No extra fake DPS entries in Gunship participant list
+4. If still delta remains: investigate remaining 0xF130 entries via diagnose.py
+   - `python diagnose.py --encounter "Gunship Battle"` to see any other spurious pets
 
 ## Pending Features
 - **Absorbs tracking**: parse `SPELL_ABSORBED` events
-- **Persistent pet attribution**: pre-summoned pets (no SPELL_SUMMON in log)
+- **Persistent pet attribution Phase 2**: NPC entry ID → class lookup for remaining unknowns
 - **Damage mitigation stats**: `SPELL_MISSED` subtypes
