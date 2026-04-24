@@ -37,3 +37,4 @@
 | Gunship damage ±small vs UWU | Persistent pets (Hunter beast, Warlock demon pre-summoned) have no SPELL_SUMMON — orphaned until resolved |
 | DPS accuracy ±1-2% vs uwu-logs | Different event inclusion rules; fingerprint-level accuracy probably not achievable |
 | Progress bar fake before file received | File write to parser happens before SSE can start; first event is at 28% |
+| Session total gap vs UWU reference (3.29% for 10H, 0.88% for 25H) | **Log file coverage difference, not a parser bug.** UWU reference logs (Felyyia 10H, Notlich 25H) started 5–16 minutes earlier in the raid night, capturing ICC trash the user's log doesn't contain. Gap math: 10H ≈ 6.58M missing ÷ 7k DPS ≈ 16 min; 25H ≈ 3.59M ÷ 12.5k DPS ≈ 5 min. Absorbed fix (ef152ba) had zero effect → Warmane does not log Lady DW mana barrier using standard SPELL_DAMAGE absorbed field. Parser is working correctly. |

@@ -479,6 +479,38 @@ class CombatLogParser:
                     except (ValueError, IndexError):
                         pass
 
+            # ── SPELL_MISSED / SWING_MISSED with missType=ABSORB ─────────────
+            # A fully-absorbed hit (Lady Deathwhisper mana barrier, Saurfang
+            # Blood Barrier) generates a MISSED event instead of a DAMAGE event
+            # with absorbed>0.  WCL and UWU count these as player damage output.
+            #
+            # SPELL_MISSED field layout: [10]=missType  [11]=amountMissed
+            # SWING_MISSED field layout:  [7]=missType   [8]=amountMissed
+            if event in ("SPELL_MISSED", "SWING_MISSED") and len(parts) >= 5:
+                src_guid  = parts[1]
+                dst_guid  = parts[4]
+                src_flags = parts[3] if len(parts) > 3 else "0"
+                is_player = _is_player(src_guid)
+                is_pet    = False
+                if not is_player:
+                    try:
+                        flags = int(src_flags, 16)
+                        is_pet = bool(flags & 0x0100) and bool(flags & 0x3000)
+                    except (ValueError, TypeError):
+                        pass
+                if (is_player or is_pet) and not _is_player(dst_guid):
+                    try:
+                        if event == "SWING_MISSED":
+                            miss_type = parts[7] if len(parts) > 7 else ""
+                            eff = _safe_float(parts[8]) if (miss_type == "ABSORB" and len(parts) > 8) else 0.0
+                        else:  # SPELL_MISSED
+                            miss_type = parts[10] if len(parts) > 10 else ""
+                            eff = _safe_float(parts[11]) if (miss_type == "ABSORB" and len(parts) > 11) else 0.0
+                        if eff > 0:
+                            _full_dmg[_full_session_idx] = _full_dmg.get(_full_session_idx, 0.0) + eff
+                    except (ValueError, IndexError):
+                        pass
+
             # ── SPELL_SUMMON: build pet→owner map (global, outside segments) ──
             if event == "SPELL_SUMMON" and len(parts) >= 5:
                 owner_guid = parts[1]

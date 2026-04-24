@@ -1032,3 +1032,124 @@ def test_session_damage_includes_absorbed_swing_damage():
         "Absorbed swing damage must be counted in session total "
         f"(expected {expected}, absorbed={absorbed}, unabsorbed={unabsorbed})"
     )
+
+
+# ── SPELL_MISSED / SWING_MISSED with missType=ABSORB ─────────────────────────
+#
+# On Warmane (and retail WotLK), a hit that is *fully* absorbed by a boss shield
+# (Lady Deathwhisper Phase 1 mana barrier, Saurfang Blood Barrier) generates a
+# SPELL_MISSED or SWING_MISSED event with missType=ABSORB instead of a DAMAGE
+# event with absorbed>0.  WCL and UWU count the absorbed amount as "damage done"
+# because the player's output was real — the boss shield ate it.
+#
+# SPELL_MISSED field layout:
+#   [0]=event [1]=srcGUID [2]=srcName [3]=srcFlags [4]=dstGUID [5]=dstName
+#   [6]=dstFlags [7]=spellID [8]=spellName [9]=spellSchool [10]=missType
+#   [11]=amountMissed  (present only when missType is ABSORB, BLOCK, or RESIST)
+#
+# SWING_MISSED field layout:
+#   [0]=event [1]=srcGUID [2]=srcName [3]=srcFlags [4]=dstGUID [5]=dstName
+#   [6]=dstFlags [7]=missType [8]=amountMissed  (present for ABSORB)
+
+
+def test_session_damage_includes_spell_missed_absorb():
+    """A SPELL_MISSED event with missType=ABSORB must contribute its amountMissed
+    to session_damage.  This fires when a player spell hits Lady Deathwhisper's
+    mana barrier and is fully swallowed — no HP removed, all damage output lost
+    to the shield, but WCL/UWU still count it as player damage done."""
+    PG = PLAYER_GUID
+    BG = "0xF130000000000002"
+    absorbed_amount = 12_345
+
+    def spell_missed_absorb(ts: str, src: str, dst: str, dst_name: str,
+                             amount: int) -> str:
+        return (f'{ts}  SPELL_MISSED,{src},"Phyre",0x512,'
+                f'{dst},"{dst_name}",0xa48,'
+                f'133,"Frostbolt",4,ABSORB,{amount}\n')
+
+    log = _make_full_log(
+        spell_missed_absorb("4/19 13:00:30.000", PG, BG, "Lady Deathwhisper",
+                             absorbed_amount),
+    )
+
+    parser = CombatLogParser()
+    parser.parse_file(_io.StringIO(log))
+
+    assert parser.session_damage.get(0, 0) == pytest.approx(absorbed_amount, rel=0.01), (
+        "SPELL_MISSED ABSORB must be counted in session_damage "
+        f"(expected {absorbed_amount})"
+    )
+
+
+def test_session_damage_includes_swing_missed_absorb():
+    """A SWING_MISSED event with missType=ABSORB must contribute its amountMissed
+    to session_damage.  This fires for physical melee hits fully absorbed by a
+    boss shield (e.g. warriors/rogues hitting Lady Deathwhisper in phase 1).
+
+    SWING_MISSED field layout: [7]=missType [8]=amountMissed"""
+    PG = PLAYER_GUID
+    BG = "0xF130000000000002"
+    absorbed_amount = 8_000
+
+    def swing_missed_absorb(ts: str, src: str, dst: str, dst_name: str,
+                             amount: int) -> str:
+        return (f'{ts}  SWING_MISSED,{src},"Phyre",0x512,'
+                f'{dst},"{dst_name}",0xa48,'
+                f'ABSORB,{amount}\n')
+
+    log = _make_full_log(
+        swing_missed_absorb("4/19 13:00:30.000", PG, BG, "Lady Deathwhisper",
+                             absorbed_amount),
+    )
+
+    parser = CombatLogParser()
+    parser.parse_file(_io.StringIO(log))
+
+    assert parser.session_damage.get(0, 0) == pytest.approx(absorbed_amount, rel=0.01), (
+        "SWING_MISSED ABSORB must be counted in session_damage "
+        f"(expected {absorbed_amount})"
+    )
+
+
+def test_session_damage_excludes_spell_missed_non_absorb():
+    """SPELL_MISSED events that are not ABSORB (DODGE, PARRY, MISS, RESIST, etc.)
+    must NOT contribute to session_damage — the hit did zero damage."""
+    PG = PLAYER_GUID
+    BG = "0xF130000000000002"
+
+    def spell_missed_dodge(ts: str, src: str, dst: str, dst_name: str) -> str:
+        return (f'{ts}  SPELL_MISSED,{src},"Phyre",0x512,'
+                f'{dst},"{dst_name}",0xa48,'
+                f'133,"Frostbolt",4,DODGE\n')
+
+    log = _make_full_log(
+        spell_missed_dodge("4/19 13:00:30.000", PG, BG, "Lord Marrowgar"),
+    )
+
+    parser = CombatLogParser()
+    parser.parse_file(_io.StringIO(log))
+
+    assert parser.session_damage.get(0, 0) == pytest.approx(0, abs=1), (
+        "Non-ABSORB SPELL_MISSED must not count as damage"
+    )
+
+
+def test_session_damage_excludes_swing_missed_non_absorb():
+    """SWING_MISSED with DODGE/PARRY/MISS must not contribute to session_damage."""
+    PG = PLAYER_GUID
+    BG = "0xF130000000000002"
+
+    def swing_missed_parry(ts: str, src: str, dst: str, dst_name: str) -> str:
+        return (f'{ts}  SWING_MISSED,{src},"Phyre",0x512,'
+                f'{dst},"{dst_name}",0xa48,PARRY\n')
+
+    log = _make_full_log(
+        swing_missed_parry("4/19 13:00:30.000", PG, BG, "Lord Marrowgar"),
+    )
+
+    parser = CombatLogParser()
+    parser.parse_file(_io.StringIO(log))
+
+    assert parser.session_damage.get(0, 0) == pytest.approx(0, abs=1), (
+        "Non-ABSORB SWING_MISSED must not count as damage"
+    )
