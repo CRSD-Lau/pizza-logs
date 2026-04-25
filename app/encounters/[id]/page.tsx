@@ -55,7 +55,7 @@ export default async function EncounterPage({ params }: Props) {
   });
 
   const dpsParts  = participantsWithBossDmg.filter(p => p.dps > 0);
-  const healParts = participantsWithBossDmg.filter(p => p.hps > 100);
+  const healParts = participantsWithBossDmg.filter(p => p.role === "HEALER" && p.hps > 0);
   const durationSec = (encounter.durationMs ?? 0) > 0
     ? encounter.durationMs / 1000
     : Math.max(1, encounter.durationSeconds);
