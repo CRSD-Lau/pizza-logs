@@ -1356,3 +1356,104 @@ def test_dps_uses_float_duration():
     # With int duration 234: DPS = 220,025.6 (wrong)
     assert phyre["dps"] == pytest.approx(51_485_997 / 234.758, rel=0.001), \
         f"DPS should use float duration. Got {phyre['dps']:.1f}, expected {51_485_997/234.758:.1f}"
+
+
+# ── Absorbed damage exclusion from per-encounter totals ───────────────────────
+#
+# Lady Deathwhisper Phase 1 has a mana barrier that absorbs all player damage.
+# The combat log records these as SPELL_DAMAGE with absorbed == amount (no HP
+# damage lands). UWU's per-encounter "Useful Damage" excludes absorbed hits
+# (they don't reduce boss HP). Our parser was using amount - overkill only,
+# causing ~35% over-count on Lady DW.
+#
+# Fix: eff_amount = max(0, amount - overkill - absorbed) for per-encounter damage.
+# Note: session_damage still uses amount + absorbed (no overkill) to match UWU
+# Custom Slice totals — those are intentionally different per-level counters.
+
+def _spell_damage_with_absorbed(src_guid: str, src_name: str,
+                                dst_guid: str, dst_name: str,
+                                amount: int, absorbed: int,
+                                spell: str = "Frostbolt") -> list[str]:
+    """SPELL_DAMAGE parts with a non-zero absorbed field (index 15)."""
+    return [
+        "SPELL_DAMAGE",
+        src_guid, f'"{src_name}"', "0x512",
+        dst_guid, f'"{dst_name}"', "0xa48",
+        "133", f'"{spell}"', "4",
+        str(amount), "0", "4", "0", "0", str(absorbed), "0", "0",
+        #             overkill   school resist block  absorbed crit
+    ]
+
+
+def _swing_damage_with_absorbed(src_guid: str, src_name: str,
+                                dst_guid: str, dst_name: str,
+                                amount: int, absorbed: int) -> list[str]:
+    """SWING_DAMAGE parts with a non-zero absorbed field (index 12)."""
+    return [
+        "SWING_DAMAGE",
+        src_guid, f'"{src_name}"', "0x512",
+        dst_guid, f'"{dst_name}"', "0xa48",
+        str(amount), "0", "1", "0", "0", str(absorbed), "0",
+        #             overkill  school resist block  absorbed crit
+    ]
+
+
+def test_encounter_damage_excludes_absorbed_spell_damage():
+    """SPELL_DAMAGE absorbed by a boss shield must not count as encounter damage.
+
+    Lady Deathwhisper Phase 1: mana barrier absorbs all player damage.
+    parts[15] = absorbed amount. eff_amount = amount - overkill - absorbed.
+    """
+    boss_guid = "0xF130000000000001"
+    ts_start = 46800.0
+
+    segment = [
+        ("4/19 13:00:00.000", [ENCOUNTER_START, "1234", '"Lady Deathwhisper"', "4", "25"], ts_start),
+        # Normal hit (absorbed=0) → should count
+        ("4/19 13:00:05.000", _spell_damage_with_absorbed(PLAYER_GUID, "Phyre", boss_guid, "Lady Deathwhisper", 100_000, 0), ts_start + 5.0),
+        # Mana barrier hit (absorbed=amount) → must NOT count
+        ("4/19 13:00:06.000", _spell_damage_with_absorbed(PLAYER_GUID, "Phyre", boss_guid, "Lady Deathwhisper", 200_000, 200_000), ts_start + 6.0),
+        # Partial absorb → only unabsorbed portion counts
+        ("4/19 13:00:07.000", _spell_damage_with_absorbed(PLAYER_GUID, "Phyre", boss_guid, "Lady Deathwhisper", 300_000, 50_000), ts_start + 7.0),
+        ("4/19 13:01:00.000", _unit_died_parts("Lady Deathwhisper"), ts_start + 60.0),
+        ("4/19 13:01:10.000", [ENCOUNTER_END, "1234", '"Lady Deathwhisper"', "4", "25", "1"], ts_start + 70.0),
+    ]
+
+    parser = CombatLogParser(file_year=2026)
+    enc = parser._aggregate_segment(segment, {})
+    assert enc is not None
+    phyre = next((p for p in enc.participants if p["name"] == "Phyre"), None)
+    assert phyre is not None
+    # 100_000 + 0 (fully absorbed) + 250_000 (partial: 300k - 50k absorbed) = 350_000
+    assert phyre["totalDamage"] == pytest.approx(350_000, abs=1), (
+        f"Absorbed damage must be excluded. Got {phyre['totalDamage']:,.0f}, expected 350,000"
+    )
+
+
+def test_encounter_damage_excludes_absorbed_swing_damage():
+    """SWING_DAMAGE absorbed by a boss shield must not count as encounter damage.
+
+    absorbed is at parts[12] for SWING_DAMAGE.
+    """
+    boss_guid = "0xF130000000000001"
+    ts_start = 46800.0
+
+    segment = [
+        ("4/19 13:00:00.000", [ENCOUNTER_START, "1234", '"Lady Deathwhisper"', "4", "25"], ts_start),
+        # Full absorb → 0 damage
+        ("4/19 13:00:05.000", _swing_damage_with_absorbed(PLAYER_GUID, "Phyre", boss_guid, "Lady Deathwhisper", 80_000, 80_000), ts_start + 5.0),
+        # Normal melee (absorbed=0) → should count
+        ("4/19 13:00:06.000", _swing_damage_with_absorbed(PLAYER_GUID, "Phyre", boss_guid, "Lady Deathwhisper", 40_000, 0), ts_start + 6.0),
+        ("4/19 13:01:00.000", _unit_died_parts("Lady Deathwhisper"), ts_start + 60.0),
+        ("4/19 13:01:10.000", [ENCOUNTER_END, "1234", '"Lady Deathwhisper"', "4", "25", "1"], ts_start + 70.0),
+    ]
+
+    parser = CombatLogParser(file_year=2026)
+    enc = parser._aggregate_segment(segment, {})
+    assert enc is not None
+    phyre = next((p for p in enc.participants if p["name"] == "Phyre"), None)
+    assert phyre is not None
+    # 0 (fully absorbed) + 40_000 (normal) = 40_000
+    assert phyre["totalDamage"] == pytest.approx(40_000, abs=1), (
+        f"Absorbed swing damage must be excluded. Got {phyre['totalDamage']:,.0f}, expected 40,000"
+    )

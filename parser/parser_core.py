@@ -723,6 +723,8 @@ class CombatLogParser:
             is_heal = event in HEAL_EVENTS
 
             # Parse SWING_DAMAGE (no spell fields)
+            # Fields: event,srcGUID,srcName,srcFlags,dstGUID,dstName,dstFlags,
+            #   amount,overkill,school,resisted,blocked,absorbed,critical
             if event == "SWING_DAMAGE":
                 if len(parts) < 14:
                     continue
@@ -730,6 +732,7 @@ class CombatLogParser:
                 dst_guid, dst_name = parts[4], parts[5].strip('"').strip()
                 amount   = _safe_float(parts[7])
                 overkill = _safe_float(parts[8])
+                absorbed = _safe_float(parts[12]) if len(parts) > 12 else 0.0
                 school   = _safe_int(parts[9]) or 1
                 is_crit  = parts[13] == "1"
                 spell_name = "Auto Attack"
@@ -745,6 +748,7 @@ class CombatLogParser:
                 school     = _safe_int(parts[9]) or 2
                 amount     = _safe_float(parts[10])
                 overkill   = 0.0
+                absorbed   = 0.0
                 is_crit    = len(parts) > 13 and parts[13] == "1"
             else:
                 # Only process recognised damage event types — defence-in-depth
@@ -753,6 +757,8 @@ class CombatLogParser:
                 if event not in DMG_EVENTS:
                     continue
                 # SPELL_DAMAGE / SPELL_PERIODIC_DAMAGE / RANGE_DAMAGE etc.
+                # Fields: event,srcGUID,srcName,srcFlags,dstGUID,dstName,dstFlags,
+                #   spellID,spellName,spellSchool,amount,overkill,school,resisted,blocked,absorbed,??,critical
                 if len(parts) < 15:
                     continue
                 src_guid, src_name = parts[1], parts[2].strip('"').strip()
@@ -761,6 +767,7 @@ class CombatLogParser:
                 school     = _safe_int(parts[9]) or 1
                 amount     = _safe_float(parts[10])
                 overkill   = _safe_float(parts[11])
+                absorbed   = _safe_float(parts[15]) if len(parts) > 15 else 0.0
                 is_crit    = len(parts) > 17 and parts[17] == "1"
 
             if amount <= 0:
@@ -794,11 +801,12 @@ class CombatLogParser:
             if is_heal and not _is_player(dst_guid):
                 continue
 
-            # Effective damage = raw amount minus overkill (excess damage beyond
-            # the target's remaining HP). UWU and WCL both count effective damage.
-            # Critical for BPC: three princes die simultaneously, last hits carry
-            # massive overkill that we were previously counting as real damage.
-            eff_amount = max(0.0, amount - overkill) if not is_heal else amount
+            # Effective damage = amount − overkill − absorbed.
+            # Overkill: damage past the target's remaining HP (wasted).
+            # Absorbed: damage eaten by a boss shield (Lady DW mana barrier,
+            # Saurfang blood barrier) — never reaches HP. UWU excludes both.
+            # For heals, amount is already the effective (landed) value.
+            eff_amount = max(0.0, amount - overkill - absorbed) if not is_heal else amount
 
             a = _get_actor(actors, src_name, src_guid)
             ss = a.spells.setdefault(spell_name, SpellStats(school=school))
