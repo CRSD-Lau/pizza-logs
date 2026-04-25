@@ -5,7 +5,7 @@ import { UploadZoneWithRefresh } from "@/components/upload/UploadZoneWithRefresh
 import { StatCard } from "@/components/ui/StatCard";
 import { SectionHeader } from "@/components/ui/SectionHeader";
 import { Badge } from "@/components/ui/Badge";
-import { formatNumber, formatDuration, getWeekBounds } from "@/lib/utils";
+import { getWeekBounds } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
