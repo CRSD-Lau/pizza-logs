@@ -72,6 +72,7 @@ class EncounterOut(BaseModel):
     groupSize:        int
     outcome:          str
     durationSeconds:  int
+    durationMs:       int = 0
     startedAt:        str
     endedAt:          str
     totalDamage:      float
@@ -160,6 +161,7 @@ async def parse_log(
             groupSize        = enc.group_size,
             outcome          = enc.outcome,
             durationSeconds  = enc.duration_seconds,
+            durationMs       = round(enc.duration_seconds * 1000),
             startedAt        = enc.started_at,
             endedAt          = enc.ended_at,
             totalDamage      = enc.total_damage,
@@ -208,6 +210,7 @@ async def parse_log_by_path(body: dict) -> ParseResponse:
             groupSize        = e.group_size,
             outcome          = e.outcome,
             durationSeconds  = e.duration_seconds,
+            durationMs       = round(e.duration_seconds * 1000),
             startedAt        = e.started_at,
             endedAt          = e.ended_at,
             totalDamage      = e.total_damage,
@@ -249,6 +252,7 @@ def _enc_to_dict(enc: ParsedEncounter) -> dict:
         groupSize        = enc.group_size,
         outcome          = enc.outcome,
         durationSeconds  = enc.duration_seconds,
+        durationMs       = round(enc.duration_seconds * 1000),
         startedAt        = enc.started_at,
         endedAt          = enc.ended_at,
         totalDamage      = enc.total_damage,

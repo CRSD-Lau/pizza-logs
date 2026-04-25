@@ -194,8 +194,11 @@ export default async function SessionDetailPage({ params }: Props) {
             <p className="text-xs font-semibold text-text-dim uppercase tracking-widest px-1">{raidName}</p>
             <div className="bg-bg-panel border border-gold-dim rounded divide-y divide-gold-dim overflow-hidden">
               {encs.map(enc => {
+                const durationSec = (enc.durationMs ?? 0) > 0
+                  ? enc.durationMs / 1000
+                  : Math.max(1, enc.durationSeconds);
                 const rdps = enc.durationSeconds > 0
-                  ? Math.round(enc.totalDamage / enc.durationSeconds)
+                  ? Math.round(enc.totalDamage / durationSec)
                   : 0;
                 return (
                   <Link

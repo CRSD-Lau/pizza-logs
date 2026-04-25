@@ -231,6 +231,7 @@ export async function POST(req: NextRequest) {
                 groupSize:        enc.groupSize,
                 sessionIndex:     enc.sessionIndex ?? 0,
                 durationSeconds:  enc.durationSeconds,
+                durationMs:       Math.round((enc.durationMs ?? 0) > 0 ? enc.durationMs : enc.durationSeconds * 1000),
                 startedAt:        new Date(enc.startedAt),
                 endedAt:          new Date(enc.endedAt),
                 totalDamage:      enc.totalDamage,
@@ -264,8 +265,9 @@ export async function POST(req: NextRequest) {
             for (const p of enc.participants) {
               const playerId = playerMap.get(p.name);
               if (!playerId) continue;
-              if (p.dps > 0)   milestoneChecks.push({ playerId, playerName: p.name, encounterId: encounter.id, bossId: boss.id, bossName: boss.name, difficulty: enc.difficulty, metric: "DPS", value: p.dps });
-              if (p.hps > 100) milestoneChecks.push({ playerId, playerName: p.name, encounterId: encounter.id, bossId: boss.id, bossName: boss.name, difficulty: enc.difficulty, metric: "HPS", value: p.hps });
+              const role = inferRole(p);
+              if (p.dps > 0)                        milestoneChecks.push({ playerId, playerName: p.name, encounterId: encounter.id, bossId: boss.id, bossName: boss.name, difficulty: enc.difficulty, metric: "DPS", value: p.dps });
+              if (role === "HEALER" && p.hps > 100) milestoneChecks.push({ playerId, playerName: p.name, encounterId: encounter.id, bossId: boss.id, bossName: boss.name, difficulty: enc.difficulty, metric: "HPS", value: p.hps });
             }
 
             encountersInserted++;

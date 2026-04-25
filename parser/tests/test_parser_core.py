@@ -1206,3 +1206,254 @@ def test_session_damage_excludes_vehicle_guid():
     assert parser.session_damage.get(0, 0) == pytest.approx(0, abs=1), (
         "Vehicle GUID (0xF150*) must not contribute to session_damage"
     )
+
+
+# ── Float duration (UWU parity) ────────────────────────────────────────────────
+
+def test_duration_uses_float_precision():
+    """duration_seconds must be a float preserving sub-second precision.
+
+    A 234.758s fight truncated to 234s inflates DPS by 0.32%.
+    UWU uses float duration — we must match it.
+
+    For KILL outcome the duration is boss_died_ts - start_ts.
+    We place the boss death at exactly 234.758s to verify float is kept.
+    """
+    boss_guid = "0xF130000000000001"
+    ts_start = 46800.000  # 13:00:00.000
+
+    def _ts(offset: float) -> str:
+        total = ts_start + offset
+        h = int(total // 3600)
+        m = int((total % 3600) // 60)
+        s = total % 60
+        return f"4/19 {h:02d}:{m:02d}:{s:06.3f}"
+
+    segment = [
+        (_ts(0.0),     [ENCOUNTER_START, "1234", '"Lord Marrowgar"', "6", "25"], ts_start),
+        (_ts(10.0),    _spell_damage_parts(PLAYER_GUID, "Phyre", boss_guid, "Lord Marrowgar", 100_000), ts_start + 10.0),
+        # Boss dies at 234.758s — this is the float precision under test
+        (_ts(234.758), _unit_died_parts("Lord Marrowgar"), ts_start + 234.758),
+        (_ts(240.0),   [ENCOUNTER_END, "1234", '"Lord Marrowgar"', "6", "25", "1"], ts_start + 240.0),
+    ]
+
+    parser = CombatLogParser(file_year=2026)
+    enc = parser._aggregate_segment(segment, {})
+    assert enc is not None
+    assert isinstance(enc.duration_seconds, float), \
+        f"duration_seconds must be float, got {type(enc.duration_seconds).__name__}"
+    assert abs(enc.duration_seconds - 234.758) < 0.001, \
+        f"Expected 234.758s, got {enc.duration_seconds}"
+
+
+# ── Heal over-count bug fixes ─────────────────────────────────────────────────
+#
+# Two bugs caused per-encounter healing totals to be 2-5x higher than UWU:
+#
+#   1. SPELL_HEAL_ABSORBED in HEAL_EVENTS: this event has a different field
+#      structure from SPELL_HEAL. parts[10] is the absorb amount (not a heal
+#      amount), causing massive inflation when read as a heal value.
+#
+#   2. No destination filter for heals: heals landing on pets/totems/non-player
+#      units were counted. UWU only counts heals where dst_guid is a player.
+
+def _heal_parts(src_guid: str, src_name: str, dst_guid: str, dst_name: str,
+                amount: int, spell: str = "Flash Heal") -> list[str]:
+    """Build minimal SPELL_HEAL parts (14 fields after stripping timestamp)."""
+    return [
+        "SPELL_HEAL",
+        src_guid, f'"{src_name}"', "0x512",
+        dst_guid, f'"{dst_name}"', "0xa48",
+        "19750", f'"{spell}"', "2",
+        str(amount), "0", "0", "0",
+    ]
+
+
+NON_PLAYER_GUID = "0xF130000000000999"   # pet/totem — not a player GUID
+
+
+def test_heal_to_non_player_not_counted():
+    """Heals landing on pets/totems must not appear in healer's total_healing.
+
+    UWU only counts heals where dst_guid is a player.
+    """
+    ts_start = 46800.0
+
+    segment = [
+        ("4/19 13:00:00.000", [ENCOUNTER_START, "1234", '"Lord Marrowgar"', "6", "25"], ts_start),
+        # Healer heals a player (should count)
+        ("4/19 13:00:05.000", _heal_parts(PLAYER_GUID, "Healer", PLAYER_GUID, "Healer", 50_000), ts_start + 5.0),
+        # Healer heals a non-player (pet) — must NOT count
+        ("4/19 13:00:06.000", _heal_parts(PLAYER_GUID, "Healer", NON_PLAYER_GUID, "HunterPet", 200_000), ts_start + 6.0),
+        # Boss dies
+        ("4/19 13:01:00.000", _unit_died_parts("Lord Marrowgar"), ts_start + 60.0),
+        ("4/19 13:01:10.000", [ENCOUNTER_END, "1234", '"Lord Marrowgar"', "6", "25", "1"], ts_start + 70.0),
+    ]
+
+    parser = CombatLogParser(file_year=2026)
+    enc = parser._aggregate_segment(segment, {})
+    assert enc is not None
+    healer = next((p for p in enc.participants if p["name"] == "Healer"), None)
+    assert healer is not None
+    assert healer["totalHealing"] == pytest.approx(50_000, abs=1), (
+        f"Only player-destined heal should count. Got {healer['totalHealing']:,.0f}, expected 50,000"
+    )
+
+
+def test_spell_heal_absorbed_not_counted_as_heal():
+    """SPELL_HEAL_ABSORBED must not be processed as a regular heal.
+
+    SPELL_HEAL_ABSORBED has a different field structure from SPELL_HEAL.
+    Including it in HEAL_EVENTS causes massive inflation (2-5x over UWU).
+    """
+    ts_start = 46800.0
+
+    # SPELL_HEAL_ABSORBED event — different field structure
+    # parts[10] happens to be the absorb amount (not a heal amount)
+    heal_absorbed_parts = [
+        "SPELL_HEAL_ABSORBED",
+        PLAYER_GUID, '"Healer"', "0x512",    # src (absorber)
+        PLAYER_GUID, '"Healer"', "0xa48",    # dst
+        "17747", '"Weakened Soul"', "2",     # absorb spell
+        "999999",                             # absorb amount (should NOT be counted as heal)
+        "19750", '"Flash Heal"', "2",        # absorbed spell info
+    ]
+
+    segment = [
+        ("4/19 13:00:00.000", [ENCOUNTER_START, "1234", '"Lord Marrowgar"', "6", "25"], ts_start),
+        # Normal heal (should count)
+        ("4/19 13:00:05.000", _heal_parts(PLAYER_GUID, "Healer", PLAYER_GUID, "Healer", 50_000), ts_start + 5.0),
+        # SPELL_HEAL_ABSORBED (must NOT count as extra healing)
+        ("4/19 13:00:06.000", heal_absorbed_parts, ts_start + 6.0),
+        ("4/19 13:01:00.000", _unit_died_parts("Lord Marrowgar"), ts_start + 60.0),
+        ("4/19 13:01:10.000", [ENCOUNTER_END, "1234", '"Lord Marrowgar"', "6", "25", "1"], ts_start + 70.0),
+    ]
+
+    parser = CombatLogParser(file_year=2026)
+    enc = parser._aggregate_segment(segment, {})
+    assert enc is not None
+    healer = next((p for p in enc.participants if p["name"] == "Healer"), None)
+    assert healer is not None
+    assert healer["totalHealing"] == pytest.approx(50_000, abs=1), (
+        f"SPELL_HEAL_ABSORBED must not inflate healing. Got {healer['totalHealing']:,.0f}, expected 50,000"
+    )
+
+
+def test_dps_uses_float_duration():
+    """DPS must be computed with float duration to match UWU precision."""
+    boss_guid = "0xF130000000000001"
+    ts_start = 46800.0
+    segment = [
+        ("4/19 13:00:00.000", [ENCOUNTER_START, "1234", '"Lord Marrowgar"', "6", "25"], ts_start),
+        ("4/19 13:00:01.000", _spell_damage_parts(PLAYER_GUID, "Phyre", boss_guid, "Lord Marrowgar", 51_485_997), ts_start + 1.0),
+        ("4/19 13:03:54.758", [ENCOUNTER_END, "1234", '"Lord Marrowgar"', "6", "25", "1"], ts_start + 234.758),
+    ]
+    parser = CombatLogParser(file_year=2026)
+    enc = parser._aggregate_segment(segment, {})
+    assert enc is not None
+    phyre = next(p for p in enc.participants if p["name"] == "Phyre")
+    # With float duration 234.758: DPS = 219,310.5
+    # With int duration 234: DPS = 220,025.6 (wrong)
+    assert phyre["dps"] == pytest.approx(51_485_997 / 234.758, rel=0.001), \
+        f"DPS should use float duration. Got {phyre['dps']:.1f}, expected {51_485_997/234.758:.1f}"
+
+
+# ── Absorbed damage exclusion from per-encounter totals ───────────────────────
+#
+# Lady Deathwhisper Phase 1 has a mana barrier that absorbs all player damage.
+# The combat log records these as SPELL_DAMAGE with absorbed == amount (no HP
+# damage lands). UWU's per-encounter "Useful Damage" excludes absorbed hits
+# (they don't reduce boss HP). Our parser was using amount - overkill only,
+# causing ~35% over-count on Lady DW.
+#
+# Fix: eff_amount = max(0, amount - overkill - absorbed) for per-encounter damage.
+# Note: session_damage still uses amount + absorbed (no overkill) to match UWU
+# Custom Slice totals — those are intentionally different per-level counters.
+
+def _spell_damage_with_absorbed(src_guid: str, src_name: str,
+                                dst_guid: str, dst_name: str,
+                                amount: int, absorbed: int,
+                                spell: str = "Frostbolt") -> list[str]:
+    """SPELL_DAMAGE parts with a non-zero absorbed field (index 15)."""
+    return [
+        "SPELL_DAMAGE",
+        src_guid, f'"{src_name}"', "0x512",
+        dst_guid, f'"{dst_name}"', "0xa48",
+        "133", f'"{spell}"', "4",
+        str(amount), "0", "4", "0", "0", str(absorbed), "0", "0",
+        #             overkill   school resist block  absorbed crit
+    ]
+
+
+def _swing_damage_with_absorbed(src_guid: str, src_name: str,
+                                dst_guid: str, dst_name: str,
+                                amount: int, absorbed: int) -> list[str]:
+    """SWING_DAMAGE parts with a non-zero absorbed field (index 12)."""
+    return [
+        "SWING_DAMAGE",
+        src_guid, f'"{src_name}"', "0x512",
+        dst_guid, f'"{dst_name}"', "0xa48",
+        str(amount), "0", "1", "0", "0", str(absorbed), "0",
+        #             overkill  school resist block  absorbed crit
+    ]
+
+
+def test_encounter_damage_excludes_absorbed_spell_damage():
+    """SPELL_DAMAGE absorbed by a boss shield must not count as encounter damage.
+
+    Lady Deathwhisper Phase 1: mana barrier absorbs all player damage.
+    parts[15] = absorbed amount. eff_amount = amount - overkill - absorbed.
+    """
+    boss_guid = "0xF130000000000001"
+    ts_start = 46800.0
+
+    segment = [
+        ("4/19 13:00:00.000", [ENCOUNTER_START, "1234", '"Lady Deathwhisper"', "4", "25"], ts_start),
+        # Normal hit (absorbed=0) → should count
+        ("4/19 13:00:05.000", _spell_damage_with_absorbed(PLAYER_GUID, "Phyre", boss_guid, "Lady Deathwhisper", 100_000, 0), ts_start + 5.0),
+        # Mana barrier hit (absorbed=amount) → must NOT count
+        ("4/19 13:00:06.000", _spell_damage_with_absorbed(PLAYER_GUID, "Phyre", boss_guid, "Lady Deathwhisper", 200_000, 200_000), ts_start + 6.0),
+        # Partial absorb → only unabsorbed portion counts
+        ("4/19 13:00:07.000", _spell_damage_with_absorbed(PLAYER_GUID, "Phyre", boss_guid, "Lady Deathwhisper", 300_000, 50_000), ts_start + 7.0),
+        ("4/19 13:01:00.000", _unit_died_parts("Lady Deathwhisper"), ts_start + 60.0),
+        ("4/19 13:01:10.000", [ENCOUNTER_END, "1234", '"Lady Deathwhisper"', "4", "25", "1"], ts_start + 70.0),
+    ]
+
+    parser = CombatLogParser(file_year=2026)
+    enc = parser._aggregate_segment(segment, {})
+    assert enc is not None
+    phyre = next((p for p in enc.participants if p["name"] == "Phyre"), None)
+    assert phyre is not None
+    # 100_000 + 0 (fully absorbed) + 250_000 (partial: 300k - 50k absorbed) = 350_000
+    assert phyre["totalDamage"] == pytest.approx(350_000, abs=1), (
+        f"Absorbed damage must be excluded. Got {phyre['totalDamage']:,.0f}, expected 350,000"
+    )
+
+
+def test_encounter_damage_excludes_absorbed_swing_damage():
+    """SWING_DAMAGE absorbed by a boss shield must not count as encounter damage.
+
+    absorbed is at parts[12] for SWING_DAMAGE.
+    """
+    boss_guid = "0xF130000000000001"
+    ts_start = 46800.0
+
+    segment = [
+        ("4/19 13:00:00.000", [ENCOUNTER_START, "1234", '"Lady Deathwhisper"', "4", "25"], ts_start),
+        # Full absorb → 0 damage
+        ("4/19 13:00:05.000", _swing_damage_with_absorbed(PLAYER_GUID, "Phyre", boss_guid, "Lady Deathwhisper", 80_000, 80_000), ts_start + 5.0),
+        # Normal melee (absorbed=0) → should count
+        ("4/19 13:00:06.000", _swing_damage_with_absorbed(PLAYER_GUID, "Phyre", boss_guid, "Lady Deathwhisper", 40_000, 0), ts_start + 6.0),
+        ("4/19 13:01:00.000", _unit_died_parts("Lady Deathwhisper"), ts_start + 60.0),
+        ("4/19 13:01:10.000", [ENCOUNTER_END, "1234", '"Lady Deathwhisper"', "4", "25", "1"], ts_start + 70.0),
+    ]
+
+    parser = CombatLogParser(file_year=2026)
+    enc = parser._aggregate_segment(segment, {})
+    assert enc is not None
+    phyre = next((p for p in enc.participants if p["name"] == "Phyre"), None)
+    assert phyre is not None
+    # 0 (fully absorbed) + 40_000 (normal) = 40_000
+    assert phyre["totalDamage"] == pytest.approx(40_000, abs=1), (
+        f"Absorbed swing damage must be excluded. Got {phyre['totalDamage']:,.0f}, expected 40,000"
+    )

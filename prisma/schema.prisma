@@ -105,6 +105,7 @@ model Encounter {
   groupSize       Int           @default(10)
   sessionIndex    Int           @default(0)  // which raid session within the upload (0-based)
   durationSeconds Int
+  durationMs      Int           @default(0)
   startedAt       DateTime
   endedAt         DateTime
   totalDamage     Float         @default(0)
