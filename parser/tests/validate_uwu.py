@@ -50,15 +50,35 @@ def _load_encounters():
 
 
 def _find_enc(encounters, boss_name, session_idx, difficulty=None):
-    """Find the KILL encounter for a boss in a session."""
+    """Find the KILL encounter for a boss in a session.
+
+    If not found at the expected session_idx, searches all sessions as a
+    fallback (prints a warning so session-index bugs surface in the table).
+    """
+    def _match(e, sid):
+        if e.session_index != sid or e.boss_name != boss_name:
+            return False
+        return difficulty is None or e.difficulty == difficulty
+
+    # Primary: exact session_idx, KILL outcome
     for e in encounters:
-        if e.session_index == session_idx and e.boss_name == boss_name and e.outcome == "KILL":
+        if _match(e, session_idx) and e.outcome == "KILL":
+            return e
+    # Secondary: exact session_idx, any outcome
+    for e in encounters:
+        if _match(e, session_idx):
+            return e
+    # Cross-session fallback: correct difficulty, KILL outcome
+    for e in encounters:
+        if e.boss_name == boss_name and e.outcome == "KILL":
             if difficulty is None or e.difficulty == difficulty:
+                print(f"  [WARN] {boss_name}: expected session {session_idx}, found at session {e.session_index}")
                 return e
-    # Fallback: any outcome
+    # Cross-session fallback: correct difficulty, any outcome
     for e in encounters:
-        if e.session_index == session_idx and e.boss_name == boss_name:
+        if e.boss_name == boss_name:
             if difficulty is None or e.difficulty == difficulty:
+                print(f"  [WARN] {boss_name}: expected session {session_idx}, found at session {e.session_index}")
                 return e
     return None
 
