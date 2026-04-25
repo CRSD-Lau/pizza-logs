@@ -1053,10 +1053,9 @@ def test_session_damage_includes_absorbed_swing_damage():
 
 
 def test_session_damage_includes_spell_missed_absorb():
-    """A SPELL_MISSED event with missType=ABSORB must contribute its amountMissed
-    to session_damage.  This fires when a player spell hits Lady Deathwhisper's
-    mana barrier and is fully swallowed — no HP removed, all damage output lost
-    to the shield, but WCL/UWU still count it as player damage done."""
+    """SPELL_MISSED ABSORB must NOT contribute to session_damage.
+    UWU does not count fully-absorbed misses separately — it gets the correct
+    total via amount+absorbed without subtracting overkill on damage events."""
     PG = PLAYER_GUID
     BG = "0xF130000000000002"
     absorbed_amount = 12_345
@@ -1075,18 +1074,15 @@ def test_session_damage_includes_spell_missed_absorb():
     parser = CombatLogParser()
     parser.parse_file(_io.StringIO(log))
 
-    assert parser.session_damage.get(0, 0) == pytest.approx(absorbed_amount, rel=0.01), (
-        "SPELL_MISSED ABSORB must be counted in session_damage "
-        f"(expected {absorbed_amount})"
+    assert parser.session_damage.get(0, 0) == pytest.approx(0, abs=1), (
+        "SPELL_MISSED ABSORB must NOT be counted in session_damage"
     )
 
 
 def test_session_damage_includes_swing_missed_absorb():
-    """A SWING_MISSED event with missType=ABSORB must contribute its amountMissed
-    to session_damage.  This fires for physical melee hits fully absorbed by a
-    boss shield (e.g. warriors/rogues hitting Lady Deathwhisper in phase 1).
-
-    SWING_MISSED field layout: [7]=missType [8]=amountMissed"""
+    """SWING_MISSED ABSORB must NOT contribute to session_damage.
+    UWU does not count fully-absorbed misses separately — same reasoning as
+    test_session_damage_includes_spell_missed_absorb above."""
     PG = PLAYER_GUID
     BG = "0xF130000000000002"
     absorbed_amount = 8_000
@@ -1105,9 +1101,8 @@ def test_session_damage_includes_swing_missed_absorb():
     parser = CombatLogParser()
     parser.parse_file(_io.StringIO(log))
 
-    assert parser.session_damage.get(0, 0) == pytest.approx(absorbed_amount, rel=0.01), (
-        "SWING_MISSED ABSORB must be counted in session_damage "
-        f"(expected {absorbed_amount})"
+    assert parser.session_damage.get(0, 0) == pytest.approx(0, abs=1), (
+        "SWING_MISSED ABSORB must NOT be counted in session_damage"
     )
 
 
@@ -1152,4 +1147,62 @@ def test_session_damage_excludes_swing_missed_non_absorb():
 
     assert parser.session_damage.get(0, 0) == pytest.approx(0, abs=1), (
         "Non-ABSORB SWING_MISSED must not count as damage"
+    )
+
+
+def test_session_damage_counts_full_amount_with_overkill():
+    """session_damage must count amount+absorbed WITHOUT subtracting overkill.
+    UWU Custom Slice uses amount+absorbed (not amount+absorbed-overkill).
+    Blood Prince Council triple-death causes 6-8M overkill per session."""
+    PG = PLAYER_GUID
+    BG = "0xF130000000000002"
+    amount   = 50_000
+    overkill = 30_000
+
+    def spell_dmg_overkill(ts: str, src: str, dst: str, dst_name: str,
+                            amt: int, ovk: int) -> str:
+        # 18 fields: [10]=amount [11]=overkill [12-14]=meta [15]=absorbed=0
+        return (f'{ts}  SPELL_DAMAGE,{src},"Phyre",0x512,'
+                f'{dst},"{dst_name}",0xa48,133,"Frostbolt",4,'
+                f'{amt},{ovk},4,0,0,0,0,0\n')
+
+    log = _make_full_log(
+        spell_dmg_overkill("4/19 13:00:30.000", PG, BG, "Lord Marrowgar",
+                            amount, overkill),
+    )
+
+    parser = CombatLogParser()
+    parser.parse_file(_io.StringIO(log))
+
+    assert parser.session_damage.get(0, 0) == pytest.approx(amount, rel=0.01), (
+        f"session_damage must count full amount {amount}, not amount-overkill "
+        f"{amount - overkill} (overkill={overkill})"
+    )
+
+
+def test_session_damage_excludes_vehicle_guid():
+    """SPELL_DAMAGE from a vehicle GUID (0xF150* prefix) must not contribute to
+    session_damage.  Alliance Gunship Cannons have TYPE_PET|CONTROL_PLAYER flags
+    (0x1114) and pass the is_pet check, but UWU excludes vehicle damage."""
+    VEHICLE_GUID = "0xF150000000000001"
+    BG = "0xF130000000000002"
+    amount = 100_000
+
+    def vehicle_spell_dmg(ts: str, src: str, dst: str, dst_name: str,
+                           amt: int) -> str:
+        # flags 0x1114 = TYPE_PET (0x0100) | CONTROL_PLAYER (0x1000) | REACTION_FRIENDLY (0x0010) | ... vehicle
+        return (f'{ts}  SPELL_DAMAGE,{src},"Alliance Cannon",0x1114,'
+                f'{dst},"{dst_name}",0xa48,133,"Cannon Blast",4,'
+                f'{amt},0,4,0,0,0,0,0\n')
+
+    log = _make_full_log(
+        vehicle_spell_dmg("4/19 13:00:30.000", VEHICLE_GUID, BG, "Muradin Bronzebeard",
+                           amount),
+    )
+
+    parser = CombatLogParser()
+    parser.parse_file(_io.StringIO(log))
+
+    assert parser.session_damage.get(0, 0) == pytest.approx(0, abs=1), (
+        "Vehicle GUID (0xF150*) must not contribute to session_damage"
     )

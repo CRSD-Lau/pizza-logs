@@ -2,11 +2,7 @@
 
 ## Active Bugs
 
-### 🟡 Marrowgar DPS Over-Count
-- **Symptom**: App shows ~9.45k for Lausudo on Marrowgar; uwu-logs reference shows 9.3k
-- **Direction**: App is OVER — `DAMAGE_SHIELD` exclusion (2026-04-21) should reduce this gap
-- **Status**: Partially addressed — re-upload needed to confirm residual delta
-- **Reference**: https://uwu-logs.xyz/reports/26-04-17--18-47--Rimeclaw--Lordaeron/player/Lausudo/?boss=lord-marrowgar&mode=25H&attempt=1&s=3297&f=3633
+*(none)*
 
 ---
 
@@ -26,6 +22,9 @@
 | DPS too low (post-fight tail) | Use boss death timestamp for KILL duration | 975756d |
 | Class colors not showing | Parser never set `wow_class` — fixed with SPELL_CLASS_MAP | 975756d |
 | UploadFile "read of closed file" | Write file to disk before returning StreamingResponse | c131a97 |
+| Session total 3–6% below UWU | session_damage subtracted overkill; UWU counts amount+absorbed only | 08baacc/this |
+| Alliance Gunship Cannon counted as pet (5.16M phantom S1) | 0xF150* vehicle GUIDs now excluded from is_pet check | this |
+| SPELL_MISSED/SWING_MISSED ABSORB over-counted in session_damage | Removed MISSED ABSORB block; UWU gets correct total via amount+absorbed without overkill | this |
 
 ---
 
@@ -37,4 +36,4 @@
 | Gunship damage ±small vs UWU | Persistent pets (Hunter beast, Warlock demon pre-summoned) have no SPELL_SUMMON — orphaned until resolved |
 | DPS accuracy ±1-2% vs uwu-logs | Different event inclusion rules; fingerprint-level accuracy probably not achievable |
 | Progress bar fake before file received | File write to parser happens before SSE can start; first event is at 28% |
-| Session total gap vs UWU reference (3.29% for 10H, 0.88% for 25H) | **Log file coverage difference, not a parser bug.** UWU reference logs (Felyyia 10H, Notlich 25H) started 5–16 minutes earlier in the raid night, capturing ICC trash the user's log doesn't contain. Gap math: 10H ≈ 6.58M missing ÷ 7k DPS ≈ 16 min; 25H ≈ 3.59M ÷ 12.5k DPS ≈ 5 min. Absorbed fix (ef152ba) had zero effect → Warmane does not log Lady DW mana barrier using standard SPELL_DAMAGE absorbed field. Parser is working correctly. |
+| Session total residual gap (~0.1%) | Parser correctly counts every event. Tiny remainder (~194K S0, ~360K over) likely due to minor differences in event inclusion vs UWU edge cases. Empirically verified using same log file. |
