@@ -1,36 +1,22 @@
 # Now
 
 ## Status
-Per-encounter HPS over-count bug **FIXED** — 2 root causes eliminated, 56/56 tests green.
+Task 1: **Cap Milestone Awards to Top 3** — DONE
+
+Changed `MILESTONE_RANKS` from `[1, 3, 5, 10, 25, 50, 100]` to `[1, 2, 3]` in `lib/actions/milestones.ts`.
 
 ---
 
-## Healing Over-Count (FIXED this session)
-
-| Bug | Cause | Fix |
-|---|---|---|
-| SPELL_HEAL_ABSORBED in HEAL_EVENTS | Wrong field structure — parts[10] is absorb amount, not heal | Removed from HEAL_EVENTS |
-| Heals to non-player targets counted | Pets, totems, ghouls inflated HPS | Added `if is_heal and not _is_player(dst_guid): continue` |
-
----
-
-## Session Total Accuracy vs UWU (still valid from previous session)
-
-| Session | Pizza Logs | UWU | Gap |
-|---|---|---|---|
-| Session 0 (10H) | ~200,596,766 | 200,402,269 | +0.097% |
-| Session 1 (25H) | ~408,078,631 | 407,718,447 | +0.088% |
+## What Changed
+- Only new milestones will use top-3 ranks
+- Past milestones at ranks 4+ remain unchanged (no retroactive removal)
+- Type-check: 0 errors
+- Commit: `a31cb59`
 
 ---
 
-## Immediate Next Action
+## Next Actions
 
-1. Delete upload `cmoda1m3l000265wet559n9yx` via admin panel
-2. Re-upload `WoWCombatLog.txt` — verify HPS totals now match UWU per encounter
-
----
-
-## Next Features
-- Absorbs tracking (`SPELL_ABSORBED`) — shield absorption stats
-- Player detail page (per-boss per-session for one player)
-- Damage mitigation stats (`SPELL_MISSED` subtypes)
+1. Verify milestone system in live app (manual test)
+2. Monitor new uploads for correct award capping
+3. Plan next feature from backlog
