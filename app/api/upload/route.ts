@@ -231,6 +231,7 @@ export async function POST(req: NextRequest) {
                 groupSize:        enc.groupSize,
                 sessionIndex:     enc.sessionIndex ?? 0,
                 durationSeconds:  enc.durationSeconds,
+                durationMs:       Math.round((enc.durationMs ?? 0) > 0 ? enc.durationMs : enc.durationSeconds * 1000),
                 startedAt:        new Date(enc.startedAt),
                 endedAt:          new Date(enc.endedAt),
                 totalDamage:      enc.totalDamage,

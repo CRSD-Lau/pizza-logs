@@ -56,8 +56,11 @@ export default async function EncounterPage({ params }: Props) {
 
   const dpsParts  = participantsWithBossDmg.filter(p => p.dps > 0);
   const healParts = participantsWithBossDmg.filter(p => p.hps > 100);
-  const totalDps  = Math.round(encounter.totalDamage / Math.max(1, encounter.durationSeconds));
-  const totalHps  = Math.round(encounter.totalHealing / Math.max(1, encounter.durationSeconds));
+  const durationSec = (encounter.durationMs ?? 0) > 0
+    ? encounter.durationMs / 1000
+    : Math.max(1, encounter.durationSeconds);
+  const totalDps  = Math.round(encounter.totalDamage / durationSec);
+  const totalHps  = Math.round(encounter.totalHealing / durationSec);
 
   // ── Aggregate target breakdown across all participants ────────
   const mobMap = new Map<string, {

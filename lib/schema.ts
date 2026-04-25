@@ -54,6 +54,7 @@ export const EncounterResultSchema = z.object({
   groupSize:       z.number(),
   outcome:         z.enum(["KILL", "WIPE", "UNKNOWN"]),
   durationSeconds: z.number(),
+  durationMs:      z.number().int().default(0),
   startedAt:       z.string(), // ISO timestamp
   endedAt:         z.string(),
   totalDamage:     z.number(),
