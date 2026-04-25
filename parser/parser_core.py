@@ -211,7 +211,7 @@ class ParsedEncounter:
     difficulty:        str
     group_size:        int
     outcome:           str    # KILL | WIPE | UNKNOWN
-    duration_seconds:  int
+    duration_seconds:  float
     started_at:        str    # ISO-8601 UTC
     ended_at:          str
     total_damage:      float
@@ -827,7 +827,7 @@ class CombatLogParser:
             if kill_ts < start_ts:
                 kill_ts += 86400
             end_ts = kill_ts
-        duration = max(1, int(end_ts - start_ts))
+        duration = max(1.0, end_ts - start_ts)
 
         # Build participant list
         participants = []

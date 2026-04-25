@@ -1206,3 +1206,60 @@ def test_session_damage_excludes_vehicle_guid():
     assert parser.session_damage.get(0, 0) == pytest.approx(0, abs=1), (
         "Vehicle GUID (0xF150*) must not contribute to session_damage"
     )
+
+
+# ── Float duration (UWU parity) ────────────────────────────────────────────────
+
+def test_duration_uses_float_precision():
+    """duration_seconds must be a float preserving sub-second precision.
+
+    A 234.758s fight truncated to 234s inflates DPS by 0.32%.
+    UWU uses float duration — we must match it.
+
+    For KILL outcome the duration is boss_died_ts - start_ts.
+    We place the boss death at exactly 234.758s to verify float is kept.
+    """
+    boss_guid = "0xF130000000000001"
+    ts_start = 46800.000  # 13:00:00.000
+
+    def _ts(offset: float) -> str:
+        total = ts_start + offset
+        h = int(total // 3600)
+        m = int((total % 3600) // 60)
+        s = total % 60
+        return f"4/19 {h:02d}:{m:02d}:{s:06.3f}"
+
+    segment = [
+        (_ts(0.0),     [ENCOUNTER_START, "1234", '"Lord Marrowgar"', "6", "25"], ts_start),
+        (_ts(10.0),    _spell_damage_parts(PLAYER_GUID, "Phyre", boss_guid, "Lord Marrowgar", 100_000), ts_start + 10.0),
+        # Boss dies at 234.758s — this is the float precision under test
+        (_ts(234.758), _unit_died_parts("Lord Marrowgar"), ts_start + 234.758),
+        (_ts(240.0),   [ENCOUNTER_END, "1234", '"Lord Marrowgar"', "6", "25", "1"], ts_start + 240.0),
+    ]
+
+    parser = CombatLogParser(file_year=2026)
+    enc = parser._aggregate_segment(segment, {})
+    assert enc is not None
+    assert isinstance(enc.duration_seconds, float), \
+        f"duration_seconds must be float, got {type(enc.duration_seconds).__name__}"
+    assert abs(enc.duration_seconds - 234.758) < 0.001, \
+        f"Expected 234.758s, got {enc.duration_seconds}"
+
+
+def test_dps_uses_float_duration():
+    """DPS must be computed with float duration to match UWU precision."""
+    boss_guid = "0xF130000000000001"
+    ts_start = 46800.0
+    segment = [
+        ("4/19 13:00:00.000", [ENCOUNTER_START, "1234", '"Lord Marrowgar"', "6", "25"], ts_start),
+        ("4/19 13:00:01.000", _spell_damage_parts(PLAYER_GUID, "Phyre", boss_guid, "Lord Marrowgar", 51_485_997), ts_start + 1.0),
+        ("4/19 13:03:54.758", [ENCOUNTER_END, "1234", '"Lord Marrowgar"', "6", "25", "1"], ts_start + 234.758),
+    ]
+    parser = CombatLogParser(file_year=2026)
+    enc = parser._aggregate_segment(segment, {})
+    assert enc is not None
+    phyre = next(p for p in enc.participants if p["name"] == "Phyre")
+    # With float duration 234.758: DPS = 219,310.5
+    # With int duration 234: DPS = 220,025.6 (wrong)
+    assert phyre["dps"] == pytest.approx(51_485_997 / 234.758, rel=0.001), \
+        f"DPS should use float duration. Got {phyre['dps']:.1f}, expected {51_485_997/234.758:.1f}"
