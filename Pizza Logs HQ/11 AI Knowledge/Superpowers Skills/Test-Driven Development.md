@@ -72,7 +72,7 @@ digraph tdd_cycle {
 
 Write one minimal test showing what should happen.
 
-<Good>
+#### Good
 ```typescript
 test('retries failed operations 3 times', async () => {
   let attempts = 0;
@@ -88,10 +88,10 @@ test('retries failed operations 3 times', async () => {
   expect(attempts).toBe(3);
 });
 ```
-Clear name, tests real behavior, one thing
-</Good>
 
-<Bad>
+Clear name, tests real behavior, one thing
+
+#### Bad
 ```typescript
 test('retry works', async () => {
   const mock = jest.fn()
@@ -102,8 +102,9 @@ test('retry works', async () => {
   expect(mock).toHaveBeenCalledTimes(3);
 });
 ```
+
 Vague name, tests mock not code
-</Bad>
+
 
 **Requirements:**
 - One behavior
@@ -131,7 +132,7 @@ Confirm:
 
 Write simplest code to pass the test.
 
-<Good>
+#### Good
 ```typescript
 async function retryOperation<T>(fn: () => Promise<T>): Promise<T> {
   for (let i = 0; i < 3; i++) {
@@ -144,10 +145,11 @@ async function retryOperation<T>(fn: () => Promise<T>): Promise<T> {
   throw new Error('unreachable');
 }
 ```
-Just enough to pass
-</Good>
 
-<Bad>
+Just enough to pass
+
+
+##### Bad
 ```typescript
 async function retryOperation<T>(
   fn: () => Promise<T>,
@@ -160,8 +162,9 @@ async function retryOperation<T>(
   // YAGNI
 }
 ```
+
 Over-engineered
-</Bad>
+
 
 Don't add features, refactor other code, or "improve" beyond the test.
 

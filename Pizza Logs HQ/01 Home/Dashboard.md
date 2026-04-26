@@ -6,12 +6,12 @@
 
 ## Quick Status
 
-| Thing | Status |
-|---|---|
-| App | 🟢 Live — https://pizza-logs-production.up.railway.app |
-| DB | Check after last session |
-| Last deploy | See [[Latest Handoff]] |
-| Active blocker | See [[Known Issues]] |
+| Thing          | Status                                                 |
+| -------------- | ------------------------------------------------------ |
+| App            | 🟢 Live — https://pizza-logs-production.up.railway.app |
+| DB             | Check after last session                               |
+| Last deploy    | See [[Latest Handoff]]                                 |
+| Active blocker | See [[Known Issues]]                                   |
 
 ---
 

@@ -5,7 +5,7 @@
 At the start of EVERY session (before writing any code or answering any question),
 Claude MUST read these files in order:
 
-1. `Pizza Logs HQ/00 Inbox/START HERE.md` — master context, key technical facts
+1. `Pizza Logs HQ/01 Home/Home.md` — Directory
 2. `Pizza Logs HQ/02 Build Log/Latest Handoff.md` — what happened last session
 3. `Pizza Logs HQ/03 Current Focus/Now.md` — what's actively in progress
 
@@ -35,12 +35,9 @@ Include vault file changes in the same git commit as code changes.
 
 ## Critical Parser Facts (do not get wrong)
 
-- Warmane WotLK logs have **NO ENCOUNTER_START/END** — heuristic detection only
 - `SPELL_HEAL`: **14 fields**, crit at **index 13** (NOT 14, NOT 15)
 - `SWING_DAMAGE`: no spell fields, spell_name = "Auto Attack", crit at **index 13**
 - Player GUIDs: `0x06` prefix (Warmane) or `Player-` prefix (retail)
-- Heroic difficulty: **undetectable** — do not attempt
-- Gunship Battle: **undetectable** — do not attempt
 - KILL duration: use **boss death timestamp**, not last segment event
 
 ## Vault Deep Dives
@@ -51,3 +48,4 @@ For detailed reference during implementation:
 - Feature status: `Pizza Logs HQ/05 Features/Feature Status.md`
 - Railway ops: `Pizza Logs HQ/06 Deployment/Railway Guide.md`
 - Active bugs: `Pizza Logs HQ/09 Bugs and Blockers/Known Issues.md`
+- AI 'Tools/Skills': `Pizza Logs HQ/08 AI Control Center`
