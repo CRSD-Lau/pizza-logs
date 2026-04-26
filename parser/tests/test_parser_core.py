@@ -126,21 +126,31 @@ def make_gunship_segment(
     ]
 
 
-# ── DMG_EVENTS exclusion regressions ──────────────────────────────────────────
+# ── DMG_EVENTS membership — sourced from Skada Damage.lua RegisterForCL ───────
+#
+# Skada registers: SPELL_DAMAGE, SWING_DAMAGE, RANGE_DAMAGE, SPELL_PERIODIC_DAMAGE,
+#                  DAMAGE_SHIELD, DAMAGE_SPLIT, SPELL_BUILDING_DAMAGE
+# We track all of them so the website matches what players see in Skada in-game.
 
-def test_damage_shield_excluded_from_dmg_events():
-    """DAMAGE_SHIELD is retribution-aura/thorns reflect — not player DPS."""
-    assert "DAMAGE_SHIELD" not in DMG_EVENTS
+def test_damage_shield_in_dmg_events():
+    """DAMAGE_SHIELD (Ret Aura / Thorns reflect) is in DMG_EVENTS — Skada tracks it."""
+    assert "DAMAGE_SHIELD" in DMG_EVENTS
 
 
-def test_spell_building_damage_excluded_from_dmg_events():
-    """SPELL_BUILDING_DAMAGE is vehicle/cannon fire — not player DPS."""
-    assert "SPELL_BUILDING_DAMAGE" not in DMG_EVENTS
+def test_spell_building_damage_in_dmg_events():
+    """SPELL_BUILDING_DAMAGE (Gunship cannons) is in DMG_EVENTS — Skada tracks it."""
+    assert "SPELL_BUILDING_DAMAGE" in DMG_EVENTS
+
+
+def test_damage_split_in_dmg_events():
+    """DAMAGE_SPLIT (shared-damage mechanics) is in DMG_EVENTS — Skada tracks it."""
+    assert "DAMAGE_SPLIT" in DMG_EVENTS
 
 
 def test_core_dmg_events_present():
-    """SPELL_DAMAGE, SWING_DAMAGE, RANGE_DAMAGE, SPELL_PERIODIC_DAMAGE must remain."""
-    for ev in ("SPELL_DAMAGE", "SWING_DAMAGE", "RANGE_DAMAGE", "SPELL_PERIODIC_DAMAGE"):
+    """All Skada-registered damage event types must be in DMG_EVENTS."""
+    for ev in ("SPELL_DAMAGE", "SWING_DAMAGE", "RANGE_DAMAGE", "SPELL_PERIODIC_DAMAGE",
+               "DAMAGE_SHIELD", "DAMAGE_SPLIT", "SPELL_BUILDING_DAMAGE"):
         assert ev in DMG_EVENTS, f"{ev} missing from DMG_EVENTS"
 
 
@@ -326,22 +336,25 @@ def test_gunship_difficulty_not_cross_contaminated_across_sessions():
     assert session1_gunship.difficulty == "25H"
 
 
-# ── Damage exclusion integration ───────────────────────────────────────────────
+# ── Damage event integration — Skada counts all registered event types ─────────
 
-def test_spell_building_damage_not_counted_in_total():
-    """SPELL_BUILDING_DAMAGE events from a player GUID must not
-    contribute to total_damage — they're vehicle/cannon fire."""
+def test_spell_building_damage_counted_in_total():
+    """SPELL_BUILDING_DAMAGE (Gunship cannon fire) counts toward total_damage.
+
+    Source: Skada Damage.lua registers SPELL_BUILDING_DAMAGE via RegisterForCL.
+    Skada shows cannon fire in a player's damage done, so we do too.
+    """
     parser = CombatLogParser()
     ts = 46800.0
     seg = [
         ("4/19 13:00:00.000",
          [ENCOUNTER_START, "1234", '"Gunship Battle"', "4", "25"], ts),
-        # Legitimate player damage
+        # Regular spell damage
         ("4/19 13:01:00.000",
          _spell_damage_parts(PLAYER_GUID, "Phyre", NPC_GUID, "Kor'kron Battle-Mage",
                              100_000, "Fireball", "SPELL_DAMAGE"),
          ts + 60),
-        # SPELL_BUILDING_DAMAGE — cannon fire — must NOT be counted
+        # Cannon fire — Skada counts this
         ("4/19 13:01:30.000",
          _spell_damage_parts(PLAYER_GUID, "Phyre", NPC_GUID, "Orgrim's Hammer",
                              5_000_000, "Skybreaker Cannon", "SPELL_BUILDING_DAMAGE"),
@@ -354,23 +367,27 @@ def test_spell_building_damage_not_counted_in_total():
     ]
     enc = parser._aggregate_segment(seg, {})
     assert enc is not None
-    # Only the 100k Fireball should count — not the 5M cannon shot
-    assert enc.total_damage == pytest.approx(100_000, rel=0.01)
+    # Both Fireball and cannon shot count — Skada tracks SPELL_BUILDING_DAMAGE
+    assert enc.total_damage == pytest.approx(5_100_000, rel=0.01)
 
 
-def test_damage_shield_not_counted_in_total():
-    """DAMAGE_SHIELD events must not contribute to total_damage."""
+def test_damage_shield_counted_in_total():
+    """DAMAGE_SHIELD (Ret Aura / Thorns) counts toward total_damage.
+
+    Source: Skada Damage.lua registers DAMAGE_SHIELD via RegisterForCL.
+    Skada shows reflected damage in a player's damage done, so we do too.
+    """
     parser = CombatLogParser()
     ts = 46800.0
     seg = [
         ("4/19 13:00:00.000",
          [ENCOUNTER_START, "1234", '"Lord Marrowgar"', "6", "25"], ts),
-        # Real damage
+        # Regular damage
         ("4/19 13:01:00.000",
          _spell_damage_parts(PLAYER_GUID, "Phyre", NPC_GUID, "Lord Marrowgar",
                              200_000, "Holy Shock", "SPELL_DAMAGE"),
          ts + 60),
-        # Retribution Aura reflect — must NOT be counted
+        # Retribution Aura reflect — Skada counts this
         ("4/19 13:01:10.000",
          _spell_damage_parts(PLAYER_GUID, "Phyre", NPC_GUID, "Lord Marrowgar",
                              3_000_000, "Retribution Aura", "DAMAGE_SHIELD"),
@@ -383,7 +400,8 @@ def test_damage_shield_not_counted_in_total():
     ]
     enc = parser._aggregate_segment(seg, {})
     assert enc is not None
-    assert enc.total_damage == pytest.approx(200_000, rel=0.01)
+    # Both spell damage and reflect count — Skada tracks DAMAGE_SHIELD
+    assert enc.total_damage == pytest.approx(3_200_000, rel=0.01)
 
 
 # ── Overkill subtraction ───────────────────────────────────────────────────────
@@ -883,8 +901,7 @@ def test_session_damage_excludes_player_to_player():
 
 def test_session_damage_includes_damage_shield_from_player():
     """DAMAGE_SHIELD (Retribution Aura, thorns) from a player source must be
-    included in session_damage to match UWU Custom Slice totals.
-    These are excluded from per-boss DPS but UWU counts them in the full slice."""
+    included in session_damage. Source: Skada Damage.lua registers DAMAGE_SHIELD."""
     PG = PLAYER_GUID
     BG = "0xF130000000000002"
 
@@ -1703,15 +1720,16 @@ def test_encounter_damage_includes_mechanic_unit_damage():
     )
 
 
-# ── Passive proc heals — included in player totals ────────────────────────────
+# ── Passive proc heals — all included in player totals ───────────────────────
 #
-# Analysis (2026-04-26): Skada-WotLK counts passive proc heals in healing done.
-# With the corrected effective-heal formula (parts[10] - parts[11]), excluding
-# VE / JoL / ILotP makes results worse, not better.  PASSIVE_HEAL_EXCLUSIONS is
-# now empty and these spells are treated like any other heal.
+# Source: Skada-WoTLK Skada/Core/Tables.lua
+# Tables.lua has NO ignored_spells.heal table — Skada does not exclude any
+# specific spells from healing-done totals. Every SPELL_HEAL and
+# SPELL_PERIODIC_HEAL event is counted regardless of spell name.
 #
+# Previously thought to be excluded (all confirmed INCLUDED per Skada):
 #   - Vampiric Embrace (Shadow Priest passive AoE heal)
-#   - Judgement of Light (Paladin passive proc on boss)
+#   - Judgement of Light (Paladin passive proc — commented-out in Tables.lua)
 #   - Improved Leader of the Pack (Druid passive talent proc)
 
 def test_vampiric_embrace_excluded_from_healing():
@@ -1743,10 +1761,11 @@ def test_vampiric_embrace_excluded_from_healing():
 
 
 def test_judgement_of_light_excluded_from_healing():
-    """Judgement of Light heals must NOT count toward total_healing.
+    """Judgement of Light heals count toward total_healing (not excluded).
 
-    Source: Skada-WoTLK Skada/Core/Tables.lua — JoL (spell ID 20267) is
-    explicitly listed in ignored_spells.heal and excluded from healing done.
+    Source: Skada-WoTLK Skada/Core/Tables.lua — there is no ignored_spells.heal
+    table. The JoL line ([20267]) is commented out, meaning Skada includes it.
+    All SPELL_HEAL / SPELL_PERIODIC_HEAL events count toward healing done.
     """
     ts_start = 46800.0
     segment = [
@@ -1759,8 +1778,9 @@ def test_judgement_of_light_excluded_from_healing():
     ]
     enc = CombatLogParser(file_year=2026)._aggregate_segment(segment, {})
     assert enc is not None
-    assert enc.total_healing == pytest.approx(30_000, abs=1), (
-        f"JoL must be excluded (Skada ignored_spells.heal). Got {enc.total_healing:,.0f}, expected 30,000"
+    assert enc.total_healing == pytest.approx(35_000, abs=1), (
+        f"JoL is included in healing totals (Skada: no ignored_spells.heal). "
+        f"Got {enc.total_healing:,.0f}, expected 35,000"
     )
 
 

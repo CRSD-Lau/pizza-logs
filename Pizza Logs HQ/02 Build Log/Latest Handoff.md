@@ -4,114 +4,93 @@
 2026-04-26
 
 ## Git
-**Latest commit:** (pending — see below)
+**Branch:** `claude/elated-sutherland-11ac4b`
+**Latest commit:** refactor: switch parser philosophy to Skada-WoTLK as source of truth
 
 ---
 
-## Healing Formula Fix — DONE
+## Strategic Direction Change
 
-### Root cause identified and fixed
+**Old approach:** Try to match UWU addon output. UWU source code unavailable. Guessing at exclusions.
 
-The parser was using the **wrong field** for effective healing:
-- **Old (wrong)**: `amount = parts[11]` — this is the **overheal** amount (wasted HP)
-- **New (correct)**: `amount = max(0.0, parts[10] - parts[11])` = **gross heal minus overheal**
+**New approach:** Replicate Skada-WoTLK exactly. Skada is what the raid uses in-game. Website should show the same numbers. Skada source is fully available at https://github.com/bkader/Skada-WoTLK.
 
-WotLK Warmane SPELL_HEAL field layout (confirmed):
-```
-parts[10] = gross heal  (total spell cast amount, including overheal portion)
-parts[11] = overheal    (wasted portion — target was near/at full HP)
-parts[12] = absorbed    (absorbed by absorb shields)
-parts[13] = critical    ("1" or "nil")
-```
-
-Evidence: Prayer of Mending event with p10=2013, p11=0, p12=3574 → impossible if p10 were gross (can't absorb more than cast). Correct: p10=effective(2013), overheal=0, absorbed=3574.
-
-### Diagnostic results
-
-With the corrected formula (p10-p11):
-
-| Boss | UWU | Parser | Delta |
-|------|-----|--------|-------|
-| Lord Marrowgar | 8,656,055 | ~6,610,000 | -23.7% |
-| Deathbringer Saurfang | 4,191,806 | ~3,310,000 | -21.0% |
-| Blood Prince Council | 9,741,570 | ~7,040,000 | -27.7% |
-
-Previously with wrong formula (p11 as effective), deltas were 14.6% OVER, 163% OVER, 83.5% OVER.
-
-The new consistent ~21-28% **undercounting** across all bosses points to a single missing source: **Discipline Priest Power Word: Shield absorbs**, which UWU counts via the "absorbed" field on incoming damage events, not SPELL_HEAL events.
-
-### Also fixed
-
-`PASSIVE_HEAL_EXCLUSIONS` was emptied (VE/JoL/ILotP removed):
-- With the old wrong formula, excluding VE/JoL/ILotP reduced overcounting slightly
-- With correct formula, including them gives better results (Skada-WotLK confirms they count)
-
-### Files changed
-
-| File | Change |
-|------|--------|
-| `parser/parser_core.py` | `amount = max(0.0, gross - overheal)` instead of `parts[11]`; comment corrected; `PASSIVE_HEAL_EXCLUSIONS = frozenset()` |
-| `parser/tests/test_parser_core.py` | `_heal_parts` helper now puts overheal (not effective) in parts[11]; VE/JoL/ILotP tests updated to assert these spells ARE counted; boss_mechanic_heal inline event fixed (overheal value corrected) |
-
-### Tests
-
-**70/70 passing.** All 9 previously-failing tests now pass:
-- `test_heal_uses_effective_field` — confirms effective = gross - overheal
-- `test_heal_pure_overheal_counts_zero` — 100% overheal → 0 effective
-- `test_heal_no_overheal_unchanged` — zero overheal → full gross counts
-- `test_heal_to_non_player_not_counted` — pet-destined heals excluded
-- `test_spell_heal_absorbed_not_counted_as_heal` — SPELL_HEAL_ABSORBED not in HEAL_EVENTS
-- `test_boss_mechanic_heal_counted_in_encounter` — NPC-src heals count in encounter total
-- `test_vampiric_embrace_excluded_from_healing` — VE now INCLUDED (expected 60k, not 50k)
-- `test_judgement_of_light_excluded_from_healing` — JoL now INCLUDED (expected 35k, not 30k)
-- `test_improved_leader_of_the_pack_excluded_from_healing` — ILotP now INCLUDED (expected 23k, not 20k)
+**Every parser decision must now be grounded in Skada Lua source with a file/line citation.**
 
 ---
 
-## Current UWU Validation
+## Current Goal: Full Skada Audit of parser_core.py
 
-With new formula (estimated, not yet re-run):
+Go through every aspect of parser_core.py and verify it against Skada source:
 
-```
-S1 Lord Marrowgar healing      8,656,055   ~6,610,000   ~23.7%  FAIL (under)
-S1 Deathbringer Saurfang heal  4,191,806   ~3,310,000   ~21.0%  FAIL (under)
-S1 Blood Prince Council heal   9,741,570   ~7,040,000   ~27.7%  FAIL (under)
-```
+### Healing (Skada/Modules/Healing.lua + Core/Tables.lua)
+- [ ] Verify SPELL_HEAL field indices match Skada's suffix definitions
+- [ ] Verify HEAL_EVENTS set matches what Skada listens to
+- [ ] Verify PASSIVE_HEAL_EXCLUSIONS is the complete ignored_spells.heal from Tables.lua
+- [ ] Verify effective heal formula = max(0, amount - overheal) matches Skada
+- [ ] Verify whether absorbs (PW:S) roll into "healing done" or are separate in Skada
+- [ ] Check how Skada handles boss-mechanic heals (non-player src → player dst)
 
-All other checks same as previous session (16/30 passing on damage metrics).
+### Damage (Skada/Modules/Damage.lua + Core/Tables.lua)
+- [ ] Verify DMG_EVENTS set matches what Skada listens to
+- [ ] Verify SWING_DAMAGE field layout matches Skada
+- [ ] Verify SPELL_DAMAGE field layout (amount, overkill, school, resisted, blocked, absorbed, critical)
+- [ ] Verify DAMAGE_SHIELD exclusion is correct per Skada
+- [ ] Check if Skada has an ignored_spells.damage list
+- [ ] Check how Skada handles absorbed damage (Lady Deathwhisper mana barrier)
 
----
-
-## Open Parser Issues
-
-### 1. Healing undercounting (~21-28% under UWU on all bosses)
-Root cause hypothesis: Discipline Priest Power Word: Shield absorbs. UWU counts PW:S absorbs as healing done (they appear in the "absorbed" field on incoming damage events). We currently only parse SPELL_HEAL events. Future enhancement.
-
-### 2. Blood-Queen healing undercounted (40% under)
-BQ total_healing ~35.2M vs UWU 58.8M. Missing ~23.6M of vampiric bite heals. Not related to the heal formula fix — these may be SPELL_HEAL events with a non-player source that aren't being accumulated.
-
-### 3. LDW damage undercounted (7.17%)
-Consistent since the add-damage filter. Low priority.
-
-### 4. S0 Blood Prince Council damage undercounted (21.29%)
-8.18M vs UWU 10.40M. boss_guids detection may be missing some prince GUID forms in 10N segment.
+### General
+- [ ] Verify player GUID detection logic matches Skada's unit flag checks
+- [ ] Check if Skada has any fight-window trimming (post-death event exclusion)
 
 ---
 
-## Current State
+## What Was Done This Session
 
-- **Live app**: https://pizza-logs-production.up.railway.app
-- **All parser tests green** (70/70)
-- **Branch:** `claude/elated-sutherland-11ac4b`
-- **Log file for validation**: `C:/Users/neil_/OneDrive/Desktop/PizzaLogs/WoWCombatLog/WoWCombatLog.txt`
+### 1. Healing formula fix (parts[10] - parts[11])
+- **Old (wrong):** `amount = parts[11]` (this is overheal, not effective)
+- **New (correct):** `amount = max(0.0, parts[10] - parts[11])` (gross - overheal)
+- Confirmed via Skada suffix: `HEAL = "amount, overheal, absorbed, critical"`
+- Confirmed via Skada Healing.lua: `local amount = max(0, heal.amount - heal.overheal)`
+- Result: was 14-228% OVER, now ~21-28% UNDER (consistent gap, likely absorbs)
+
+### 2. PASSIVE_HEAL_EXCLUSIONS — Skada-sourced
+- **Judgement of Light**: EXCLUDED (Skada Tables.lua ignored_spells.heal, spell ID 20267)
+- **Vampiric Embrace**: INCLUDED (not in Skada exclusions)
+- **Improved Leader of the Pack**: INCLUDED (not in Skada exclusions)
+
+### 3. CLAUDE.md updated
+- New "Parser Philosophy — Skada-First" section
+- Skada source URLs and key files documented
+- Correct SPELL_HEAL field layout documented with Skada citation
+
+### 4. Tests: 70/70 passing
+
+---
+
+## Open Questions (need Skada source to answer)
+
+1. **Are there more spells in ignored_spells.heal?** We only found JoL so far. Need full Tables.lua.
+2. **Is ignored_spells.damage a thing?** DAMAGE_SHIELD currently excluded — is that from Skada?
+3. **Do absorbs (PW:S) roll into Skada's healing done, or are they separate?** This determines whether the ~21-28% gap is expected or a bug.
+4. **How does Skada handle the `absorbed` field on damage events?** (Lady Deathwhisper mana barrier)
+
+---
+
+## Known Remaining Gaps vs Skada (to investigate)
+
+| Issue | Delta | Hypothesis |
+|-------|-------|------------|
+| Healing ~21-28% under | all bosses | PW:S absorbs counted in Skada healing total? |
+| Blood-Queen healing 40% under | BQ only | Vampiric bite heals (boss mechanic NPC src) |
+| S0 BPC damage 21.29% under | S0 BPC | boss_guids missing some prince GUID variants |
+| LDW damage 7.17% under | LDW | add filter methodology differs |
 
 ---
 
 ## Next Steps
 
-1. **Commit the healing formula fix** (parser_core.py + test updates + vault)
-2. **Re-run validate_uwu.py** to confirm new numbers
-3. **Investigate PW:S absorbs** — parse absorbed field from incoming damage events to close the 21-28% gap
-4. **Fix BQ healing undercount** — inspect which vampiric bite events are being missed
-5. **S0 BPC damage** — check boss_guids for 10N segment
-6. After fixes: merge branch, push to Railway, re-upload log
+1. Read full Skada Tables.lua, Healing.lua, Damage.lua source (fetch from GitHub)
+2. Audit parser_core.py against Skada line by line
+3. Fix any discrepancies found
+4. Commit + push to Railway

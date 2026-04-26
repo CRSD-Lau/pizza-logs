@@ -40,41 +40,41 @@ HEROIC_SPELL_MARKERS: frozenset[str] = frozenset({
     # difficulty via _normalize_session_difficulty (25N → 25H promotion).
 })
 
+# Source: Skada-WoTLK Skada/Modules/Damage.lua — RegisterForCL call.
+# We track exactly the same damage events Skada tracks.
 DMG_EVENTS = {
     "SPELL_DAMAGE",
     "SWING_DAMAGE",
     "RANGE_DAMAGE",
     "SPELL_PERIODIC_DAMAGE",
-    # DAMAGE_SHIELD excluded: reflects retribution aura/thorns triggered by boss
-    # attacks, not player-initiated output. Excluded by UWU and Warcraft Logs.
-    # SPELL_BUILDING_DAMAGE excluded: vehicle/ship cannon fire (Gunship Battle).
-    # These appear with player GUIDs but are not player DPS. Excluded by UWU.
+    "DAMAGE_SHIELD",          # Thorns / Retribution Aura reflect — Skada includes
+    "DAMAGE_SPLIT",           # Shared-damage mechanics — Skada includes
+    "SPELL_BUILDING_DAMAGE",  # Gunship cannons etc. — Skada includes
+    # Missed events (SWING_MISSED, SPELL_MISSED, etc.) are registered by Skada
+    # for miss-rate stats only; they contribute 0 damage so we skip them.
 }
 
+# Source: Skada-WoTLK Skada/Modules/Healing.lua — RegisterForCL call.
+# Skada registers exactly SPELL_HEAL and SPELL_PERIODIC_HEAL for healing done.
+# SPELL_HEAL_ABSORBED is NOT registered by Skada — it has a different field
+# structure (parts[10] = absorb amount, not a heal amount) and is not counted.
 HEAL_EVENTS = {
     "SPELL_HEAL",
     "SPELL_PERIODIC_HEAL",
-    # SPELL_HEAL_ABSORBED excluded: this event fires when a heal is absorbed by a
-    # shield (e.g. Power Word: Shield eating an incoming heal). Its field structure
-    # is NOT the same as SPELL_HEAL — parts[10] is the absorb amount, not a heal
-    # amount. Including it inflated healing 2-5x vs UWU. UWU only counts
-    # SPELL_HEAL and SPELL_PERIODIC_HEAL.
 }
 
 # Spells excluded from healing-done totals.
 #
-# Source: Skada-WoTLK Skada/Core/Tables.lua (ignored_spells.heal).
-# We replicate Skada exactly so website numbers match what players see in-game.
+# Source: Skada-WoTLK Skada/Core/Tables.lua
+# Tables.lua defines: ignored_spells.buff, .debuff, .firsthit, .time — there is
+# NO ignored_spells.heal table. Skada excludes NO spells from healing-done totals
+# by spell name/ID. Every SPELL_HEAL and SPELL_PERIODIC_HEAL event counts.
 #
-# Confirmed EXCLUDED in Skada:
-#   - Judgement of Light (spell ID 20267 — explicitly in ignored_spells.heal)
-#
-# Confirmed INCLUDED in Skada (NOT in ignored_spells.heal):
-#   - Vampiric Embrace  — tracked as normal healing
-#   - Improved Leader of the Pack — tracked as normal healing
-PASSIVE_HEAL_EXCLUSIONS: frozenset[str] = frozenset({
-    "Judgement of Light",
-})
+# Previously excluded (now confirmed included per Skada):
+#   - Judgement of Light  — commented-out line in Tables.lua = NOT excluded
+#   - Vampiric Embrace    — never in any exclusion list
+#   - Improved Leader of the Pack — never in any exclusion list
+PASSIVE_HEAL_EXCLUSIONS: frozenset[str] = frozenset()
 
 UNIT_DIED_EVENT = "UNIT_DIED"
 ENCOUNTER_START  = "ENCOUNTER_START"
@@ -479,7 +479,7 @@ class CombatLogParser:
             # Field offsets:
             #   SWING_DAMAGE (14 fields): [7]=amount  [8]=overkill  [12]=absorbed
             #   All spell events  (18 f): [10]=amount [11]=overkill [15]=absorbed
-            if (event in DMG_EVENTS or event == "DAMAGE_SHIELD") and len(parts) >= 5:
+            if event in DMG_EVENTS and len(parts) >= 5:
                 src_guid  = parts[1]
                 dst_guid  = parts[4]
                 src_flags = parts[3] if len(parts) > 3 else "0"
@@ -504,11 +504,11 @@ class CombatLogParser:
                     try:
                         if event == "SWING_DAMAGE" and len(parts) >= 9:
                             absorbed = _safe_float(parts[12]) if len(parts) > 12 else 0.0
-                            # UWU counts amount+absorbed without subtracting overkill
+                            # Skada counts amount+absorbed without subtracting overkill
                             eff = max(0.0, float(parts[7]) + absorbed)
                         elif len(parts) >= 12:
                             absorbed = _safe_float(parts[15]) if len(parts) > 15 else 0.0
-                            # UWU counts amount+absorbed without subtracting overkill
+                            # Skada counts amount+absorbed without subtracting overkill
                             eff = max(0.0, float(parts[10]) + absorbed)
                         else:
                             eff = 0.0
@@ -804,9 +804,8 @@ class CombatLogParser:
                 absorbed   = 0.0
                 is_crit    = len(parts) > 13 and parts[13] == "1"
             else:
-                # Only process recognised damage event types — defence-in-depth
-                # guard so DAMAGE_SHIELD / SPELL_BUILDING_DAMAGE etc. are dropped
-                # even if they slip past _segment_encounters pre-filtering.
+                # All remaining events must be in DMG_EVENTS — defence-in-depth
+                # guard against any unrecognised events slipping through.
                 if event not in DMG_EVENTS:
                     continue
                 # SPELL_DAMAGE / SPELL_PERIODIC_DAMAGE / RANGE_DAMAGE etc.
@@ -855,7 +854,9 @@ class CombatLogParser:
                 continue
 
             # Skip heals landing on non-player targets (pets, totems, etc.)
-            # UWU only counts heals where the destination is a player.
+            # Skada uses flags_src (source filter only), but player-to-pet heals
+            # are a negligible fraction of total and keeping the dst filter avoids
+            # inflating totals with totem/pet heals most raiders don't expect to see.
             if is_heal and not _is_player(dst_guid):
                 continue
 
