@@ -4,48 +4,47 @@
 2026-04-26
 
 ## Git
-**Branch:** `main` (merged + pushed — Railway deploy triggered)
-**Latest commit:** `3b58613` merge: align parser 100% with Skada-WoTLK source
+**Branch:** `main` (clean — only branch)
+**Latest commit:** `219cb9a` docs: rewrite README to reflect current state
 
 ---
 
 ## What Was Done This Session
 
-### 1. Heal formula fixed
-- `effective = max(0, parts[10] - parts[11])` — gross heal minus overheal
-- Was using `parts[11]` directly (the overheal amount), causing 14-228% overcounting
-- Confirmed via Skada `Healing.lua`: `local amount = max(0, heal.amount - heal.overheal)`
+### 1. Cleanup commit pushed to main
+- Staged vault changes from previous session committed (`f4764db`)
+- Deleted stale UWU parity docs, validate_uwu.py
+- Added parser/tests/__init__.py
+- Updated all vault files (Decision Log, Latest Handoff, Now.md, Parser Deep Dive, Feature Status, Technical Debt, What Claude Forgets, Known Issues, START HERE, Obsidian plugins/themes)
 
-### 2. Parser philosophy switched to Skada-first
-- Skada-WoTLK is now the sole reference (https://github.com/bkader/Skada-WoTLK)
-- Not UWU — no source code available, not the player-facing reference
-- CLAUDE.md, vault, all comments updated to cite Skada files
+### 2. .gitignore hardened
+- `tsconfig.tsbuildinfo` — build artifact, untracked and ignored
+- `WoWCombatLog/` — 158MB log file, never track
+- `parser/diag_*.py` — throwaway debug scripts
+- `.claude/worktrees/` — Claude worktree directories
 
-### 3. DMG_EVENTS aligned with Skada Damage.lua RegisterForCL
-Added: `DAMAGE_SHIELD`, `DAMAGE_SPLIT`, `SPELL_BUILDING_DAMAGE`
-Previously excluded based on UWU assumptions; Skada explicitly registers all three.
+### 3. README rewritten
+Old README had stale/wrong info. New README reflects:
+- Deployment: Railway (not Docker Compose)
+- Architecture: Warmane has no ENCOUNTER_START/END; heuristic detection
+- Parser: Skada-WoTLK as source of truth, DMG_EVENTS, heal formula, absorbs TBD
+- Pages: all current routes (raids, sessions, leaderboards, players)
+- Prisma CLI: correct `node ./node_modules/prisma/build/index.js` command
+- Project structure: AccordionSection, tests/, Obsidian vault
 
-### 4. PASSIVE_HEAL_EXCLUSIONS emptied
-- `Tables.lua` has no `ignored_spells.heal` table
-- JoL line in Tables.lua is commented out = not excluded
-- All SPELL_HEAL / SPELL_PERIODIC_HEAL events count
-
-### 5. Tests: 71/71 passing
-
-### 6. Full project review and cleanup
-- Stale UWU parity docs deleted (docs/superpowers/)
-- GuildLogs_PoC.html removed
-- All vault files updated for accuracy
-- Known Issues, Feature Status, Technical Debt, Decision Log, What Claude Forgets all current
+### 4. Branch cleanup
+- Deleted `claude/elated-sutherland-11ac4b` (local + remote)
+- Deleted `claude/parser-rework-skada-logic` (remote)
+- GitHub now has only `main`
 
 ---
 
 ## Current State
 
 - **Live app**: https://pizza-logs-production.up.railway.app
-- **Deploy**: Pushed to main — Railway building now
 - **Tests**: 71/71 passing
-- **HPS gap**: ~21-28% under Skada — expected (PW:S absorbs not yet implemented)
+- **Git**: main only, clean
+- **HPS gap**: ~21-28% under Skada — expected (PW:S absorbs not implemented)
 - **DPS**: <1% residual from orphaned pets — accepted
 
 ---
@@ -54,11 +53,11 @@ Previously excluded based on UWU assumptions; Skada explicitly registers all thr
 
 ### HPS gap — Power Word: Shield absorbs
 Skada tracks absorbs in `Absorbs.lua` as `actor.absorb` (separate from `actor.heal`).
-We only parse `SPELL_HEAL` events. To close the ~25% gap:
+To close the ~25% gap:
 1. Parse `SPELL_AURA_APPLIED` for PW:S spell IDs — store shield capacity per caster
 2. Parse `absorbed` field on incoming damage events — attribute consumed absorb to Disc priest
 
-Decision needed: heal-only column (Skada Healing module) or heal+absorbs column (Skada combined view)?
+Decision needed: heal-only column (Skada Healing module) or heal+absorbs column (combined view)?
 
 ### Footer text bug
 Footer says "All parsing done client-side" — wrong, it's server-side. Fix: update footer component.

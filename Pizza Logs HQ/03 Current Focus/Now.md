@@ -1,9 +1,9 @@
 # Now
 
 ## Status
-Skada-WoTLK alignment **DONE** — merged to main, Railway deploying.
+Repo fully clean. Main only. Railway deployed.
 Parser replicates Skada exactly: DMG_EVENTS, HEAL_EVENTS, heal formula, no spell exclusions.
-71/71 tests passing.
+71/71 tests passing. README accurate.
 
 ---
 
