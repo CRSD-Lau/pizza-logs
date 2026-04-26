@@ -676,11 +676,26 @@ class CombatLogParser:
         actors: dict[str, ActorStats] = {}
         targets_hit: set[str] = set()
         boss_died_ts: Optional[float] = None  # for accurate KILL duration
+        boss_mechanic_healing = 0.0            # heals from non-player → player (boss mechanics)
 
         boss_name_lower = boss_name.lower() if boss_name else ""
         boss_alias_set  = {a.lower() for a in boss_def.aliases} if boss_def else set()
 
-        # Pre-pass: resolve pre-summoned pets that have no SPELL_SUMMON entry.
+        # Pre-pass A: discover boss GUIDs from damage/death events where the target
+        # name matches the boss. Used later to exclude add damage from per-encounter
+        # totals (e.g. Lady Deathwhisper Adherents/Fanatics, BPC Kinetic Bombs).
+        boss_guids: set[str] = set()
+        for _, _bp, _ in segment:
+            ev = _bp[0]
+            if ev in DMG_EVENTS or ev == UNIT_DIED_EVENT:
+                if len(_bp) >= 6:
+                    _dst_guid = _bp[4]
+                    _dst_name = _bp[5].strip('"').strip().lower()
+                    if _dst_name and (_dst_name == boss_name_lower or _dst_name in boss_alias_set):
+                        if _dst_guid and _dst_guid not in ("0x0000000000000000", "0xNIL"):
+                            boss_guids.add(_dst_guid)
+
+        # Pre-pass B: resolve pre-summoned pets that have no SPELL_SUMMON entry.
         # Scan every event for player→pet interactions (Mend Pet ticks, buffs,
         # Feed Pet, etc.) — dst_flags TYPE_PET(0x1000)|CONTROL_PLAYER(0x0100)
         # identifies player-owned pets. Running this before the main loop means
@@ -788,6 +803,11 @@ class CombatLogParser:
                     if _is_player(dst_guid) and dst_name:
                         a = _get_actor(actors, dst_name, dst_guid)
                         a.damage_taken += amount
+                    # Boss-mechanic heals (e.g. Blood-Queen vampiric bites):
+                    # src is a non-player NPC but dst is a player. Count in
+                    # encounter total_healing without attributing to any actor.
+                    if is_heal and _is_player(dst_guid) and amount > 0:
+                        boss_mechanic_healing += amount
                     continue
 
             if not src_name:
@@ -821,8 +841,17 @@ class CombatLogParser:
                 a.total_healing += eff_amount
                 ss.healing += eff_amount
             else:
-                a.total_damage += eff_amount
-                ss.damage += eff_amount
+                # For bosses with independent add waves (Lady Deathwhisper, BPC),
+                # only count damage directed at the boss unit(s) — not adds.
+                # For bosses where mechanic-unit damage counts (Marrowgar Bone
+                # Spikes, Saurfang Blood Beasts), filter_add_damage=False so we
+                # accumulate all damage regardless of target GUID.
+                apply_boss_filter = bool(
+                    boss_def and boss_def.filter_add_damage and boss_guids
+                )
+                if not apply_boss_filter or dst_guid in boss_guids:
+                    a.total_damage += eff_amount
+                    ss.damage += eff_amount
                 targets_hit.add(dst_name)
                 # Track damage by target mob for drill-down
                 if dst_name:
@@ -884,7 +913,9 @@ class CombatLogParser:
             })
 
         total_damage  = sum(a.total_damage  for a in actors.values())
-        total_healing = sum(a.total_healing for a in actors.values())
+        # Add boss-mechanic heals (e.g. vampiric bites sourced from Blood-Queen)
+        # to the encounter healing total. These are not attributed to any actor.
+        total_healing = sum(a.total_healing for a in actors.values()) + boss_mechanic_healing
         total_taken   = sum(a.damage_taken  for a in actors.values())
 
         # Discard false-positive segments: no player output AND very short

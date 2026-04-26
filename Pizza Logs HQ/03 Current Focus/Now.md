@@ -1,7 +1,7 @@
 # Now
 
 ## Status
-Parser healing field fix **DONE** — 61/61 tests green. Open issues remain.
+Damage regression fix **DONE** — 64/64 tests green, 14/26 UWU checks passing.
 
 ---
 
@@ -9,45 +9,44 @@ Parser healing field fix **DONE** — 61/61 tests green. Open issues remain.
 
 | Change | File | Status |
 |--------|------|--------|
-| Use parts[11] (effective heal) not parts[10] (total) | `parser/parser_core.py` | ✅ |
-| Update `_heal_parts` helper to `total`/`effective` semantics | `parser/tests/test_parser_core.py` | ✅ |
-| 3 new TDD tests for effective heal behavior | `parser/tests/test_parser_core.py` | ✅ |
-| CLAUDE.md: document SPELL_HEAL parts[11]=effective | `CLAUDE.md` | ✅ |
+| Add `filter_add_damage: bool = False` to BossDef | `parser/bosses.py` | ✅ |
+| Set `filter_add_damage=True` on LDW and BPC only | `parser/bosses.py` | ✅ |
+| Apply boss_guids filter only when `boss_def.filter_add_damage=True` | `parser/parser_core.py` | ✅ |
+| TDD test: mechanic-unit damage included when filter_add_damage=False | `parser/tests/test_parser_core.py` | ✅ |
+| Boss-mechanic healing accumulator for BQ vampiric bites (prev session) | `parser/parser_core.py` | ✅ |
 
 ---
 
 ## Open Parser Issues (not yet fixed)
 
-### Healing overcounting vs UWU (56-265% over on most bosses)
-- Using parts[11] (effective heal) is correct per the log format
-- But we're still ~56% over for Marrowgar, 265% over for Saurfang, etc.
-- Likely cause: UWU may filter passive proc heals (Vampiric Embrace, Judgement of Light, ILotP) that we count
-- Or: UWU may count only healing from "active healer" role abilities
+### Healing overcounting (55-265% over UWU on all non-BQ bosses)
+- Parts[11] (effective heal) is being used — that's correct
+- Still massively over for Marrowgar (+55%), Saurfang (+264%), BPC (+127%)
+- Root cause: UWU likely excludes passive proc heals (Vampiric Embrace, JoL, ILotP)
+- Need to identify which SPELL_PERIODIC_HEAL events UWU excludes
 
-### Blood-Queen healing undercounted (36% under UWU)
-- "Essence of the Blood Queen" vampiric bite heals appear with **Blood-Queen as src GUID** (0xF1... non-player)
-- Our `_is_player(src_guid)` filter drops them
-- Need: count heals where `_is_player(dst_guid)` even if src is non-player (for fight mechanics)
+### Blood-Queen healing undercounted (33.75% under UWU)
+- Boss-mechanic accumulator added but BQ still 33.75% short
+- Essence of the Blood Queen vampiric bites from S1 25H kill window may use different GUIDs
+- Need to inspect actual log events around BQ segment to see what heals are logged
 
-### Lady Deathwhisper damage overcounted (35%)
-- Our per-encounter damage counts ALL targets hit during the fight (boss + Adherents + Fanatics)
-- UWU appears to count only damage to Lady Deathwhisper herself
-- Difference: ~12.5M = add damage during phase 1
-- Fix: only count eff_amount where dst_name/dst_guid == boss name/GUID (complex for multi-boss)
+### Lady Deathwhisper damage undercounted (7.17% under UWU)
+- Was 34.92% over (add damage), now 7.17% under (adds correctly filtered)
+- Diff = ~2.5M — could be LDW phase 1 absorbed damage, or some LDW GUID not in boss_guids
+- Lower priority
 
 ### S0 encounters missing (Sindragosa, BPC 10N)
 - Not found at session_index=0
-- Likely session assignment logic; needs investigation
-
-### BPC damage slightly over (2%)
-- Same add-damage issue (Kinetic Bombs, shadow orbs)
+- Both are from a 10N session (different night from the 25H session)
+- Session indexing bug — investigate _assign_session_indices
 
 ---
 
 ## Next Action
 
-Investigate and fix the open issues above in priority order:
-1. LDW damage (clear diagnosis: add damage inflation)
-2. BQ healing (clear diagnosis: boss-sourced heals filtered out)
-3. Session healing overcounting (less clear; may need UWU methodology insight)
-4. S0 missing sessions
+Priority order:
+1. Investigate healing overcounting — what does UWU exclude from SPELL_PERIODIC_HEAL?
+2. Fix BQ healing — inspect log events around BQ encounter for boss-sourced heals
+3. Fix S0 missing sessions — check session gap detection
+
+**Log file**: `C:/Users/neil_/Downloads/WoWCombatLog/WoWCombatLog.txt`

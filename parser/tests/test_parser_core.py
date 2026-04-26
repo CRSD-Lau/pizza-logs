@@ -1547,3 +1547,138 @@ def test_encounter_damage_excludes_absorbed_swing_damage():
     assert phyre["totalDamage"] == pytest.approx(40_000, abs=1), (
         f"Absorbed swing damage must be excluded. Got {phyre['totalDamage']:,.0f}, expected 40,000"
     )
+
+
+# ── Boss-mechanic heals (non-player source → player destination) ──────────────
+#
+# Blood-Queen Lana'thel's "Essence of the Blood Queen" buff periodically heals
+# bitten players, logged with Blood-Queen herself as the source GUID (0xF1...
+# non-player). Our _is_player(src_guid) filter drops them, causing BQ healing
+# to be ~36% under UWU.
+#
+# Fix: when is_heal=True and src is non-player but dst is player, include the
+# effective heal in the encounter total_healing (without attributing to any actor
+# so individual HPS is not inflated).
+
+def test_boss_mechanic_heal_counted_in_encounter():
+    """Heals from non-player sources (boss mechanics) landing on players must
+    be included in the encounter total_healing.
+
+    Example: Blood-Queen 'Essence of the Blood Queen' periodic heal where
+    src=Blood-Queen GUID (non-player), dst=bitten player (player GUID).
+    """
+    BOSS_SRC_GUID = "0xF130009443000132"   # Blood-Queen — non-player
+    ts_start = 46800.0
+
+    # Boss-mechanic heal: src=Blood-Queen, dst=Phyre (player), effective=11550
+    boss_mechanic_heal = [
+        "SPELL_HEAL",
+        BOSS_SRC_GUID, '"Blood-Queen Lana\'thel"', "0x10a48",
+        PLAYER_GUID, '"Phyre"', "0x512",
+        "70872", '"Essence of the Blood Queen"', "0x20",
+        "18981", "11550", "0", "nil",   # total=18981, effective=11550
+    ]
+
+    segment = [
+        ("4/19 14:01:00.000", [ENCOUNTER_START, "1234", '"Blood-Queen Lana\'thel"', "6", "25"], ts_start),
+        # Regular player cast (should count)
+        ("4/19 14:01:05.000", _heal_parts(PLAYER_GUID, "Sininho", PLAYER_GUID, "Tank", 50_000), ts_start + 5.0),
+        # Boss mechanic heal (must also count in encounter total_healing)
+        ("4/19 14:01:06.000", boss_mechanic_heal, ts_start + 6.0),
+        ("4/19 14:02:00.000", _unit_died_parts("Blood-Queen Lana'thel"), ts_start + 60.0),
+        ("4/19 14:02:10.000", [ENCOUNTER_END, "1234", '"Blood-Queen Lana\'thel"', "6", "25", "1"], ts_start + 70.0),
+    ]
+
+    parser = CombatLogParser(file_year=2026)
+    enc = parser._aggregate_segment(segment, {})
+    assert enc is not None
+    expected = 50_000 + 11_550
+    assert enc.total_healing == pytest.approx(expected, abs=1), (
+        f"Boss mechanic heals must be included in encounter total_healing. "
+        f"Got {enc.total_healing:,.0f}, expected {expected:,}"
+    )
+
+
+# ── Add damage exclusion from per-encounter totals ────────────────────────────
+#
+# Lady Deathwhisper Phase 1: Adherents and Fanatics spawn alongside the boss.
+# Our encounter damage was counting ALL targets hit during the fight window,
+# inflating DPS by ~35% vs UWU which counts only damage to the boss unit(s).
+#
+# Fix: pre-pass discovers boss GUID(s) by matching dst_name to boss_name /
+# aliases; main loop only accumulates eff_amount when dst_guid is in boss_guids.
+
+def test_encounter_damage_excludes_add_damage():
+    """Damage to add units (Adherents, Fanatics, etc.) must NOT count toward
+    the encounter's total_damage — only boss-directed damage counts.
+
+    This fixes Lady Deathwhisper being ~35% over UWU.
+    Lady Deathwhisper has filter_add_damage=True so the boss_guids filter applies.
+    """
+    boss_guid = "0xF130000000000001"
+    add_guid  = "0xF130000000000002"
+    ts_start  = 46800.0
+
+    segment = [
+        ("4/19 13:00:00.000", [ENCOUNTER_START, "1234", '"Lady Deathwhisper"', "4", "25"], ts_start),
+        # Hit boss: should count
+        ("4/19 13:00:05.000", _spell_damage_parts(PLAYER_GUID, "Phyre", boss_guid, "Lady Deathwhisper", 100_000), ts_start + 5.0),
+        # Hit add: must NOT count toward encounter total_damage
+        ("4/19 13:00:06.000", _spell_damage_parts(PLAYER_GUID, "Phyre", add_guid, "Deathwhisper Adherent", 50_000), ts_start + 6.0),
+        ("4/19 13:01:00.000", _unit_died_parts("Lady Deathwhisper"), ts_start + 60.0),
+        ("4/19 13:01:10.000", [ENCOUNTER_END, "1234", '"Lady Deathwhisper"', "4", "25", "1"], ts_start + 70.0),
+    ]
+
+    parser = CombatLogParser(file_year=2026)
+    enc = parser._aggregate_segment(segment, {})
+    assert enc is not None
+    phyre = next((p for p in enc.participants if p["name"] == "Phyre"), None)
+    assert phyre is not None
+    assert phyre["totalDamage"] == pytest.approx(100_000, abs=1), (
+        f"Only boss damage counts per-encounter. Got {phyre['totalDamage']:,.0f}, expected 100,000"
+    )
+    assert enc.total_damage == pytest.approx(100_000, abs=1), (
+        f"Encounter total must exclude add damage. Got {enc.total_damage:,.0f}, expected 100,000"
+    )
+
+
+# ── Boss mechanic unit damage (filter_add_damage=False) ──────────────────────
+#
+# Marrowgar spawns Bone Spikes that players must DPS/click to free raid members.
+# Saurfang spawns Blood Beasts that players kill to prevent them from healing boss.
+# These are boss-mechanic units, NOT independent add waves — UWU counts damage to
+# them.  The boss_guids filter must NOT apply when filter_add_damage=False.
+
+def test_encounter_damage_includes_mechanic_unit_damage():
+    """Damage to boss mechanic units (Bone Spikes, Blood Beasts) MUST count
+    toward the encounter total.  Lord Marrowgar has filter_add_damage=False so
+    all damage — to the boss AND mechanic units — is accumulated.
+    """
+    marrowgar_guid  = "0xF130000000000010"
+    bone_spike_guid = "0xF130000000000011"
+    ts_start        = 46800.0
+
+    segment = [
+        # boss_id 36612 = Lord Marrowgar (real ID); name lookup gives BossDef
+        ("4/19 13:00:00.000", [ENCOUNTER_START, "36612", '"Lord Marrowgar"', "4", "25"], ts_start),
+        # 100k to Marrowgar himself
+        ("4/19 13:00:05.000", _spell_damage_parts(PLAYER_GUID, "Phyre", marrowgar_guid, "Lord Marrowgar", 100_000), ts_start + 5.0),
+        # 50k to a Bone Spike (mechanic unit) — should also count
+        ("4/19 13:00:06.000", _spell_damage_parts(PLAYER_GUID, "Phyre", bone_spike_guid, "Bone Spike", 50_000), ts_start + 6.0),
+        ("4/19 13:01:00.000", _unit_died_parts("Lord Marrowgar"), ts_start + 60.0),
+        ("4/19 13:01:10.000", [ENCOUNTER_END, "36612", '"Lord Marrowgar"', "4", "25", "1"], ts_start + 70.0),
+    ]
+
+    parser = CombatLogParser(file_year=2026)
+    enc = parser._aggregate_segment(segment, {})
+    assert enc is not None
+    phyre = next((p for p in enc.participants if p["name"] == "Phyre"), None)
+    assert phyre is not None
+    assert phyre["totalDamage"] == pytest.approx(150_000, abs=1), (
+        f"Mechanic-unit damage must be counted (filter_add_damage=False). "
+        f"Got {phyre['totalDamage']:,.0f}, expected 150,000"
+    )
+    assert enc.total_damage == pytest.approx(150_000, abs=1), (
+        f"Encounter total must include mechanic-unit damage. "
+        f"Got {enc.total_damage:,.0f}, expected 150,000"
+    )
