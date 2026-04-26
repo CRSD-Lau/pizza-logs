@@ -1,22 +1,41 @@
 # Now
 
+## Mission
+**Make parser_core.py a 1:1 replication of Skada-WoTLK.**
+Skada is what the raid uses in-game. The website must show the same numbers.
+Source: https://github.com/bkader/Skada-WoTLK
+
+---
+
+## Active Task: Full Skada Audit
+
+### Healing audit checklist
+- [ ] Full ignored_spells.heal from Tables.lua → update PASSIVE_HEAL_EXCLUSIONS
+- [ ] Verify HEAL_EVENTS matches Skada event listeners
+- [ ] Verify effective heal formula matches Skada (currently: gross - overheal ✅)
+- [ ] Determine if PW:S absorbs are in Skada's "healing done" or separate
+- [ ] Boss-mechanic heals (non-player src → player dst) — how does Skada handle?
+
+### Damage audit checklist
+- [ ] Full ignored_spells.damage from Tables.lua (if it exists)
+- [ ] Verify DMG_EVENTS matches Skada event listeners
+- [ ] Verify DAMAGE_SHIELD exclusion is per Skada (not a guess)
+- [ ] SWING_DAMAGE / SPELL_DAMAGE field layout — verify against Skada suffix defs
+- [ ] Absorbed damage handling (LDW mana barrier) — verify vs Skada
+
+### General
+- [ ] Player vs NPC detection — verify vs Skada unit flag logic
+- [ ] Fight window (post-death trimming) — does Skada trim? Do we?
+
+---
+
 ## Status
-Task 1: **Cap Milestone Awards to Top 3** — DONE
+- 70/70 tests passing
+- Branch: `claude/elated-sutherland-11ac4b`
+- Healing formula fixed (gross - overheal per Skada)
+- JoL excluded per Skada Tables.lua
+- VE and ILotP included per Skada
+- CLAUDE.md updated with Skada-first philosophy
 
-Changed `MILESTONE_RANKS` from `[1, 3, 5, 10, 25, 50, 100]` to `[1, 2, 3]` in `lib/actions/milestones.ts`.
-
----
-
-## What Changed
-- Only new milestones will use top-3 ranks
-- Past milestones at ranks 4+ remain unchanged (no retroactive removal)
-- Type-check: 0 errors
-- Commit: `a31cb59`
-
----
-
-## Next Actions
-
-1. Verify milestone system in live app (manual test)
-2. Monitor new uploads for correct award capping
-3. Plan next feature from backlog
+## Log file for validation
+`C:/Users/neil_/OneDrive/Desktop/PizzaLogs/WoWCombatLog/WoWCombatLog.txt`

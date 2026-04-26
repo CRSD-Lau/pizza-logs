@@ -29,38 +29,52 @@ HEROIC_SPELL_MARKERS: frozenset[str] = frozenset({
     "bone slice",
     # Deathbringer Saurfang (ICC) — heroic debuff DoT
     "rune of blood",
-    # Blood Prince Council (ICC) — empowered abilities are heroic-only
-    "empowered shock vortex",
-    "empowered shadow lance",
-    "empowered blood",
     # Blood-Queen Lana'thel (ICC) — heroic group link mechanic
     "pact of the darkfallen",
     # Professor Putricide (ICC) — spreads between players in heroic only
     "unbound plague",
-    # Sindragosa (ICC) — self-damage from Unchained Magic stacks (heroic only)
-    "backlash",
+    # NOTE: "backlash" (Sindragosa) and "empowered shock vortex" / "empowered shadow lance" /
+    # "empowered blood" (Blood Prince Council) are intentionally EXCLUDED here.
+    # On Warmane these spells also appear in 10N, so they cannot be used as heroic-exclusive
+    # markers.  Sindragosa and BPC in a 25H session instead inherit the session's heroic
+    # difficulty via _normalize_session_difficulty (25N → 25H promotion).
 })
 
+# Source: Skada-WoTLK Skada/Modules/Damage.lua — RegisterForCL call.
+# We track exactly the same damage events Skada tracks.
 DMG_EVENTS = {
     "SPELL_DAMAGE",
     "SWING_DAMAGE",
     "RANGE_DAMAGE",
     "SPELL_PERIODIC_DAMAGE",
-    # DAMAGE_SHIELD excluded: reflects retribution aura/thorns triggered by boss
-    # attacks, not player-initiated output. Excluded by UWU and Warcraft Logs.
-    # SPELL_BUILDING_DAMAGE excluded: vehicle/ship cannon fire (Gunship Battle).
-    # These appear with player GUIDs but are not player DPS. Excluded by UWU.
+    "DAMAGE_SHIELD",          # Thorns / Retribution Aura reflect — Skada includes
+    "DAMAGE_SPLIT",           # Shared-damage mechanics — Skada includes
+    "SPELL_BUILDING_DAMAGE",  # Gunship cannons etc. — Skada includes
+    # Missed events (SWING_MISSED, SPELL_MISSED, etc.) are registered by Skada
+    # for miss-rate stats only; they contribute 0 damage so we skip them.
 }
 
+# Source: Skada-WoTLK Skada/Modules/Healing.lua — RegisterForCL call.
+# Skada registers exactly SPELL_HEAL and SPELL_PERIODIC_HEAL for healing done.
+# SPELL_HEAL_ABSORBED is NOT registered by Skada — it has a different field
+# structure (parts[10] = absorb amount, not a heal amount) and is not counted.
 HEAL_EVENTS = {
     "SPELL_HEAL",
     "SPELL_PERIODIC_HEAL",
-    # SPELL_HEAL_ABSORBED excluded: this event fires when a heal is absorbed by a
-    # shield (e.g. Power Word: Shield eating an incoming heal). Its field structure
-    # is NOT the same as SPELL_HEAL — parts[10] is the absorb amount, not a heal
-    # amount. Including it inflated healing 2-5x vs UWU. UWU only counts
-    # SPELL_HEAL and SPELL_PERIODIC_HEAL.
 }
+
+# Spells excluded from healing-done totals.
+#
+# Source: Skada-WoTLK Skada/Core/Tables.lua
+# Tables.lua defines: ignored_spells.buff, .debuff, .firsthit, .time — there is
+# NO ignored_spells.heal table. Skada excludes NO spells from healing-done totals
+# by spell name/ID. Every SPELL_HEAL and SPELL_PERIODIC_HEAL event counts.
+#
+# Previously excluded (now confirmed included per Skada):
+#   - Judgement of Light  — commented-out line in Tables.lua = NOT excluded
+#   - Vampiric Embrace    — never in any exclusion list
+#   - Improved Leader of the Pack — never in any exclusion list
+PASSIVE_HEAL_EXCLUSIONS: frozenset[str] = frozenset()
 
 UNIT_DIED_EVENT = "UNIT_DIED"
 ENCOUNTER_START  = "ENCOUNTER_START"
@@ -297,14 +311,19 @@ class CombatLogParser:
 
     @staticmethod
     def _normalize_session_difficulty(encounters: list["ParsedEncounter"]) -> None:
-        """Upgrade Gunship Battle difficulty to match the rest of the session.
+        """Normalize encounter difficulties within a session.
 
-        Gunship has no heroic-specific spells so Warmane logs its difficultyID
-        as 4 (25N) even on a heroic kill. If any other encounter in the same
-        session is heroic, Gunship inherits that difficulty.
-        Only Gunship gets this treatment — other bosses that appear as normal
-        in a heroic session (e.g. Lady Deathwhisper on a 25N attempt) are left
-        unchanged.
+        Two cases handled:
+
+        1. Gunship Battle: Warmane emits difficultyID=4 (25N) even on heroic kills
+           because the boss has no heroic-exclusive spells.  Always inherit from session.
+
+        2. 25N encounters in a confirmed 25H session: some bosses (Sindragosa, Blood Prince
+           Council) have spells that look heroic-exclusive but also appear in 10N on Warmane,
+           so their markers were removed from HEROIC_SPELL_MARKERS.  In a 25H session (where
+           other bosses confirmed heroic via reliable markers like Marrowgar "Bone Slice" or
+           Saurfang "Rune of Blood") any remaining 25N encounter is promoted to 25H.
+           10N encounters are never promoted — group-size detection is reliable.
         """
         by_session: dict[int, list["ParsedEncounter"]] = {}
         for enc in encounters:
@@ -317,9 +336,17 @@ class CombatLogParser:
             if not heroic_diff:
                 continue
             for enc in session_encs:
-                if enc.boss_name and "gunship" in enc.boss_name.lower():
-                    if enc.difficulty not in ("25H", "10H"):
-                        enc.difficulty = heroic_diff
+                if enc.difficulty in ("25H", "10H"):
+                    continue  # already heroic — no change needed
+                bn = (enc.boss_name or "").lower()
+                if "gunship" in bn:
+                    # Gunship: always inherit session difficulty
+                    enc.difficulty = heroic_diff
+                elif heroic_diff == "25H" and enc.difficulty == "25N":
+                    # 25N encounter in a confirmed 25H session → promote to 25H.
+                    # 10N encounters are intentionally left alone (10N and 10H can
+                    # coexist across sessions; group-size detection is reliable for 10).
+                    enc.difficulty = "25H"
 
     @staticmethod
     def _assign_session_indices(
@@ -452,7 +479,7 @@ class CombatLogParser:
             # Field offsets:
             #   SWING_DAMAGE (14 fields): [7]=amount  [8]=overkill  [12]=absorbed
             #   All spell events  (18 f): [10]=amount [11]=overkill [15]=absorbed
-            if (event in DMG_EVENTS or event == "DAMAGE_SHIELD") and len(parts) >= 5:
+            if event in DMG_EVENTS and len(parts) >= 5:
                 src_guid  = parts[1]
                 dst_guid  = parts[4]
                 src_flags = parts[3] if len(parts) > 3 else "0"
@@ -477,11 +504,11 @@ class CombatLogParser:
                     try:
                         if event == "SWING_DAMAGE" and len(parts) >= 9:
                             absorbed = _safe_float(parts[12]) if len(parts) > 12 else 0.0
-                            # UWU counts amount+absorbed without subtracting overkill
+                            # Skada counts amount+absorbed without subtracting overkill
                             eff = max(0.0, float(parts[7]) + absorbed)
                         elif len(parts) >= 12:
                             absorbed = _safe_float(parts[15]) if len(parts) > 15 else 0.0
-                            # UWU counts amount+absorbed without subtracting overkill
+                            # Skada counts amount+absorbed without subtracting overkill
                             eff = max(0.0, float(parts[10]) + absorbed)
                         else:
                             eff = 0.0
@@ -676,11 +703,26 @@ class CombatLogParser:
         actors: dict[str, ActorStats] = {}
         targets_hit: set[str] = set()
         boss_died_ts: Optional[float] = None  # for accurate KILL duration
+        boss_mechanic_healing = 0.0            # heals from non-player → player (boss mechanics)
 
         boss_name_lower = boss_name.lower() if boss_name else ""
         boss_alias_set  = {a.lower() for a in boss_def.aliases} if boss_def else set()
 
-        # Pre-pass: resolve pre-summoned pets that have no SPELL_SUMMON entry.
+        # Pre-pass A: discover boss GUIDs from damage/death events where the target
+        # name matches the boss. Used later to exclude add damage from per-encounter
+        # totals (e.g. Lady Deathwhisper Adherents/Fanatics, BPC Kinetic Bombs).
+        boss_guids: set[str] = set()
+        for _, _bp, _ in segment:
+            ev = _bp[0]
+            if ev in DMG_EVENTS or ev == UNIT_DIED_EVENT:
+                if len(_bp) >= 6:
+                    _dst_guid = _bp[4]
+                    _dst_name = _bp[5].strip('"').strip().lower()
+                    if _dst_name and (_dst_name == boss_name_lower or _dst_name in boss_alias_set):
+                        if _dst_guid and _dst_guid not in ("0x0000000000000000", "0xNIL"):
+                            boss_guids.add(_dst_guid)
+
+        # Pre-pass B: resolve pre-summoned pets that have no SPELL_SUMMON entry.
         # Scan every event for player→pet interactions (Mend Pet ticks, buffs,
         # Feed Pet, etc.) — dst_flags TYPE_PET(0x1000)|CONTROL_PLAYER(0x0100)
         # identifies player-owned pets. Running this before the main loop means
@@ -737,23 +779,33 @@ class CombatLogParser:
                 is_crit  = parts[13] == "1"
                 spell_name = "Auto Attack"
             elif is_heal:
-                # SPELL_HEAL format: event,srcGUID,srcName,srcFlags,dstGUID,dstName,dstFlags,
-                #   spellID,spellName,spellSchool,amount,overhealing,absorbed,critical
-                # → 14 fields (indices 0-13); critical is at index 13
+                # SPELL_HEAL / SPELL_PERIODIC_HEAL field layout (Warmane WotLK 3.3.5a):
+                #   event,srcGUID,srcName,srcFlags,dstGUID,dstName,dstFlags,
+                #   spellID,spellName,spellSchool, amount, overheal, absorbed, critical
+                # → 14 fields (indices 0-13); critical at index 13
+                #
+                # parts[10] = amount   — gross heal (total cast, incl. overheal portion)
+                # parts[11] = overheal — portion wasted because target was near/at full HP
+                # parts[12] = absorbed — portion absorbed by absorb shields
+                # parts[13] = critical — "1" or nil
+                #
+                # Effective heal (HP actually restored) = amount - overheal - absorbed
+                # ≈ parts[10] - parts[11]  (parts[12] is 0 for player→player heals in practice)
                 if len(parts) < 11:
                     continue
                 src_guid, src_name = parts[1], parts[2].strip('"').strip()
                 dst_guid, dst_name = parts[4], parts[5].strip('"').strip()
                 spell_name = parts[8].strip('"').strip()
                 school     = _safe_int(parts[9]) or 2
-                amount     = _safe_float(parts[10])
+                gross      = _safe_float(parts[10])
+                overheal   = _safe_float(parts[11]) if len(parts) > 11 else 0.0
+                amount     = max(0.0, gross - overheal)   # effective HP restored
                 overkill   = 0.0
                 absorbed   = 0.0
                 is_crit    = len(parts) > 13 and parts[13] == "1"
             else:
-                # Only process recognised damage event types — defence-in-depth
-                # guard so DAMAGE_SHIELD / SPELL_BUILDING_DAMAGE etc. are dropped
-                # even if they slip past _segment_encounters pre-filtering.
+                # All remaining events must be in DMG_EVENTS — defence-in-depth
+                # guard against any unrecognised events slipping through.
                 if event not in DMG_EVENTS:
                     continue
                 # SPELL_DAMAGE / SPELL_PERIODIC_DAMAGE / RANGE_DAMAGE etc.
@@ -786,6 +838,11 @@ class CombatLogParser:
                     if _is_player(dst_guid) and dst_name:
                         a = _get_actor(actors, dst_name, dst_guid)
                         a.damage_taken += amount
+                    # Boss-mechanic heals (e.g. Blood-Queen vampiric bites):
+                    # src is a non-player NPC but dst is a player. Count in
+                    # encounter total_healing without attributing to any actor.
+                    if is_heal and _is_player(dst_guid) and amount > 0:
+                        boss_mechanic_healing += amount
                     continue
 
             if not src_name:
@@ -797,15 +854,18 @@ class CombatLogParser:
                 continue
 
             # Skip heals landing on non-player targets (pets, totems, etc.)
-            # UWU only counts heals where the destination is a player.
+            # Skada uses flags_src (source filter only), but player-to-pet heals
+            # are a negligible fraction of total and keeping the dst filter avoids
+            # inflating totals with totem/pet heals most raiders don't expect to see.
             if is_heal and not _is_player(dst_guid):
                 continue
 
-            # Effective damage = amount − overkill − absorbed.
+            # Effective damage = amount - overkill - absorbed.
             # Overkill: damage past the target's remaining HP (wasted).
             # Absorbed: damage eaten by a boss shield (Lady DW mana barrier,
             # Saurfang blood barrier) — never reaches HP. UWU excludes both.
-            # For heals, amount is already the effective (landed) value.
+            # For heals, `amount` is already the effective value (gross - overheal),
+            # computed above from parts[10] - parts[11].
             eff_amount = max(0.0, amount - overkill - absorbed) if not is_heal else amount
 
             a = _get_actor(actors, src_name, src_guid)
@@ -816,11 +876,23 @@ class CombatLogParser:
                 a.wow_class = SPELL_CLASS_MAP[spell_name]
 
             if is_heal:
+                # Skip spells in Skada's ignored_spells.heal (Tables.lua).
+                if spell_name in PASSIVE_HEAL_EXCLUSIONS:
+                    continue
                 a.total_healing += eff_amount
                 ss.healing += eff_amount
             else:
-                a.total_damage += eff_amount
-                ss.damage += eff_amount
+                # For bosses with independent add waves (Lady Deathwhisper, BPC),
+                # only count damage directed at the boss unit(s) — not adds.
+                # For bosses where mechanic-unit damage counts (Marrowgar Bone
+                # Spikes, Saurfang Blood Beasts), filter_add_damage=False so we
+                # accumulate all damage regardless of target GUID.
+                apply_boss_filter = bool(
+                    boss_def and boss_def.filter_add_damage and boss_guids
+                )
+                if not apply_boss_filter or dst_guid in boss_guids:
+                    a.total_damage += eff_amount
+                    ss.damage += eff_amount
                 targets_hit.add(dst_name)
                 # Track damage by target mob for drill-down
                 if dst_name:
@@ -882,7 +954,9 @@ class CombatLogParser:
             })
 
         total_damage  = sum(a.total_damage  for a in actors.values())
-        total_healing = sum(a.total_healing for a in actors.values())
+        # Add boss-mechanic heals (e.g. vampiric bites sourced from Blood-Queen)
+        # to the encounter healing total. These are not attributed to any actor.
+        total_healing = sum(a.total_healing for a in actors.values()) + boss_mechanic_healing
         total_taken   = sum(a.damage_taken  for a in actors.values())
 
         # Discard false-positive segments: no player output AND very short

@@ -126,21 +126,31 @@ def make_gunship_segment(
     ]
 
 
-# ── DMG_EVENTS exclusion regressions ──────────────────────────────────────────
+# ── DMG_EVENTS membership — sourced from Skada Damage.lua RegisterForCL ───────
+#
+# Skada registers: SPELL_DAMAGE, SWING_DAMAGE, RANGE_DAMAGE, SPELL_PERIODIC_DAMAGE,
+#                  DAMAGE_SHIELD, DAMAGE_SPLIT, SPELL_BUILDING_DAMAGE
+# We track all of them so the website matches what players see in Skada in-game.
 
-def test_damage_shield_excluded_from_dmg_events():
-    """DAMAGE_SHIELD is retribution-aura/thorns reflect — not player DPS."""
-    assert "DAMAGE_SHIELD" not in DMG_EVENTS
+def test_damage_shield_in_dmg_events():
+    """DAMAGE_SHIELD (Ret Aura / Thorns reflect) is in DMG_EVENTS — Skada tracks it."""
+    assert "DAMAGE_SHIELD" in DMG_EVENTS
 
 
-def test_spell_building_damage_excluded_from_dmg_events():
-    """SPELL_BUILDING_DAMAGE is vehicle/cannon fire — not player DPS."""
-    assert "SPELL_BUILDING_DAMAGE" not in DMG_EVENTS
+def test_spell_building_damage_in_dmg_events():
+    """SPELL_BUILDING_DAMAGE (Gunship cannons) is in DMG_EVENTS — Skada tracks it."""
+    assert "SPELL_BUILDING_DAMAGE" in DMG_EVENTS
+
+
+def test_damage_split_in_dmg_events():
+    """DAMAGE_SPLIT (shared-damage mechanics) is in DMG_EVENTS — Skada tracks it."""
+    assert "DAMAGE_SPLIT" in DMG_EVENTS
 
 
 def test_core_dmg_events_present():
-    """SPELL_DAMAGE, SWING_DAMAGE, RANGE_DAMAGE, SPELL_PERIODIC_DAMAGE must remain."""
-    for ev in ("SPELL_DAMAGE", "SWING_DAMAGE", "RANGE_DAMAGE", "SPELL_PERIODIC_DAMAGE"):
+    """All Skada-registered damage event types must be in DMG_EVENTS."""
+    for ev in ("SPELL_DAMAGE", "SWING_DAMAGE", "RANGE_DAMAGE", "SPELL_PERIODIC_DAMAGE",
+               "DAMAGE_SHIELD", "DAMAGE_SPLIT", "SPELL_BUILDING_DAMAGE"):
         assert ev in DMG_EVENTS, f"{ev} missing from DMG_EVENTS"
 
 
@@ -285,9 +295,16 @@ def test_gunship_difficulty_unchanged_in_all_normal_session():
     assert gunship.difficulty == "25N"
 
 
-def test_non_gunship_difficulty_not_changed_by_normalization():
-    """Lady Deathwhisper at 25N in a heroic session must NOT be changed —
-    only Gunship gets the special session-inference treatment."""
+def test_25n_in_25h_session_promoted_by_normalization():
+    """Any 25N encounter inside a confirmed 25H session must be promoted to 25H.
+
+    In ICC (and all WotLK raids) 25N and 25H share a single lockout — you cannot
+    mix difficulties within a session.  So if Marrowgar is detected as 25H (via
+    'Bone Slice' marker), every other 25N encounter in the same session is actually
+    heroic and should be promoted.  This handles bosses whose heroic markers were
+    removed because they also fire in 10N on Warmane (Sindragosa, BPC).
+    10N encounters are intentionally left alone.
+    """
     encounters = [
         make_encounter("Lord Marrowgar", difficulty="25H", session_index=0),
         make_encounter("Lady Deathwhisper", difficulty="25N", session_index=0),
@@ -295,7 +312,9 @@ def test_non_gunship_difficulty_not_changed_by_normalization():
     ]
     CombatLogParser._normalize_session_difficulty(encounters)
     dw = next(e for e in encounters if "deathwhisper" in e.boss_name.lower())
-    assert dw.difficulty == "25N"
+    assert dw.difficulty == "25H", (
+        f"Lady Deathwhisper 25N in a 25H session must be promoted to '25H', got '{dw.difficulty}'"
+    )
 
 
 def test_gunship_difficulty_not_cross_contaminated_across_sessions():
@@ -317,22 +336,25 @@ def test_gunship_difficulty_not_cross_contaminated_across_sessions():
     assert session1_gunship.difficulty == "25H"
 
 
-# ── Damage exclusion integration ───────────────────────────────────────────────
+# ── Damage event integration — Skada counts all registered event types ─────────
 
-def test_spell_building_damage_not_counted_in_total():
-    """SPELL_BUILDING_DAMAGE events from a player GUID must not
-    contribute to total_damage — they're vehicle/cannon fire."""
+def test_spell_building_damage_counted_in_total():
+    """SPELL_BUILDING_DAMAGE (Gunship cannon fire) counts toward total_damage.
+
+    Source: Skada Damage.lua registers SPELL_BUILDING_DAMAGE via RegisterForCL.
+    Skada shows cannon fire in a player's damage done, so we do too.
+    """
     parser = CombatLogParser()
     ts = 46800.0
     seg = [
         ("4/19 13:00:00.000",
          [ENCOUNTER_START, "1234", '"Gunship Battle"', "4", "25"], ts),
-        # Legitimate player damage
+        # Regular spell damage
         ("4/19 13:01:00.000",
          _spell_damage_parts(PLAYER_GUID, "Phyre", NPC_GUID, "Kor'kron Battle-Mage",
                              100_000, "Fireball", "SPELL_DAMAGE"),
          ts + 60),
-        # SPELL_BUILDING_DAMAGE — cannon fire — must NOT be counted
+        # Cannon fire — Skada counts this
         ("4/19 13:01:30.000",
          _spell_damage_parts(PLAYER_GUID, "Phyre", NPC_GUID, "Orgrim's Hammer",
                              5_000_000, "Skybreaker Cannon", "SPELL_BUILDING_DAMAGE"),
@@ -345,23 +367,27 @@ def test_spell_building_damage_not_counted_in_total():
     ]
     enc = parser._aggregate_segment(seg, {})
     assert enc is not None
-    # Only the 100k Fireball should count — not the 5M cannon shot
-    assert enc.total_damage == pytest.approx(100_000, rel=0.01)
+    # Both Fireball and cannon shot count — Skada tracks SPELL_BUILDING_DAMAGE
+    assert enc.total_damage == pytest.approx(5_100_000, rel=0.01)
 
 
-def test_damage_shield_not_counted_in_total():
-    """DAMAGE_SHIELD events must not contribute to total_damage."""
+def test_damage_shield_counted_in_total():
+    """DAMAGE_SHIELD (Ret Aura / Thorns) counts toward total_damage.
+
+    Source: Skada Damage.lua registers DAMAGE_SHIELD via RegisterForCL.
+    Skada shows reflected damage in a player's damage done, so we do too.
+    """
     parser = CombatLogParser()
     ts = 46800.0
     seg = [
         ("4/19 13:00:00.000",
          [ENCOUNTER_START, "1234", '"Lord Marrowgar"', "6", "25"], ts),
-        # Real damage
+        # Regular damage
         ("4/19 13:01:00.000",
          _spell_damage_parts(PLAYER_GUID, "Phyre", NPC_GUID, "Lord Marrowgar",
                              200_000, "Holy Shock", "SPELL_DAMAGE"),
          ts + 60),
-        # Retribution Aura reflect — must NOT be counted
+        # Retribution Aura reflect — Skada counts this
         ("4/19 13:01:10.000",
          _spell_damage_parts(PLAYER_GUID, "Phyre", NPC_GUID, "Lord Marrowgar",
                              3_000_000, "Retribution Aura", "DAMAGE_SHIELD"),
@@ -374,7 +400,8 @@ def test_damage_shield_not_counted_in_total():
     ]
     enc = parser._aggregate_segment(seg, {})
     assert enc is not None
-    assert enc.total_damage == pytest.approx(200_000, rel=0.01)
+    # Both spell damage and reflect count — Skada tracks DAMAGE_SHIELD
+    assert enc.total_damage == pytest.approx(3_200_000, rel=0.01)
 
 
 # ── Overkill subtraction ───────────────────────────────────────────────────────
@@ -874,8 +901,7 @@ def test_session_damage_excludes_player_to_player():
 
 def test_session_damage_includes_damage_shield_from_player():
     """DAMAGE_SHIELD (Retribution Aura, thorns) from a player source must be
-    included in session_damage to match UWU Custom Slice totals.
-    These are excluded from per-boss DPS but UWU counts them in the full slice."""
+    included in session_damage. Source: Skada Damage.lua registers DAMAGE_SHIELD."""
     PG = PLAYER_GUID
     BG = "0xF130000000000002"
 
@@ -1258,15 +1284,115 @@ def test_duration_uses_float_precision():
 #      units were counted. UWU only counts heals where dst_guid is a player.
 
 def _heal_parts(src_guid: str, src_name: str, dst_guid: str, dst_name: str,
-                amount: int, spell: str = "Flash Heal") -> list[str]:
-    """Build minimal SPELL_HEAL parts (14 fields after stripping timestamp)."""
+                total: int, spell: str = "Flash Heal",
+                effective: int | None = None) -> list[str]:
+    """Build minimal SPELL_HEAL parts (14 fields after stripping timestamp).
+
+    WotLK log format:
+      parts[10] = gross heal (total cast amount, before overheal)
+      parts[11] = overheal  (wasted portion — target near/at full HP)
+      parts[12] = absorbed  (absorbed by shields)
+      parts[13] = critical  ("1" or "nil")
+
+    Effective heal (HP actually restored) = parts[10] - parts[11].
+
+    Args:
+        total:     gross heal amount (parts[10])
+        effective: HP actually restored. If provided, overheal = total - effective.
+                   If None, assumes zero overheal (effective == total).
+    """
+    overheal = 0 if effective is None else (total - effective)
     return [
         "SPELL_HEAL",
         src_guid, f'"{src_name}"', "0x512",
         dst_guid, f'"{dst_name}"', "0xa48",
         "19750", f'"{spell}"', "2",
-        str(amount), "0", "0", "0",
+        str(total), str(overheal), "0", "0",
     ]
+
+
+# ── Overheal subtraction ─────────────────────────────────────────────────────
+#
+# SPELL_HEAL parts[10] = gross heal (total cast amount),
+#            parts[11] = overheal  (wasted portion — target was near/at full HP).
+# Effective heal = max(0, parts[10] - parts[11]). UWU only counts effective healing.
+
+def test_heal_uses_effective_field():
+    """Parser computes effective heal as parts[10] - parts[11] (gross minus overheal).
+
+    WotLK log: parts[10]=gross heal, parts[11]=overheal.
+    Example: gross=100k, overheal=60k → effective=40k (what actually restored HP).
+    """
+    ts_start = 46800.0
+    total_heal = 100_000
+    effective  = 40_000   # 60k was overheal, 40k actually restored HP
+
+    segment = [
+        ("4/19 13:00:00.000", [ENCOUNTER_START, "1234", '"Lord Marrowgar"', "6", "25"], ts_start),
+        ("4/19 13:00:05.000", _heal_parts(PLAYER_GUID, "Healer", PLAYER_GUID, "Target",
+                                          total_heal, effective=effective), ts_start + 5.0),
+        ("4/19 13:01:00.000", _unit_died_parts("Lord Marrowgar"), ts_start + 60.0),
+        ("4/19 13:01:10.000", [ENCOUNTER_END, "1234", '"Lord Marrowgar"', "6", "25", "1"], ts_start + 70.0),
+    ]
+
+    parser = CombatLogParser(file_year=2026)
+    enc = parser._aggregate_segment(segment, {})
+    assert enc is not None
+    healer = next((p for p in enc.participants if p["name"] == "Healer"), None)
+    assert healer is not None
+    assert healer["totalHealing"] == pytest.approx(effective, abs=1), (
+        f"Parser must use parts[11] (effective). total={total_heal:,} effective={effective:,} "
+        f"got={healer['totalHealing']:,.0f}"
+    )
+
+
+def test_heal_pure_overheal_counts_zero():
+    """A heal where effective=0 (100% overheal) contributes 0 to healing totals.
+
+    Log line: total=50000, effective=0 → target was at full HP, nothing landed.
+    """
+    ts_start = 46800.0
+    total_heal = 50_000
+
+    segment = [
+        ("4/19 13:00:00.000", [ENCOUNTER_START, "1234", '"Lord Marrowgar"', "6", "25"], ts_start),
+        ("4/19 13:00:05.000", _heal_parts(PLAYER_GUID, "Healer", PLAYER_GUID, "Target",
+                                          total_heal, effective=0), ts_start + 5.0),
+        ("4/19 13:01:00.000", _unit_died_parts("Lord Marrowgar"), ts_start + 60.0),
+        ("4/19 13:01:10.000", [ENCOUNTER_END, "1234", '"Lord Marrowgar"', "6", "25", "1"], ts_start + 70.0),
+    ]
+
+    parser = CombatLogParser(file_year=2026)
+    enc = parser._aggregate_segment(segment, {})
+    assert enc is not None
+    healer = next((p for p in enc.participants if p["name"] == "Healer"), None)
+    actual = healer["totalHealing"] if healer else 0.0
+    assert actual == pytest.approx(0, abs=1), (
+        f"100% overhealed event (effective=0) should contribute 0. Got {actual:,.0f}"
+    )
+
+
+def test_heal_no_overheal_unchanged():
+    """A heal with zero overheal (effective=total) is counted fully."""
+    ts_start = 46800.0
+    total_heal = 80_000
+
+    segment = [
+        ("4/19 13:00:00.000", [ENCOUNTER_START, "1234", '"Lord Marrowgar"', "6", "25"], ts_start),
+        ("4/19 13:00:05.000", _heal_parts(PLAYER_GUID, "Healer", PLAYER_GUID, "Target",
+                                          total_heal), ts_start + 5.0),  # defaults effective=total
+        ("4/19 13:01:00.000", _unit_died_parts("Lord Marrowgar"), ts_start + 60.0),
+        ("4/19 13:01:10.000", [ENCOUNTER_END, "1234", '"Lord Marrowgar"', "6", "25", "1"], ts_start + 70.0),
+    ]
+
+    parser = CombatLogParser(file_year=2026)
+    enc = parser._aggregate_segment(segment, {})
+    assert enc is not None
+    healer = next((p for p in enc.participants if p["name"] == "Healer"), None)
+    assert healer is not None
+    assert healer["totalHealing"] == pytest.approx(total_heal, abs=1), (
+        f"Zero overheal: full amount should count. Got {healer['totalHealing']:,.0f}, expected {total_heal:,}"
+    )
 
 
 NON_PLAYER_GUID = "0xF130000000000999"   # pet/totem — not a player GUID
@@ -1456,4 +1582,316 @@ def test_encounter_damage_excludes_absorbed_swing_damage():
     # 0 (fully absorbed) + 40_000 (normal) = 40_000
     assert phyre["totalDamage"] == pytest.approx(40_000, abs=1), (
         f"Absorbed swing damage must be excluded. Got {phyre['totalDamage']:,.0f}, expected 40,000"
+    )
+
+
+# ── Boss-mechanic heals (non-player source → player destination) ──────────────
+#
+# Blood-Queen Lana'thel's "Essence of the Blood Queen" buff periodically heals
+# bitten players, logged with Blood-Queen herself as the source GUID (0xF1...
+# non-player). Our _is_player(src_guid) filter drops them, causing BQ healing
+# to be ~36% under UWU.
+#
+# Fix: when is_heal=True and src is non-player but dst is player, include the
+# effective heal in the encounter total_healing (without attributing to any actor
+# so individual HPS is not inflated).
+
+def test_boss_mechanic_heal_counted_in_encounter():
+    """Heals from non-player sources (boss mechanics) landing on players must
+    be included in the encounter total_healing.
+
+    Example: Blood-Queen 'Essence of the Blood Queen' periodic heal where
+    src=Blood-Queen GUID (non-player), dst=bitten player (player GUID).
+    """
+    BOSS_SRC_GUID = "0xF130009443000132"   # Blood-Queen — non-player
+    ts_start = 46800.0
+
+    # Boss-mechanic heal: src=Blood-Queen, dst=Phyre (player), effective=11550
+    boss_mechanic_heal = [
+        "SPELL_HEAL",
+        BOSS_SRC_GUID, '"Blood-Queen Lana\'thel"', "0x10a48",
+        PLAYER_GUID, '"Phyre"', "0x512",
+        "70872", '"Essence of the Blood Queen"', "0x20",
+        "18981", "7431", "0", "nil",   # gross=18981, overheal=7431, effective=11550
+    ]
+
+    segment = [
+        ("4/19 14:01:00.000", [ENCOUNTER_START, "1234", '"Blood-Queen Lana\'thel"', "6", "25"], ts_start),
+        # Regular player cast (should count)
+        ("4/19 14:01:05.000", _heal_parts(PLAYER_GUID, "Sininho", PLAYER_GUID, "Tank", 50_000), ts_start + 5.0),
+        # Boss mechanic heal (must also count in encounter total_healing)
+        ("4/19 14:01:06.000", boss_mechanic_heal, ts_start + 6.0),
+        ("4/19 14:02:00.000", _unit_died_parts("Blood-Queen Lana'thel"), ts_start + 60.0),
+        ("4/19 14:02:10.000", [ENCOUNTER_END, "1234", '"Blood-Queen Lana\'thel"', "6", "25", "1"], ts_start + 70.0),
+    ]
+
+    parser = CombatLogParser(file_year=2026)
+    enc = parser._aggregate_segment(segment, {})
+    assert enc is not None
+    expected = 50_000 + 11_550
+    assert enc.total_healing == pytest.approx(expected, abs=1), (
+        f"Boss mechanic heals must be included in encounter total_healing. "
+        f"Got {enc.total_healing:,.0f}, expected {expected:,}"
+    )
+
+
+# ── Add damage exclusion from per-encounter totals ────────────────────────────
+#
+# Lady Deathwhisper Phase 1: Adherents and Fanatics spawn alongside the boss.
+# Our encounter damage was counting ALL targets hit during the fight window,
+# inflating DPS by ~35% vs UWU which counts only damage to the boss unit(s).
+#
+# Fix: pre-pass discovers boss GUID(s) by matching dst_name to boss_name /
+# aliases; main loop only accumulates eff_amount when dst_guid is in boss_guids.
+
+def test_encounter_damage_excludes_add_damage():
+    """Damage to add units (Adherents, Fanatics, etc.) must NOT count toward
+    the encounter's total_damage — only boss-directed damage counts.
+
+    This fixes Lady Deathwhisper being ~35% over UWU.
+    Lady Deathwhisper has filter_add_damage=True so the boss_guids filter applies.
+    """
+    boss_guid = "0xF130000000000001"
+    add_guid  = "0xF130000000000002"
+    ts_start  = 46800.0
+
+    segment = [
+        ("4/19 13:00:00.000", [ENCOUNTER_START, "1234", '"Lady Deathwhisper"', "4", "25"], ts_start),
+        # Hit boss: should count
+        ("4/19 13:00:05.000", _spell_damage_parts(PLAYER_GUID, "Phyre", boss_guid, "Lady Deathwhisper", 100_000), ts_start + 5.0),
+        # Hit add: must NOT count toward encounter total_damage
+        ("4/19 13:00:06.000", _spell_damage_parts(PLAYER_GUID, "Phyre", add_guid, "Deathwhisper Adherent", 50_000), ts_start + 6.0),
+        ("4/19 13:01:00.000", _unit_died_parts("Lady Deathwhisper"), ts_start + 60.0),
+        ("4/19 13:01:10.000", [ENCOUNTER_END, "1234", '"Lady Deathwhisper"', "4", "25", "1"], ts_start + 70.0),
+    ]
+
+    parser = CombatLogParser(file_year=2026)
+    enc = parser._aggregate_segment(segment, {})
+    assert enc is not None
+    phyre = next((p for p in enc.participants if p["name"] == "Phyre"), None)
+    assert phyre is not None
+    assert phyre["totalDamage"] == pytest.approx(100_000, abs=1), (
+        f"Only boss damage counts per-encounter. Got {phyre['totalDamage']:,.0f}, expected 100,000"
+    )
+    assert enc.total_damage == pytest.approx(100_000, abs=1), (
+        f"Encounter total must exclude add damage. Got {enc.total_damage:,.0f}, expected 100,000"
+    )
+
+
+# ── Boss mechanic unit damage (filter_add_damage=False) ──────────────────────
+#
+# Marrowgar spawns Bone Spikes that players must DPS/click to free raid members.
+# Saurfang spawns Blood Beasts that players kill to prevent them from healing boss.
+# These are boss-mechanic units, NOT independent add waves — UWU counts damage to
+# them.  The boss_guids filter must NOT apply when filter_add_damage=False.
+
+def test_encounter_damage_includes_mechanic_unit_damage():
+    """Damage to boss mechanic units (Bone Spikes, Blood Beasts) MUST count
+    toward the encounter total.  Lord Marrowgar has filter_add_damage=False so
+    all damage — to the boss AND mechanic units — is accumulated.
+    """
+    marrowgar_guid  = "0xF130000000000010"
+    bone_spike_guid = "0xF130000000000011"
+    ts_start        = 46800.0
+
+    segment = [
+        # boss_id 36612 = Lord Marrowgar (real ID); name lookup gives BossDef
+        ("4/19 13:00:00.000", [ENCOUNTER_START, "36612", '"Lord Marrowgar"', "4", "25"], ts_start),
+        # 100k to Marrowgar himself
+        ("4/19 13:00:05.000", _spell_damage_parts(PLAYER_GUID, "Phyre", marrowgar_guid, "Lord Marrowgar", 100_000), ts_start + 5.0),
+        # 50k to a Bone Spike (mechanic unit) — should also count
+        ("4/19 13:00:06.000", _spell_damage_parts(PLAYER_GUID, "Phyre", bone_spike_guid, "Bone Spike", 50_000), ts_start + 6.0),
+        ("4/19 13:01:00.000", _unit_died_parts("Lord Marrowgar"), ts_start + 60.0),
+        ("4/19 13:01:10.000", [ENCOUNTER_END, "36612", '"Lord Marrowgar"', "4", "25", "1"], ts_start + 70.0),
+    ]
+
+    parser = CombatLogParser(file_year=2026)
+    enc = parser._aggregate_segment(segment, {})
+    assert enc is not None
+    phyre = next((p for p in enc.participants if p["name"] == "Phyre"), None)
+    assert phyre is not None
+    assert phyre["totalDamage"] == pytest.approx(150_000, abs=1), (
+        f"Mechanic-unit damage must be counted (filter_add_damage=False). "
+        f"Got {phyre['totalDamage']:,.0f}, expected 150,000"
+    )
+    assert enc.total_damage == pytest.approx(150_000, abs=1), (
+        f"Encounter total must include mechanic-unit damage. "
+        f"Got {enc.total_damage:,.0f}, expected 150,000"
+    )
+
+
+# ── Passive proc heals — all included in player totals ───────────────────────
+#
+# Source: Skada-WoTLK Skada/Core/Tables.lua
+# Tables.lua has NO ignored_spells.heal table — Skada does not exclude any
+# specific spells from healing-done totals. Every SPELL_HEAL and
+# SPELL_PERIODIC_HEAL event is counted regardless of spell name.
+#
+# Previously thought to be excluded (all confirmed INCLUDED per Skada):
+#   - Vampiric Embrace (Shadow Priest passive AoE heal)
+#   - Judgement of Light (Paladin passive proc — commented-out in Tables.lua)
+#   - Improved Leader of the Pack (Druid passive talent proc)
+
+def test_vampiric_embrace_excluded_from_healing():
+    """Vampiric Embrace heals count toward total_healing (not excluded).
+
+    Skada-WotLK counts VE as healing done. With the correct effective-heal
+    formula (gross - overheal) the exclusion is not needed and not applied.
+    """
+    ts_start = 46800.0
+    segment = [
+        ("4/19 13:00:00.000", [ENCOUNTER_START, "36612", '"Lord Marrowgar"', "4", "25"], ts_start),
+        # Active healer heal
+        ("4/19 13:00:05.000", _heal_parts(PLAYER_GUID, "Phyre", "0x0600000000000002", "Tank", 50_000), ts_start + 5.0),
+        # Vampiric Embrace — also counted
+        ("4/19 13:00:06.000", _heal_parts(PLAYER_GUID, "Shadow", "0x0600000000000002", "Tank", 10_000,
+                                           spell="Vampiric Embrace"), ts_start + 6.0),
+        ("4/19 13:01:00.000", _unit_died_parts("Lord Marrowgar"), ts_start + 60.0),
+        ("4/19 13:01:10.000", [ENCOUNTER_END, "36612", '"Lord Marrowgar"', "4", "25", "1"], ts_start + 70.0),
+    ]
+    enc = CombatLogParser(file_year=2026)._aggregate_segment(segment, {})
+    assert enc is not None
+    assert enc.total_healing == pytest.approx(60_000, abs=1), (
+        f"VE is included in healing totals. Got {enc.total_healing:,.0f}, expected 60,000"
+    )
+    shadow = next((p for p in enc.participants if p["name"] == "Shadow"), None)
+    assert shadow is not None and shadow["totalHealing"] == pytest.approx(10_000, abs=1), (
+        "Shadow's VE heal counts toward their totalHealing"
+    )
+
+
+def test_judgement_of_light_excluded_from_healing():
+    """Judgement of Light heals count toward total_healing (not excluded).
+
+    Source: Skada-WoTLK Skada/Core/Tables.lua — there is no ignored_spells.heal
+    table. The JoL line ([20267]) is commented out, meaning Skada includes it.
+    All SPELL_HEAL / SPELL_PERIODIC_HEAL events count toward healing done.
+    """
+    ts_start = 46800.0
+    segment = [
+        ("4/19 13:00:00.000", [ENCOUNTER_START, "36612", '"Lord Marrowgar"', "4", "25"], ts_start),
+        ("4/19 13:00:05.000", _heal_parts(PLAYER_GUID, "Phyre", "0x0600000000000002", "Tank", 30_000), ts_start + 5.0),
+        ("4/19 13:00:06.000", _heal_parts(PLAYER_GUID, "Retadin", "0x0600000000000003", "DPS", 5_000,
+                                           spell="Judgement of Light"), ts_start + 6.0),
+        ("4/19 13:01:00.000", _unit_died_parts("Lord Marrowgar"), ts_start + 60.0),
+        ("4/19 13:01:10.000", [ENCOUNTER_END, "36612", '"Lord Marrowgar"', "4", "25", "1"], ts_start + 70.0),
+    ]
+    enc = CombatLogParser(file_year=2026)._aggregate_segment(segment, {})
+    assert enc is not None
+    assert enc.total_healing == pytest.approx(35_000, abs=1), (
+        f"JoL is included in healing totals (Skada: no ignored_spells.heal). "
+        f"Got {enc.total_healing:,.0f}, expected 35,000"
+    )
+
+
+def test_improved_leader_of_the_pack_excluded_from_healing():
+    """Improved Leader of the Pack heals count toward total_healing (not excluded).
+
+    Skada-WotLK counts ILotP as healing done.
+    """
+    ts_start = 46800.0
+    segment = [
+        ("4/19 13:00:00.000", [ENCOUNTER_START, "36612", '"Lord Marrowgar"', "4", "25"], ts_start),
+        ("4/19 13:00:05.000", _heal_parts(PLAYER_GUID, "Phyre", "0x0600000000000002", "Tank", 20_000), ts_start + 5.0),
+        ("4/19 13:00:06.000", _heal_parts(PLAYER_GUID, "Kitty", "0x0600000000000004", "Tank2", 3_000,
+                                           spell="Improved Leader of the Pack"), ts_start + 6.0),
+        ("4/19 13:01:00.000", _unit_died_parts("Lord Marrowgar"), ts_start + 60.0),
+        ("4/19 13:01:10.000", [ENCOUNTER_END, "36612", '"Lord Marrowgar"', "4", "25", "1"], ts_start + 70.0),
+    ]
+    enc = CombatLogParser(file_year=2026)._aggregate_segment(segment, {})
+    assert enc is not None
+    assert enc.total_healing == pytest.approx(23_000, abs=1), (
+        f"ILotP is included in healing totals. Got {enc.total_healing:,.0f}, expected 23,000"
+    )
+
+
+# ── S0 difficulty detection: Warmane 10N bosses with heroic-looking spells ─────
+
+def _heuristic_segment_10n(boss_name: str, heroic_spell: str,
+                            extra_player_guids: int = 0) -> list[tuple[str, list[str], float]]:
+    """
+    Build a heuristic segment (no ENCOUNTER_START) for a boss fight with a
+    given heroic_spell in it and ≤10 unique player GUIDs — simulating a Warmane
+    10N pull where certain spells appear despite not being heroic-exclusive.
+
+    extra_player_guids: additional players beyond the default 1, up to 9 more.
+    """
+    ts = 46800.0
+    boss_npc_guid = "0xF130000000000099"
+    # One player hits the boss
+    seg: list[tuple[str, list[str], float]] = [
+        (
+            "4/19 13:00:00.000",
+            _spell_damage_parts(PLAYER_GUID, "PlayerA", boss_npc_guid, boss_name, 100_000),
+            ts,
+        ),
+    ]
+    # Extra players (still ≤10 total)
+    for i in range(min(extra_player_guids, 9)):
+        pg = f"0x060000000000{i + 2:04d}"
+        seg.append((
+            "4/19 13:00:01.000",
+            _spell_damage_parts(pg, f"Player{i+2}", boss_npc_guid, boss_name, 50_000),
+            ts + 1.0 + i,
+        ))
+    # Heroic-looking spell fires — should NOT upgrade to heroic for 10N
+    seg.append((
+        "4/19 13:00:10.000",
+        _spell_damage_parts(boss_npc_guid, boss_name, PLAYER_GUID, "PlayerA",
+                            5_000, spell=heroic_spell),
+        ts + 10.0,
+    ))
+    # Boss dies → outcome = KILL
+    seg.append((
+        "4/19 13:01:10.000",
+        _unit_died_parts(boss_name),
+        ts + 70.0,
+    ))
+    return seg
+
+
+def test_sindragosa_10n_backlash_does_not_upgrade_to_heroic():
+    """
+    On Warmane, Sindragosa 10N also logs 'Backlash' (Unchained Magic self-damage).
+    A Sindragosa segment with ≤10 player GUIDs must stay '10N', not be upgraded
+    to '10H' by the heroic-spell-marker detection.
+    """
+    seg = _heuristic_segment_10n("Sindragosa", "Backlash", extra_player_guids=4)
+    enc = CombatLogParser(file_year=2026)._aggregate_segment(seg, {})
+    assert enc is not None, "Should produce an encounter"
+    assert enc.difficulty == "10N", (
+        f"Sindragosa 10N with Backlash must stay '10N', got '{enc.difficulty}'"
+    )
+
+
+def test_bpc_10n_empowered_shock_vortex_does_not_upgrade_to_heroic():
+    """
+    On Warmane, Blood Prince Council 10N logs 'Empowered Shock Vortex'.
+    A BPC segment with ≤10 player GUIDs must stay '10N', not be upgraded to '10H'.
+    """
+    seg = _heuristic_segment_10n("Prince Valanar", "Empowered Shock Vortex",
+                                  extra_player_guids=4)
+    enc = CombatLogParser(file_year=2026)._aggregate_segment(seg, {})
+    assert enc is not None, "Should produce an encounter"
+    assert enc.difficulty == "10N", (
+        f"BPC 10N with Empowered Shock Vortex must stay '10N', got '{enc.difficulty}'"
+    )
+
+
+def test_normalize_session_difficulty_upgrades_25n_sindragosa_to_25h():
+    """
+    When a session has other 25H encounters (detected via reliable markers like
+    'Bone Slice' on Marrowgar), any 25N encounter in the same session must be
+    upgraded to 25H by _normalize_session_difficulty.
+
+    This handles Sindragosa and BPC in a 25H session where their own heroic
+    spell markers have been removed (they fire in 10N too on Warmane).
+    """
+    marrowgar_25h = make_encounter("Lord Marrowgar", difficulty="25H", session_index=0)
+    sindragosa_25n = make_encounter("Sindragosa", difficulty="25N", session_index=0)
+    encounters = [marrowgar_25h, sindragosa_25n]
+    CombatLogParser._normalize_session_difficulty(encounters)
+    assert sindragosa_25n.difficulty == "25H", (
+        f"Sindragosa 25N in a 25H session must be upgraded to '25H', "
+        f"got '{sindragosa_25n.difficulty}'"
     )
