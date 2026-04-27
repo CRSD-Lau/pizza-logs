@@ -59,18 +59,10 @@ To close the ~25% gap:
 
 Decision needed: heal-only column (Skada Healing module) or heal+absorbs column (combined view)?
 
-### Footer text bug
-Footer says "All parsing done client-side" — wrong, it's server-side. Fix: update footer component.
-
-### Admin page has no auth
-`/admin` is publicly accessible. Fix: env-var cookie check in middleware.
-
 ---
 
 ## Next Steps (priority order)
 
 1. Upload a log and verify numbers match Skada in-game
-2. Fix footer text (5 min)
-3. Add admin auth (30 min)
-4. Decide absorbs strategy — heal-only or heal+absorbs column?
-5. If absorbs: implement Absorbs.lua-style tracking
+2. Decide absorbs strategy — heal-only or heal+absorbs column?
+3. If absorbs: implement Absorbs.lua-style tracking

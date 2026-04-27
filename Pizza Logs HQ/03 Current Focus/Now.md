@@ -19,8 +19,6 @@ Parser replicates Skada exactly: DMG_EVENTS, HEAL_EVENTS, heal formula, no spell
 
 | Task | Effort | Why |
 |------|--------|-----|
-| Fix footer text | 5 min | Says "client-side" — it's server-side |
-| Add admin auth | 30 min | `/admin` is publicly accessible |
 
 ---
 
