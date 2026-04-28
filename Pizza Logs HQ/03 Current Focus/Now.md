@@ -2,7 +2,7 @@
 
 ## Status
 `v0.1.0` shipped. Wiki live. Railway deployed.
-`AGENTS.md` now sits alongside `CLAUDE.md` so Codex follows the same repo workflow rules.
+Public upload analytics have been moved into admin-only routes, and the mobile nav/raids/leaderboards pass is done.
 
 ---
 

@@ -8,37 +8,37 @@ export const dynamic = "force-dynamic";
 
 export default async function RaidsPage() {
   const uploads = await db.upload.findMany({
-    where:    { encounters: { some: {} } },
-    orderBy:  { createdAt: "desc" },
-    take:     50,
+    where: { encounters: { some: {} } },
+    orderBy: { createdAt: "desc" },
+    take: 50,
     select: {
-      id:    true,
+      id: true,
       realm: { select: { name: true, host: true } },
       guild: { select: { name: true } },
       encounters: {
         orderBy: { startedAt: "asc" },
         select: {
           sessionIndex: true,
-          outcome:      true,
-          startedAt:    true,
-          endedAt:      true,
-          boss:         { select: { raid: true } },
+          outcome: true,
+          startedAt: true,
+          endedAt: true,
+          boss: { select: { raid: true } },
         },
       },
     },
   });
 
   type SessionCard = {
-    uploadId:      string;
-    sessionIndex:  number;
-    startedAt:     Date;
-    endedAt:       Date;
-    raids:         string[];
-    kills:         number;
-    wipes:         number;
+    uploadId: string;
+    sessionIndex: number;
+    startedAt: Date;
+    endedAt: Date;
+    raids: string[];
+    kills: number;
+    wipes: number;
     encounterCount: number;
-    realmName:     string | null;
-    guildName:     string | null;
+    realmName: string | null;
+    guildName: string | null;
   };
 
   const sessions: SessionCard[] = [];
@@ -53,24 +53,22 @@ export default async function RaidsPage() {
     for (const [sessionIndex, encs] of Array.from(sessionMap.entries()).sort((a, b) => a[0] - b[0])) {
       const raids = [...new Set(encs.map(e => e.boss.raid))];
       sessions.push({
-        uploadId:      upload.id,
+        uploadId: upload.id,
         sessionIndex,
-        startedAt:     encs[0].startedAt,
-        endedAt:       encs[encs.length - 1].endedAt,
+        startedAt: encs[0].startedAt,
+        endedAt: encs[encs.length - 1].endedAt,
         raids,
-        kills:         encs.filter(e => e.outcome === "KILL").length,
-        wipes:         encs.filter(e => e.outcome === "WIPE").length,
+        kills: encs.filter(e => e.outcome === "KILL").length,
+        wipes: encs.filter(e => e.outcome === "WIPE").length,
         encounterCount: encs.length,
-        realmName:     upload.realm?.name ?? null,
-        guildName:     upload.guild?.name ?? null,
+        realmName: upload.realm?.name ?? null,
+        guildName: upload.guild?.name ?? null,
       });
     }
   }
 
-  // Most-recent first
   sessions.sort((a, b) => b.startedAt.getTime() - a.startedAt.getTime());
 
-  // Group by calendar day (local date label)
   const byDay = new Map<string, SessionCard[]>();
   for (const s of sessions) {
     const day = new Date(s.startedAt).toLocaleDateString("en-US", {
@@ -85,14 +83,16 @@ export default async function RaidsPage() {
     <div className="pt-10 space-y-8">
       <div>
         <h1 className="heading-cinzel text-2xl font-bold text-gold-light text-glow-gold">Raids</h1>
-        <p className="text-text-secondary text-sm mt-1">{sessions.length} raid session{sessions.length !== 1 ? "s" : ""} recorded</p>
+        <p className="text-text-secondary text-sm mt-1">
+          {sessions.length} raid session{sessions.length !== 1 ? "s" : ""} recorded
+        </p>
       </div>
 
       {sessions.length === 0 ? (
         <EmptyState
           title="No raids yet"
           description="Upload a combat log to get started."
-          action={<Link href="/" className="text-gold hover:text-gold-light text-sm">Upload a log →</Link>}
+          action={<Link href="/" className="text-gold hover:text-gold-light text-sm">Upload a log &rarr;</Link>}
         />
       ) : (
         <div className="space-y-10">
@@ -101,48 +101,37 @@ export default async function RaidsPage() {
               <p className="heading-cinzel text-xs text-gold uppercase tracking-widest mb-3 pb-2 border-b border-gold-dim">
                 {day}
               </p>
-              <div className="space-y-2">
+              <div className="space-y-3">
                 {daySessions.map(s => (
                   <Link
                     key={`${s.uploadId}-${s.sessionIndex}`}
-                    href={`/uploads/${s.uploadId}/sessions/${s.sessionIndex}`}
+                    href={`/raids/${s.uploadId}/sessions/${s.sessionIndex}`}
                     className="block bg-bg-panel border border-gold-dim rounded p-4 hover:border-gold/50 transition-colors group"
                   >
-                    <div className="flex items-center justify-between gap-4 flex-wrap">
-                      <div>
-                        <div className="flex items-center gap-3 flex-wrap">
+                    <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                      <div className="space-y-2 min-w-0">
+                        <div className="flex flex-wrap items-center gap-2">
                           {s.raids.map(r => (
                             <span key={r} className="heading-cinzel text-sm font-semibold text-gold-light">
                               {r}
                             </span>
                           ))}
-                          {s.guildName && (
-                            <span className="text-xs text-text-dim">· {s.guildName}</span>
-                          )}
+                          {s.guildName && <span className="text-xs text-text-dim">{s.guildName}</span>}
                         </div>
-                        <div className="flex items-center gap-3 mt-1 text-xs text-text-dim">
+                        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-text-dim">
                           <span>
                             {new Date(s.startedAt).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" })}
-                            {" – "}
+                            {" - "}
                             {new Date(s.endedAt).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" })}
                           </span>
-                          {s.realmName && <span>· {s.realmName}</span>}
+                          {s.realmName && <span>{s.realmName}</span>}
                         </div>
                       </div>
-                      <div className="flex items-center gap-5 text-sm">
-                        <div className="text-center">
-                          <div className="text-success font-bold tabular-nums">{s.kills}</div>
-                          <div className="text-[10px] text-text-dim uppercase tracking-wide">Kills</div>
-                        </div>
-                        <div className="text-center">
-                          <div className="text-danger font-bold tabular-nums">{s.wipes}</div>
-                          <div className="text-[10px] text-text-dim uppercase tracking-wide">Wipes</div>
-                        </div>
-                        <div className="text-center">
-                          <div className="text-text-secondary font-bold tabular-nums">{s.encounterCount}</div>
-                          <div className="text-[10px] text-text-dim uppercase tracking-wide">Pulls</div>
-                        </div>
-                        <span className="text-gold text-xs opacity-0 group-hover:opacity-100 transition-opacity">→</span>
+
+                      <div className="grid grid-cols-3 gap-2 sm:flex sm:items-center sm:gap-5">
+                        <Metric label="Kills" value={s.kills} valueClassName="text-success" />
+                        <Metric label="Wipes" value={s.wipes} valueClassName="text-danger" />
+                        <Metric label="Pulls" value={s.encounterCount} valueClassName="text-text-secondary" />
                       </div>
                     </div>
                   </Link>
@@ -152,6 +141,23 @@ export default async function RaidsPage() {
           ))}
         </div>
       )}
+    </div>
+  );
+}
+
+function Metric({
+  label,
+  value,
+  valueClassName,
+}: {
+  label: string;
+  value: number;
+  valueClassName: string;
+}) {
+  return (
+    <div className="rounded border border-gold-dim bg-bg-card px-3 py-2 text-center min-w-[74px]">
+      <div className={`font-bold tabular-nums ${valueClassName}`}>{value}</div>
+      <div className="text-[10px] text-text-dim uppercase tracking-wide">{label}</div>
     </div>
   );
 }

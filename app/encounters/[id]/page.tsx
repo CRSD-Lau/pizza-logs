@@ -4,17 +4,19 @@ import { notFound } from "next/navigation";
 import { db } from "@/lib/db";
 import { DamageMeter } from "@/components/meter/DamageMeter";
 import { MobBreakdown, type MobEntry } from "@/components/meter/MobBreakdown";
-import { StatCard } from "@/components/ui/StatCard";
 import { AccordionSection } from "@/components/ui/AccordionSection";
 import { Badge } from "@/components/ui/Badge";
+import { StatCard } from "@/components/ui/StatCard";
 import { formatDuration, formatNumber } from "@/lib/utils";
 
-interface Props { params: Promise<{ id: string }> }
+interface Props {
+  params: Promise<{ id: string }>;
+}
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { id } = await params;
   const enc = await db.encounter.findUnique({ where: { id }, include: { boss: true } });
-  return { title: enc ? `${enc.boss.name} — ${enc.outcome}` : "Encounter" };
+  return { title: enc ? `${enc.boss.name} - ${enc.outcome}` : "Encounter" };
 }
 
 export default async function EncounterPage({ params }: Props) {
@@ -26,10 +28,9 @@ export default async function EncounterPage({ params }: Props) {
       boss: true,
       upload: {
         select: {
-          id:       true,
-          filename: true,
-          guild:    { select: { name: true } },
-          realm:    { select: { name: true, host: true } },
+          id: true,
+          guild: { select: { name: true } },
+          realm: { select: { name: true, host: true } },
         },
       },
       participants: {
@@ -45,28 +46,28 @@ export default async function EncounterPage({ params }: Props) {
 
   if (!encounter) notFound();
 
-  // ── Boss-only damage (Layer 3: exclude add padding) ──────────────
-  // targetBreakdown keys are mob names from the log — boss.name should match
   const bossName = encounter.boss.name;
-  const participantsWithBossDmg = encounter.participants.map(p => {
+  const participantsWithBossDmg = encounter.participants.map((p) => {
     const td = p.targetBreakdown as Record<string, { damage: number }> | null;
     const bossDmg = td?.[bossName]?.damage ?? undefined;
     return { ...p, bossDmg };
   });
 
-  const dpsParts  = participantsWithBossDmg.filter(p => p.dps > 0);
+  const dpsParts = participantsWithBossDmg.filter(p => p.dps > 0);
   const healParts = participantsWithBossDmg.filter(p => p.role === "HEALER" && p.hps > 0);
   const durationSec = (encounter.durationMs ?? 0) > 0
     ? encounter.durationMs / 1000
     : Math.max(1, encounter.durationSeconds);
-  const totalDps  = Math.round(encounter.totalDamage / durationSec);
-  const totalHps  = Math.round(encounter.totalHealing / durationSec);
+  const totalDps = Math.round(encounter.totalDamage / durationSec);
+  const totalHps = Math.round(encounter.totalHealing / durationSec);
 
-  // ── Aggregate target breakdown across all participants ────────
   const mobMap = new Map<string, {
-    totalDamage: number; hits: number; crits: number;
+    totalDamage: number;
+    hits: number;
+    crits: number;
     byPlayer: Map<string, { damage: number; hits: number; crits: number; playerClass?: string | null }>;
   }>();
+
   for (const p of encounter.participants) {
     if (!p.targetBreakdown) continue;
     const td = p.targetBreakdown as Record<string, { damage: number; hits: number; crits: number }>;
@@ -74,48 +75,54 @@ export default async function EncounterPage({ params }: Props) {
       if (!stats || stats.damage <= 0) continue;
       const entry = mobMap.get(mob) ?? { totalDamage: 0, hits: 0, crits: 0, byPlayer: new Map() };
       entry.totalDamage += stats.damage;
-      entry.hits        += stats.hits;
-      entry.crits       += stats.crits;
-      const prev = entry.byPlayer.get(p.player.name) ?? { damage: 0, hits: 0, crits: 0, playerClass: p.player.class };
+      entry.hits += stats.hits;
+      entry.crits += stats.crits;
+      const prev = entry.byPlayer.get(p.player.name) ?? {
+        damage: 0,
+        hits: 0,
+        crits: 0,
+        playerClass: p.player.class,
+      };
       prev.damage += stats.damage;
-      prev.hits   += stats.hits;
-      prev.crits  += stats.crits;
+      prev.hits += stats.hits;
+      prev.crits += stats.crits;
       entry.byPlayer.set(p.player.name, prev);
       mobMap.set(mob, entry);
     }
   }
+
   const mobEntries: MobEntry[] = Array.from(mobMap.entries())
     .sort((a, b) => b[1].totalDamage - a[1].totalDamage)
     .map(([name, data]) => ({
       name,
       totalDamage: data.totalDamage,
-      hits:        data.hits,
-      crits:       data.crits,
-      byPlayer:    Array.from(data.byPlayer.entries()).map(([pName, pd]) => ({
-        name:        pName,
+      hits: data.hits,
+      crits: data.crits,
+      byPlayer: Array.from(data.byPlayer.entries()).map(([pName, pd]) => ({
+        name: pName,
         playerClass: pd.playerClass,
-        damage:      pd.damage,
-        hits:        pd.hits,
-        crits:       pd.crits,
+        damage: pd.damage,
+        hits: pd.hits,
+        crits: pd.crits,
       })),
     }));
 
   return (
     <div className="pt-10 space-y-8">
-      {/* Breadcrumb */}
-      <div className="text-xs text-text-dim">
-        <Link href="/uploads" className="hover:text-gold">Uploads</Link>
-        <span className="mx-2">›</span>
-        <Link href={`/uploads/${encounter.upload.id}`} className="hover:text-gold">Raid</Link>
-        <span className="mx-2">›</span>
+      <div className="text-xs text-text-dim flex items-center gap-1 flex-wrap">
+        <Link href="/raids" className="hover:text-gold">Raids</Link>
+        <span>&gt;</span>
+        <Link href={`/raids/${encounter.upload.id}/sessions/${encounter.sessionIndex}`} className="hover:text-gold">
+          Raid Session
+        </Link>
+        <span>&gt;</span>
         <Link href="/bosses" className="hover:text-gold">Bosses</Link>
-        <span className="mx-2">›</span>
+        <span>&gt;</span>
         <Link href={`/bosses/${encounter.boss.slug}`} className="hover:text-gold">{encounter.boss.name}</Link>
-        <span className="mx-2">›</span>
+        <span>&gt;</span>
         <span className="text-text-secondary">Encounter</span>
       </div>
 
-      {/* Header */}
       <div className="flex items-start justify-between flex-wrap gap-4">
         <div>
           <h1 className="heading-cinzel text-2xl font-bold text-gold-light text-glow-gold">
@@ -129,38 +136,34 @@ export default async function EncounterPage({ params }: Props) {
               {encounter.difficulty}
             </span>
             <span className="text-xs text-text-dim">{encounter.boss.raid}</span>
-            {encounter.upload.guild && (
-              <span className="text-xs text-text-dim">· {encounter.upload.guild.name}</span>
-            )}
+            {encounter.upload.guild && <span className="text-xs text-text-dim">- {encounter.upload.guild.name}</span>}
+            {encounter.upload.realm?.name && <span className="text-xs text-text-dim">- {encounter.upload.realm.name}</span>}
           </div>
         </div>
         <div className="text-right text-sm text-text-dim">
           <div>{new Date(encounter.startedAt).toLocaleString()}</div>
-          <div className="text-xs mt-0.5">{encounter.upload.filename}</div>
         </div>
       </div>
 
-      {/* Stats */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <StatCard label="Duration"     value={formatDuration(encounter.durationSeconds)} highlight />
+        <StatCard label="Duration" value={formatDuration(encounter.durationSeconds)} highlight />
         <StatCard label="Total Damage" value={formatNumber(encounter.totalDamage)} />
-        <StatCard label="Raid DPS"     value={totalDps.toLocaleString()} sub="per second" />
-        <StatCard label="Raid HPS"     value={totalHps.toLocaleString()} sub="per second" />
+        <StatCard label="Raid DPS" value={totalDps.toLocaleString()} sub="per second" />
+        <StatCard label="Raid HPS" value={totalHps.toLocaleString()} sub="per second" />
       </div>
 
-      {/* Milestones from this encounter */}
       {encounter.milestones.length > 0 && (
         <div className="space-y-2">
           <p className="text-xs font-semibold text-gold uppercase tracking-widest">
-            ✦ Milestones From This Encounter
+            Milestones From This Encounter
           </p>
-          {encounter.milestones.map(m => (
+          {encounter.milestones.map((m) => (
             <div key={m.id} className="milestone-banner flex items-center justify-between text-sm flex-wrap gap-2">
               <span>
                 <span className="font-bold text-gold">#{m.rank}</span>
                 {" "}all-time{" "}
                 <span className="text-text-primary font-semibold">{m.player.name}</span>
-                <span className="text-text-secondary"> · {m.metric}</span>
+                <span className="text-text-secondary"> - {m.metric}</span>
               </span>
               <span className="tabular-nums font-bold text-gold-light">
                 {m.value.toLocaleString(undefined, { maximumFractionDigits: 0 })} {m.metric}
@@ -170,74 +173,50 @@ export default async function EncounterPage({ params }: Props) {
         </div>
       )}
 
-      {/* DPS Meter */}
       {dpsParts.length > 0 && (
-        <AccordionSection
-          title="Damage Breakdown"
-          sub="Click a row to expand spell details"
-          count={dpsParts.length}
-          defaultOpen
-        >
+        <AccordionSection title="Damage Breakdown" sub="Click a row to expand spell details" count={dpsParts.length} defaultOpen>
           <div className="bg-bg-panel border border-gold-dim rounded overflow-hidden">
             <DamageMeter participants={dpsParts} metric="dps" />
           </div>
         </AccordionSection>
       )}
 
-      {/* Healing Meter */}
       {healParts.length > 0 && (
-        <AccordionSection
-          title="Healing Breakdown"
-          count={healParts.length}
-          defaultOpen
-        >
+        <AccordionSection title="Healing Breakdown" count={healParts.length} defaultOpen>
           <div className="bg-bg-panel border border-gold-dim rounded overflow-hidden">
             <DamageMeter participants={healParts} metric="hps" />
           </div>
         </AccordionSection>
       )}
 
-      {/* Mob / Target Breakdown */}
       {mobEntries.length > 0 && (
-        <AccordionSection
-          title="Target Breakdown"
-          sub="Damage dealt to each mob — click a row to see per-player split"
-          count={mobEntries.length}
-          defaultOpen={false}
-        >
+        <AccordionSection title="Target Breakdown" sub="Damage dealt to each mob - click a row to see per-player split" count={mobEntries.length} defaultOpen={false}>
           <div className="bg-bg-panel border border-gold-dim rounded overflow-hidden">
             <MobBreakdown mobs={mobEntries} />
           </div>
         </AccordionSection>
       )}
 
-      {/* Full roster */}
-      <AccordionSection
-        title="Full Roster"
-        count={encounter.participants.length}
-        defaultOpen={false}
-      >
+      <AccordionSection title="Full Roster" count={encounter.participants.length} defaultOpen={false}>
         <div className="bg-bg-panel border border-gold-dim rounded divide-y divide-gold-dim">
-          {encounter.participants.map(p => (
-            <div key={p.id} className="flex items-center justify-between px-4 py-2.5 hover:bg-bg-hover transition-colors">
-              <div className="flex items-center gap-3">
+          {encounter.participants.map((p) => (
+            <div key={p.id} className="flex items-center justify-between px-4 py-2.5 hover:bg-bg-hover transition-colors gap-3 flex-wrap">
+              <div className="flex items-center gap-3 flex-wrap">
                 <Link
                   href={`/players/${encodeURIComponent(p.player.name)}`}
                   className="text-sm font-semibold hover:underline text-text-primary"
                 >
                   {p.player.name}
                 </Link>
-                {p.player.class && (
-                  <span className="text-xs text-text-dim">{p.player.class}</span>
-                )}
+                {p.player.class && <span className="text-xs text-text-dim">{p.player.class}</span>}
                 <Badge variant={p.role === "HEALER" ? "holy" : p.role === "TANK" ? "physical" : "gold"}>
                   {p.role}
                 </Badge>
               </div>
-              <div className="flex items-center gap-6 text-sm tabular-nums text-text-secondary">
+              <div className="flex items-center gap-4 text-sm tabular-nums text-text-secondary flex-wrap justify-end">
                 {p.dps > 0 && <span>{p.dps.toLocaleString(undefined, { maximumFractionDigits: 0 })} dps</span>}
                 {p.hps > 100 && <span>{p.hps.toLocaleString(undefined, { maximumFractionDigits: 0 })} hps</span>}
-                {p.deaths > 0 && <span className="text-danger">☠ {p.deaths}</span>}
+                {p.deaths > 0 && <span className="text-danger">x {p.deaths}</span>}
               </div>
             </div>
           ))}

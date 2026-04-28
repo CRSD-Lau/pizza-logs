@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { db } from "@/lib/db";
 import { SectionHeader } from "@/components/ui/SectionHeader";
 import { StatCard } from "@/components/ui/StatCard";
@@ -58,6 +59,9 @@ export default async function AdminPage() {
             Admin / Diagnostics
           </h1>
           <p className="text-text-secondary text-sm mt-1">System health and database statistics</p>
+          <Link href="/admin/uploads" className="text-xs text-gold hover:text-gold-light uppercase tracking-wide mt-3 inline-block">
+            View upload history &rarr;
+          </Link>
         </div>
         <ClearDatabaseButton />
       </div>

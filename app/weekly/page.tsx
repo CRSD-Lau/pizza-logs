@@ -13,16 +13,13 @@ export const dynamic = "force-dynamic";
 async function getWeeklyData() {
   const { start, end } = getWeekBounds();
 
-  const [encounters, totalUploads] = await Promise.all([
-    db.encounter.findMany({
-      where: { startedAt: { gte: start, lt: end } },
-      include: {
-        boss: { select: { name: true, slug: true, raid: true } },
-      },
-      orderBy: { startedAt: "desc" },
-    }),
-    db.upload.count({ where: { createdAt: { gte: start, lt: end } } }),
-  ]);
+  const encounters = await db.encounter.findMany({
+    where: { startedAt: { gte: start, lt: end } },
+    include: {
+      boss: { select: { name: true, slug: true, raid: true } },
+    },
+    orderBy: { startedAt: "desc" },
+  });
 
   const kills = encounters.filter(e => e.outcome === "KILL");
   const wipes = encounters.filter(e => e.outcome === "WIPE");
@@ -61,7 +58,7 @@ async function getWeeklyData() {
     weekStart: start.toISOString(),
     totalKills: kills.length,
     totalWipes: wipes.length,
-    totalUploads,
+    bossesCleared: bossKills.length,
     topDps: topDpsRows.map(p => ({
       playerName: p.player.name,
       class: p.player.class,
@@ -86,7 +83,7 @@ export default async function WeeklyPage() {
   const data = await getWeeklyData();
   const { start, end } = getWeekBounds();
 
-  const weekLabel = `${start.toLocaleDateString("en-US", { month: "short", day: "numeric" })} – ${end.toLocaleDateString("en-US", { month: "short", day: "numeric" })}`;
+  const weekLabel = `${start.toLocaleDateString("en-US", { month: "short", day: "numeric" })} - ${end.toLocaleDateString("en-US", { month: "short", day: "numeric" })}`;
 
   return (
     <div className="pt-10 space-y-10">
@@ -96,59 +93,56 @@ export default async function WeeklyPage() {
       </div>
 
       <>
-        {/* Stats */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          <StatCard label="Boss Kills"   value={data.totalKills}   highlight />
-          <StatCard label="Wipes"        value={data.totalWipes} />
-          <StatCard label="Uploads"      value={data.totalUploads} />
-          <StatCard label="Kill Rate"
+          <StatCard label="Boss Kills" value={data.totalKills} highlight />
+          <StatCard label="Wipes" value={data.totalWipes} />
+          <StatCard label="Bosses Cleared" value={data.bossesCleared} />
+          <StatCard
+            label="Kill Rate"
             value={data.totalKills + data.totalWipes > 0
               ? `${Math.round(data.totalKills / (data.totalKills + data.totalWipes) * 100)}%`
-              : "—"}
+              : "-"}
           />
         </div>
 
-        {/* Top DPS */}
         <section>
           <SectionHeader title="Top DPS This Week" sub="Best single-encounter DPS, kills only" />
           {data.topDps.length > 0 ? (
             <LeaderboardBar entries={data.topDps.map((e, i) => ({
-              rank:        i + 1,
-              playerName:  e.playerName,
-              class:       e.class ?? undefined,
-              value:       e.dps,
-              bossName:    e.bossName,
-              bossSlug:    e.bossSlug,
-              difficulty:  e.difficulty,
+              rank: i + 1,
+              playerName: e.playerName,
+              class: e.class ?? undefined,
+              value: e.dps,
+              bossName: e.bossName,
+              bossSlug: e.bossSlug,
+              difficulty: e.difficulty,
               encounterId: "",
-              date:        data.weekStart,
+              date: data.weekStart,
             }))} metric="dps" />
           ) : (
             <EmptyState title="No kills recorded this week" description="Upload a combat log to start tracking." />
           )}
         </section>
 
-        {/* Top HPS */}
         <section>
           <SectionHeader title="Top HPS This Week" sub="Best single-encounter HPS, kills only" />
           {data.topHps.length > 0 ? (
             <LeaderboardBar entries={data.topHps.map((e, i) => ({
-              rank:        i + 1,
-              playerName:  e.playerName,
-              class:       e.class ?? undefined,
-              value:       e.hps,
-              bossName:    e.bossName,
-              bossSlug:    e.bossSlug,
-              difficulty:  e.difficulty,
+              rank: i + 1,
+              playerName: e.playerName,
+              class: e.class ?? undefined,
+              value: e.hps,
+              bossName: e.bossName,
+              bossSlug: e.bossSlug,
+              difficulty: e.difficulty,
               encounterId: "",
-              date:        data.weekStart,
+              date: data.weekStart,
             }))} metric="hps" />
           ) : (
             <EmptyState title="No healing data this week" />
           )}
         </section>
 
-        {/* Boss kills */}
         {data.bossKills.length > 0 && (
           <section>
             <SectionHeader title="Boss Kills This Week" />
@@ -174,7 +168,7 @@ export default async function WeeklyPage() {
           <EmptyState
             title="No data yet"
             description="Upload a combat log to see your weekly summary."
-            action={<Link href="/" className="text-gold hover:text-gold-light text-sm">Upload a log →</Link>}
+            action={<Link href="/" className="text-gold hover:text-gold-light text-sm">Upload a log &rarr;</Link>}
           />
         )}
       </>

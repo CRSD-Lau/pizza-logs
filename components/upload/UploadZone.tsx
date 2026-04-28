@@ -3,9 +3,9 @@
 import { useCallback, useRef, useState } from "react";
 import Link from "next/link";
 import { useDropzone } from "react-dropzone";
-import { cn, formatBytes } from "@/lib/utils";
 import { Button } from "@/components/ui/Button";
 import type { UploadResponse } from "@/lib/schema";
+import { cn } from "@/lib/utils";
 
 interface UploadZoneProps {
   onComplete?: (result: UploadResponse & { filename: string }) => void;
@@ -14,32 +14,30 @@ interface UploadZoneProps {
 type Stage = "idle" | "uploading" | "done" | "error";
 
 interface UploadState {
-  stage:    Stage;
-  progress: number; // 0-100
-  message:  string;
-  elapsed:  number; // seconds
-  stalled:  boolean; // true if no SSE event for >150s (stream likely dropped)
-  result?:  UploadResponse & { filename: string };
-  error?:   string;
+  stage: Stage;
+  progress: number;
+  message: string;
+  elapsed: number;
+  stalled: boolean;
+  result?: UploadResponse & { filename: string };
+  error?: string;
 }
 
 export function UploadZone({ onComplete }: UploadZoneProps) {
   const [state, setState] = useState<UploadState>({
-    stage:    "idle",
+    stage: "idle",
     progress: 0,
-    message:  "",
-    elapsed:  0,
-    stalled:  false,
+    message: "",
+    elapsed: 0,
+    stalled: false,
   });
   const lastEventAt = useRef<number>(Date.now());
 
-  // Form metadata state
   const [characterName, setCharacterName] = useState("");
-  const [realmName, setRealmName]         = useState("Lordaeron");
-  const [realmHost, setRealmHost]         = useState("warmane");
-  const [guildName, setGuildName]         = useState("");
+  const [realmName, setRealmName] = useState("Lordaeron");
+  const [realmHost, setRealmHost] = useState("warmane");
+  const [guildName, setGuildName] = useState("");
 
-  // Request notification permission once when the user first drops a file
   const requestNotificationPermission = useCallback(async () => {
     if (typeof Notification === "undefined") return;
     if (Notification.permission === "default") {
@@ -50,9 +48,8 @@ export function UploadZone({ onComplete }: UploadZoneProps) {
   const sendNotification = useCallback((title: string, body: string) => {
     if (typeof Notification === "undefined") return;
     if (Notification.permission !== "granted") return;
-    const n = new Notification(title, { body, icon: "/favicon.ico" });
-    // Auto-close after 8s
-    setTimeout(() => n.close(), 8000);
+    const notification = new Notification(title, { body, icon: "/favicon.ico" });
+    setTimeout(() => notification.close(), 8000);
   }, []);
 
   const processFile = useCallback(async (file: File) => {
@@ -60,24 +57,33 @@ export function UploadZone({ onComplete }: UploadZoneProps) {
     const startTime = Date.now();
 
     lastEventAt.current = Date.now();
-    setState({ stage: "uploading", progress: 2, message: "Uploading file…", elapsed: 0, stalled: false });
+    setState({ stage: "uploading", progress: 2, message: "Uploading file...", elapsed: 0, stalled: false });
 
-    const onBeforeUnload = (e: BeforeUnloadEvent) => { e.preventDefault(); e.returnValue = ""; };
+    const onBeforeUnload = (event: BeforeUnloadEvent) => {
+      event.preventDefault();
+      event.returnValue = "";
+    };
     window.addEventListener("beforeunload", onBeforeUnload);
 
-    // Ticker: update elapsed + detect stalled stream (no event for >150s)
-    const STALL_THRESHOLD = 150_000;
+    const stallThreshold = 150_000;
     const ticker = setInterval(() => {
-      setState(s => {
-        if (s.stage !== "uploading") return s;
-        const stalled = (Date.now() - lastEventAt.current) > STALL_THRESHOLD;
-        return { ...s, elapsed: Math.floor((Date.now() - startTime) / 1000), stalled };
+      setState((current) => {
+        if (current.stage !== "uploading") return current;
+        const stalled = (Date.now() - lastEventAt.current) > stallThreshold;
+        return {
+          ...current,
+          elapsed: Math.floor((Date.now() - startTime) / 1000),
+          stalled,
+        };
       });
     }, 1000);
 
     const params = new URLSearchParams({
       uploaderName: characterName.trim(),
-      realmName, realmHost, filename: file.name, fileSize: String(file.size),
+      realmName,
+      realmHost,
+      filename: file.name,
+      fileSize: String(file.size),
     });
     if (guildName.trim()) params.set("guildName", guildName.trim());
 
@@ -90,9 +96,9 @@ export function UploadZone({ onComplete }: UploadZoneProps) {
       const res = await fetch(`/api/upload?${params}`, { method: "POST", body: form });
       if (!res.body) throw new Error("No response body");
 
-      const reader  = res.body.getReader();
+      const reader = res.body.getReader();
       const decoder = new TextDecoder();
-      let buffer    = "";
+      let buffer = "";
 
       while (true) {
         const { done, value } = await reader.read();
@@ -105,18 +111,21 @@ export function UploadZone({ onComplete }: UploadZoneProps) {
         for (const chunk of chunks) {
           for (const line of chunk.split("\n")) {
             if (!line.startsWith("data: ")) continue;
-            let event: { type: string; pct?: number; msg?: string; result?: UploadResponse; };
-            try { event = JSON.parse(line.slice(6)); }
-            catch { continue; }
+
+            let event: { type: string; pct?: number; msg?: string; result?: UploadResponse };
+            try {
+              event = JSON.parse(line.slice(6));
+            } catch {
+              continue;
+            }
 
             const elapsed = Math.floor((Date.now() - startTime) / 1000);
 
             if (event.type === "progress" && event.pct !== undefined) {
               lastEventAt.current = Date.now();
-              setState(s => s.stage === "uploading"
-                ? { ...s, progress: event.pct!, message: event.msg ?? "", elapsed, stalled: false }
-                : s);
-
+              setState((current) => current.stage === "uploading"
+                ? { ...current, progress: event.pct!, message: event.msg ?? "", elapsed, stalled: false }
+                : current);
             } else if (event.type === "complete" && event.result) {
               succeeded = true;
               clearInterval(ticker);
@@ -125,12 +134,11 @@ export function UploadZone({ onComplete }: UploadZoneProps) {
               onComplete?.(result);
               const stored = result.encountersInserted;
               sendNotification(
-                "✅ Upload complete",
+                "Upload complete",
                 stored > 0
-                  ? `${stored} encounter${stored !== 1 ? "s" : ""} stored from ${file.name}`
-                  : `${file.name} processed — no new encounters`,
+                  ? `${stored} encounter${stored !== 1 ? "s" : ""} stored`
+                  : "No new encounters were found",
               );
-
             } else if (event.type === "error") {
               throw new Error((event as { msg?: string }).msg ?? "Upload failed");
             }
@@ -138,22 +146,21 @@ export function UploadZone({ onComplete }: UploadZoneProps) {
         }
       }
     } catch (err) {
-      // Ignore stream close errors that arrive after a successful complete event
       if (succeeded) return;
       clearInterval(ticker);
       const msg = String(err instanceof Error ? err.message : err);
       setState({ stage: "error", progress: 0, message: "", elapsed: 0, stalled: false, error: msg });
-      sendNotification("❌ Upload failed", msg);
+      sendNotification("Upload failed", msg);
     } finally {
       clearInterval(ticker);
       window.removeEventListener("beforeunload", onBeforeUnload);
     }
-  }, [characterName, realmName, realmHost, guildName, onComplete, requestNotificationPermission, sendNotification]);
+  }, [characterName, guildName, onComplete, realmHost, realmName, requestNotificationPermission, sendNotification]);
 
   const isLocked = !characterName.trim();
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
-    onDrop: files => {
+    onDrop: (files) => {
       if (files[0]) processFile(files[0]);
     },
     accept: { "text/plain": [".txt", ".log"] },
@@ -161,19 +168,17 @@ export function UploadZone({ onComplete }: UploadZoneProps) {
     disabled: state.stage === "uploading" || isLocked,
   });
 
-  // When locked, block browser-native drag/drop (otherwise the file opens in a tab)
   const lockedProps = {
-    onDragOver: (e: React.DragEvent) => e.preventDefault(),
-    onDragEnter: (e: React.DragEvent) => e.preventDefault(),
-    onDrop: (e: React.DragEvent) => e.preventDefault(),
-    onClick: (e: React.MouseEvent) => e.preventDefault(),
+    onDragOver: (event: React.DragEvent) => event.preventDefault(),
+    onDragEnter: (event: React.DragEvent) => event.preventDefault(),
+    onDrop: (event: React.DragEvent) => event.preventDefault(),
+    onClick: (event: React.MouseEvent) => event.preventDefault(),
   };
 
   const reset = () => setState({ stage: "idle", progress: 0, message: "", elapsed: 0, stalled: false });
 
   return (
     <div className="space-y-4">
-      {/* Metadata inputs */}
       {state.stage === "idle" && (
         <div className="flex flex-wrap gap-3 items-center">
           <div className="flex items-center gap-2">
@@ -182,16 +187,17 @@ export function UploadZone({ onComplete }: UploadZoneProps) {
             </label>
             <input
               value={characterName}
-              onChange={e => setCharacterName(e.target.value)}
+              onChange={(event) => setCharacterName(event.target.value)}
               placeholder="Your character name"
               className="bg-bg-card border border-gold-dim rounded px-3 py-1.5 text-sm text-text-primary outline-none focus:border-gold transition-colors w-44"
             />
           </div>
+
           <div className="flex items-center gap-2">
             <label className="text-xs text-text-secondary uppercase tracking-wide">Realm</label>
             <select
               value={realmName}
-              onChange={e => setRealmName(e.target.value)}
+              onChange={(event) => setRealmName(event.target.value)}
               className="bg-bg-card border border-gold-dim rounded px-3 py-1.5 text-sm text-text-primary outline-none focus:border-gold transition-colors"
             >
               <option value="Icecrown">Icecrown</option>
@@ -200,21 +206,23 @@ export function UploadZone({ onComplete }: UploadZoneProps) {
               <option value="Blackrock">Blackrock</option>
             </select>
           </div>
+
           <div className="flex items-center gap-2">
             <label className="text-xs text-text-secondary uppercase tracking-wide">Server</label>
             <select
               value={realmHost}
-              onChange={e => setRealmHost(e.target.value)}
+              onChange={(event) => setRealmHost(event.target.value)}
               className="bg-bg-card border border-gold-dim rounded px-3 py-1.5 text-sm text-text-primary outline-none focus:border-gold transition-colors"
             >
               <option value="warmane">Warmane</option>
             </select>
           </div>
+
           <div className="flex items-center gap-2">
             <label className="text-xs text-text-secondary uppercase tracking-wide">Guild</label>
             <input
               value={guildName}
-              onChange={e => setGuildName(e.target.value)}
+              onChange={(event) => setGuildName(event.target.value)}
               placeholder="PizzaWarriors (optional)"
               className="bg-bg-card border border-gold-dim rounded px-3 py-1.5 text-sm text-text-primary outline-none focus:border-gold transition-colors w-48"
             />
@@ -222,7 +230,6 @@ export function UploadZone({ onComplete }: UploadZoneProps) {
         </div>
       )}
 
-      {/* Drop zone */}
       {state.stage === "idle" && (
         <div
           {...(isLocked ? lockedProps : getRootProps())}
@@ -245,9 +252,9 @@ export function UploadZone({ onComplete }: UploadZoneProps) {
                 : isDragActive ? "Release to upload" : "Drop your WoWCombatLog.txt"}
             </p>
             <p className="text-sm text-text-secondary mb-6">
-              WotLK · Naxxramas through Ruby Sanctum · All processing server-side
+              WotLK - Naxxramas through Ruby Sanctum - All processing server-side
             </p>
-            <Button variant="gold" size="md" onClick={e => e.stopPropagation()} disabled={!characterName.trim()}>
+            <Button variant="gold" size="md" onClick={(event) => event.stopPropagation()} disabled={!characterName.trim()}>
               Choose File
             </Button>
             <p className="text-xs text-text-dim mt-3">Supports files up to 1 GB</p>
@@ -255,7 +262,6 @@ export function UploadZone({ onComplete }: UploadZoneProps) {
         </div>
       )}
 
-      {/* Uploading / progress */}
       {state.stage === "uploading" && (
         <div className="border border-gold/40 rounded bg-bg-panel px-8 py-16 text-center space-y-6">
           <Spinner className="mx-auto" />
@@ -263,21 +269,23 @@ export function UploadZone({ onComplete }: UploadZoneProps) {
             <p className="heading-cinzel text-lg text-gold-light mb-1">{state.message}</p>
             {state.stalled ? (
               <p className="text-xs text-warning mt-1">
-                Stream connection lost — your data may have saved successfully.{" "}
-                <Link href="/uploads" className="text-gold hover:text-gold-light underline">
-                  Check History →
+                Stream connection lost - your data may have saved successfully.{" "}
+                <Link href="/raids" className="text-gold hover:text-gold-light underline">
+                  Check raids &rarr;
                 </Link>
               </p>
             ) : (
-              <p className="text-xs text-text-dim">Large logs can take 1–3 minutes — do not close this tab</p>
+              <p className="text-xs text-text-dim">Large logs can take 1-3 minutes - do not close this tab</p>
             )}
           </div>
+
           <div className="max-w-sm mx-auto space-y-1.5">
             <div className="flex justify-between text-[11px] text-text-dim tabular-nums">
               <span>{state.progress}%</span>
-              <span>{state.elapsed < 60
-                ? `${state.elapsed}s elapsed`
-                : `${Math.floor(state.elapsed / 60)}m ${state.elapsed % 60}s elapsed`}
+              <span>
+                {state.elapsed < 60
+                  ? `${state.elapsed}s elapsed`
+                  : `${Math.floor(state.elapsed / 60)}m ${state.elapsed % 60}s elapsed`}
               </span>
             </div>
             <div className="h-2 rounded-full bg-bg-hover overflow-hidden">
@@ -290,12 +298,10 @@ export function UploadZone({ onComplete }: UploadZoneProps) {
         </div>
       )}
 
-      {/* Result */}
       {state.stage === "done" && state.result && (
         <UploadResult result={state.result} onReset={reset} />
       )}
 
-      {/* Error */}
       {state.stage === "error" && (
         <div className="border border-danger/30 rounded bg-danger/5 px-6 py-8 text-center">
           <p className="heading-cinzel text-base text-danger mb-2">Upload Failed</p>
@@ -318,13 +324,14 @@ function UploadResult({
 
   return (
     <div className="border border-gold-dim rounded bg-bg-panel divide-y divide-gold-dim">
-      {/* Header */}
-      <div className="px-5 py-4 flex items-center justify-between">
+      <div className="px-5 py-4 flex items-center justify-between gap-4">
         <div>
-          <p className="heading-cinzel text-sm text-gold-light">{result.filename}</p>
+          <p className="heading-cinzel text-sm text-gold-light">
+            {isDuplicate ? "Already Parsed" : "Upload Complete"}
+          </p>
           <p className="text-xs text-text-secondary mt-0.5">
             {isDuplicate
-              ? "This log was already parsed — your data is ready"
+              ? "This log was already parsed and the raid data is ready"
               : `${result.encountersInserted} encounter${result.encountersInserted !== 1 ? "s" : ""} stored`}
           </p>
         </div>
@@ -333,43 +340,37 @@ function UploadResult({
         </button>
       </div>
 
-      {/* Duplicate: direct link to existing session */}
       {isDuplicate && result.uploadId && (
-        <div className="px-5 py-4 flex items-center gap-3">
+        <div className="px-5 py-4 flex items-center gap-3 flex-wrap">
           <Link
-            href={`/uploads/${result.uploadId}/sessions/0`}
+            href={`/raids/${result.uploadId}/sessions/0`}
             className="inline-flex items-center gap-1.5 px-4 py-2 rounded border border-gold/60 bg-gold/5 text-sm text-gold-light hover:border-gold hover:bg-gold/10 transition-colors"
           >
-            View your session →
+            View your raid session &rarr;
           </Link>
           <span className="text-xs text-text-dim">Session 1 of this log</span>
         </div>
       )}
 
-      {/* Stats row */}
       {!isDuplicate && (
         <div className="px-5 py-3 flex flex-wrap gap-6 text-sm">
-          <Stat label="Found"     value={result.encountersFound} />
-          <Stat label="Stored"    value={result.encountersInserted} highlight />
+          <Stat label="Found" value={result.encountersFound} />
+          <Stat label="Stored" value={result.encountersInserted} highlight />
           <Stat label="Duplicate" value={result.encountersDuplicate} />
         </div>
       )}
 
-      {/* Milestones */}
       {result.milestones && result.milestones.length > 0 && (
         <div className="px-5 py-4 space-y-2">
           <p className="text-xs font-semibold text-gold uppercase tracking-widest mb-3">
-            ✦ Milestones Achieved
+            Milestones Achieved
           </p>
-          {result.milestones.map((m, i) => (
-            <div key={i} className="milestone-banner flex items-center justify-between text-sm">
+          {result.milestones.map((m, index) => (
+            <div key={index} className="milestone-banner flex items-center justify-between text-sm flex-wrap gap-2">
               <span>
-                <span className="text-gold font-bold">
-                  #{m.rank}
-                </span>
-                {" "}
+                <span className="text-gold font-bold">#{m.rank}</span>{" "}
                 <span className="text-text-primary font-semibold">{m.playerName}</span>
-                <span className="text-text-secondary"> — {m.bossName} {m.difficulty}</span>
+                <span className="text-text-secondary"> - {m.bossName} {m.difficulty}</span>
               </span>
               <span className="font-bold tabular-nums text-gold-light">
                 {m.value.toLocaleString(undefined, { maximumFractionDigits: 0 })} {m.metric}
@@ -379,11 +380,10 @@ function UploadResult({
         </div>
       )}
 
-      {/* Warnings — suppressed for DUPLICATE since the header already explains the state */}
       {!isDuplicate && result.warnings && result.warnings.length > 0 && (
         <div className="px-5 py-3">
-          {result.warnings.map((w, i) => (
-            <p key={i} className="text-xs text-warning">{w}</p>
+          {result.warnings.map((warning, index) => (
+            <p key={index} className="text-xs text-warning">{warning}</p>
           ))}
         </div>
       )}
@@ -405,16 +405,14 @@ function Stat({ label, value, highlight }: { label: string; value: number; highl
 function UploadIcon({ className }: { className?: string }) {
   return (
     <svg className={className} width="48" height="48" viewBox="0 0 48 48" fill="none">
-      <rect x="8" y="16" width="32" height="26" rx="2" fill="none" stroke="currentColor" strokeWidth="1.5" opacity="0.6"/>
-      <path d="M24 8 L24 28 M17 15 L24 8 L31 15" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+      <rect x="8" y="16" width="32" height="26" rx="2" fill="none" stroke="currentColor" strokeWidth="1.5" opacity="0.6" />
+      <path d="M24 8 L24 28 M17 15 L24 8 L31 15" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
 }
 
 function Spinner({ className }: { className?: string }) {
   return (
-    <div
-      className={cn("w-10 h-10 rounded-full border-2 border-bg-hover border-t-gold animate-spin", className)}
-    />
+    <div className={cn("w-10 h-10 rounded-full border-2 border-bg-hover border-t-gold animate-spin", className)} />
   );
 }
