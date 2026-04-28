@@ -1,8 +1,8 @@
 # Now
 
 ## Status
-v0.1.0 shipped. Repo clean. Wiki live. Main only.
-71/71 tests passing. Railway deployed.
+`v0.1.0` shipped. Wiki live. Railway deployed.
+`AGENTS.md` now sits alongside `CLAUDE.md` so Codex follows the same repo workflow rules.
 
 ---
 
@@ -10,7 +10,7 @@ v0.1.0 shipped. Repo clean. Wiki live. Main only.
 
 | Task | Type | Notes |
 |------|------|-------|
-| Fix HC/Normal difficulty detection | BUG | Regression — issue open on GitHub |
+| Fix HC/Normal difficulty detection | BUG | Regression - issue open on GitHub |
 | Stats / Analytics page | FEATURE | Brainstorm first, then design, then build |
 | Verify Skada numbers in-game | VERIFY | Neil to do manually next week |
 | Absorbs (PW:S) | FEATURE | Combined column. Do after verification. |
