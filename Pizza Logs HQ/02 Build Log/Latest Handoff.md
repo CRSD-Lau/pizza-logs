@@ -91,6 +91,14 @@
 - Fresh cached rows that still need Wowhead enrichment are now re-enriched before being returned by `getWarmaneCharacterGear`, instead of staying partial for the 12-hour cache window
 - Added `tests/wowhead-enrichment-retry.test.ts` and expanded `tests/warmane-armory-cache.test.ts`
 
+### 10. Relic/ranged slot and GearScore two-hander bug fixed
+- Investigated `/players/Lausudo` and `/players/Aalaska` screenshots showing sparse Warmane equipment arrays sliding weapons/relics into the wrong display slots
+- Root cause: Warmane omits empty equipment slots, but Pizza Logs assigned slot labels by raw array index; the GearScore Titan Grip adjustment then saw Lausudo as `Main Hand` 2H + `Off Hand` relic and halved both item scores
+- Added `normalizeArmoryGearSlots` to repair display slot names from Wowhead `equipLoc` metadata after enrichment and when reading cached rows
+- Added `lib/gear-layout.ts` so the player gear grid groups by normalized slot name instead of fixed array slices
+- Tightened Titan Grip scoring so the half-score modifier only applies when both main/off-hand items are actual weapons and at least one is a two-hander
+- Added regression coverage in `tests/gearscore-lite.test.ts`, `tests/warmane-armory-import.test.ts`, and `tests/gear-layout.test.ts`
+
 ---
 
 ## Current State
@@ -98,7 +106,7 @@
 - **Live app**: https://pizza-logs-production.up.railway.app
 - **Release**: `v0.1.0`
 - **Player profiles**: include a native Warmane Armory Gear section wired to a DB-backed gear cache
-- **Gear display**: uses Wowhead-enriched icons, quality, item level, equip-location metadata, GearScoreLite totals/per-item scores, and tooltip text when item IDs are present; partial cached snapshots are re-enriched with retry/backoff before rendering; tooltips render in a viewport-level portal so they are not clipped by accordion/table wrappers
+- **Gear display**: uses Wowhead-enriched icons, quality, item level, equip-location metadata, GearScoreLite totals/per-item scores, and tooltip text when item IDs are present; partial cached snapshots are re-enriched with retry/backoff before rendering; slot labels are repaired from equip-location metadata so sparse Warmane arrays do not shift weapons/relics into the wrong UI slot; tooltips render in a viewport-level portal so they are not clipped by accordion/table wrappers
 - **Gear sync**: hosted Tampermonkey userscript v1.0.3 is installed/running on Warmane and actively imports missing or enrichment-needed DB players
 - **Warmane local access**: blocked by Cloudflare/403 from this Codex shell, handled gracefully by UI
 - **Checks run**: GearScoreLite formula test passed; Wowhead parser/enrichment retry tests passed; cache fallback/refresh test passed; import normalization test passed; gear tooltip positioning test passed; admin gear script test passed; `prisma validate` passed; `tsc --noEmit` passed; `next build` passed
@@ -149,4 +157,4 @@ Do after Skada verification.
 
 ## Next Step
 
-After deploy, spot-check `/players/Lausudo` and `/players/Ashien` gear details and GearScoreLite summaries in production. The first request to a partial cached row may spend extra time re-enriching Wowhead details; rerunning the hosted Warmane userscript remains useful for broader cache refreshes. Parser priority remains fixing HC/Normal detection in `parser/parser_core.py`.
+After deploy, spot-check `/players/Lausudo` and `/players/Aalaska`: Lausudo's libram should display as `Ranged`, not `Off Hand`, and the two-hander/relic pair should no longer be half-scored. Aalaska's staff/wand should appear in the weapon row even when missing shirt/tabard/off-hand slots compress the Warmane equipment array. Parser priority remains fixing HC/Normal detection in `parser/parser_core.py`.

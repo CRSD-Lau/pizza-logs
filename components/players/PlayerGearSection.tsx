@@ -3,6 +3,7 @@ import type { ArmoryCharacterGear, ArmoryGearResult } from "@/lib/warmane-armory
 import { GearItemCard } from "@/components/players/GearItemCard";
 import { AccordionSection } from "@/components/ui/AccordionSection";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { getPlayerGearGroups } from "@/lib/gear-layout";
 import { calculateGearScore } from "@/lib/gearscore";
 import { cn } from "@/lib/utils";
 
@@ -35,9 +36,7 @@ function GearScoreSummary({
 }
 
 function GearGrid({ gear, stale = false, playerClass }: { gear: ArmoryCharacterGear; stale?: boolean; playerClass?: string | null }) {
-  const leftSlots = gear.items.slice(0, 8);
-  const rightSlots = gear.items.slice(8, 16);
-  const weaponSlots = gear.items.slice(16);
+  const { left: leftSlots, right: rightSlots, weapons: weaponSlots } = getPlayerGearGroups(gear.items);
   const gearScore = calculateGearScore(gear.items, playerClass ?? undefined);
 
   return (

@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { gearNeedsWowheadEnrichment, normalizeImportedArmoryGear } from "../lib/warmane-armory";
+import { gearNeedsWowheadEnrichment, normalizeArmoryGearSlots, normalizeImportedArmoryGear } from "../lib/warmane-armory";
 
 const result = normalizeImportedArmoryGear({
   characterName: "Ashien",
@@ -50,6 +50,15 @@ if (apiResult.ok) {
   assert.equal(apiResult.gear.characterName, "Aalaska");
   assert.equal(apiResult.gear.items[0].itemUrl, "https://www.wowhead.com/wotlk/item=51281/sanctified-bloodmage-hood");
 }
+
+assert.deepEqual(
+  normalizeArmoryGearSlots([
+    { slot: "Trinket 1", name: "Archus, Greatstaff of Antonidas", equipLoc: "INVTYPE_2HWEAPON" },
+    { slot: "Trinket 2", name: "Nightmare Ender", equipLoc: "INVTYPE_RANGEDRIGHT" },
+    { slot: "Off Hand", name: "Libram of Three Truths", equipLoc: "INVTYPE_RELIC" },
+  ]).map((item) => item.slot),
+  ["Main Hand", "Ranged", "Ranged"],
+);
 
 assert.equal(
   gearNeedsWowheadEnrichment({

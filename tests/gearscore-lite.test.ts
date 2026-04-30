@@ -34,6 +34,17 @@ assert.equal(
   1103,
 );
 
+const twoHandWithRelic = calculateGearScore([
+  { slot: "Main Hand", name: "Shadow's Edge", quality: "epic", itemLevel: 264, equipLoc: "INVTYPE_2HWEAPON" },
+  { slot: "Off Hand", name: "Libram of Three Truths", quality: "epic", itemLevel: 264, equipLoc: "INVTYPE_RELIC" },
+]);
+
+assert.equal(twoHandWithRelic?.score, 1144);
+assert.deepEqual(twoHandWithRelic?.itemScores, {
+  "Main Hand": 988,
+  "Off Hand": 156,
+});
+
 const gear = [
   { slot: "Head", name: "Head", quality: "epic", itemLevel: 277, equipLoc: "INVTYPE_HEAD" },
   { slot: "Neck", name: "Neck", quality: "epic", itemLevel: 277, equipLoc: "INVTYPE_NECK" },

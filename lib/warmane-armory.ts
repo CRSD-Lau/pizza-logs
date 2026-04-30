@@ -202,6 +202,84 @@ function normalizeEquipment(items: unknown): ArmoryGearItem[] {
     .filter((item): item is ArmoryGearItem => Boolean(item));
 }
 
+export function normalizeArmoryGearSlots(items: ArmoryGearItem[]): ArmoryGearItem[] {
+  const seen = {
+    finger: 0,
+    trinket: 0,
+    weapon: 0,
+  };
+
+  return items.map((item) => {
+    let slot = item.slot;
+
+    switch (item.equipLoc) {
+      case "INVTYPE_HEAD":
+        slot = "Head";
+        break;
+      case "INVTYPE_NECK":
+        slot = "Neck";
+        break;
+      case "INVTYPE_SHOULDER":
+        slot = "Shoulder";
+        break;
+      case "INVTYPE_CLOAK":
+        slot = "Back";
+        break;
+      case "INVTYPE_CHEST":
+      case "INVTYPE_ROBE":
+        slot = "Chest";
+        break;
+      case "INVTYPE_BODY":
+        slot = "Shirt";
+        break;
+      case "INVTYPE_WRIST":
+        slot = "Wrist";
+        break;
+      case "INVTYPE_HAND":
+        slot = "Hands";
+        break;
+      case "INVTYPE_WAIST":
+        slot = "Waist";
+        break;
+      case "INVTYPE_LEGS":
+        slot = "Legs";
+        break;
+      case "INVTYPE_FEET":
+        slot = "Feet";
+        break;
+      case "INVTYPE_FINGER":
+        seen.finger += 1;
+        slot = seen.finger === 1 ? "Finger 1" : "Finger 2";
+        break;
+      case "INVTYPE_TRINKET":
+        seen.trinket += 1;
+        slot = seen.trinket === 1 ? "Trinket 1" : "Trinket 2";
+        break;
+      case "INVTYPE_2HWEAPON":
+      case "INVTYPE_WEAPONMAINHAND":
+        slot = "Main Hand";
+        break;
+      case "INVTYPE_WEAPON":
+        seen.weapon += 1;
+        slot = seen.weapon === 1 ? "Main Hand" : "Off Hand";
+        break;
+      case "INVTYPE_WEAPONOFFHAND":
+      case "INVTYPE_SHIELD":
+      case "INVTYPE_HOLDABLE":
+        slot = "Off Hand";
+        break;
+      case "INVTYPE_RELIC":
+      case "INVTYPE_RANGED":
+      case "INVTYPE_THROWN":
+      case "INVTYPE_RANGEDRIGHT":
+        slot = "Ranged";
+        break;
+    }
+
+    return slot === item.slot ? item : { ...item, slot };
+  });
+}
+
 export function normalizeImportedArmoryGear(
   payload: ImportedArmoryGearPayload
 ): { ok: true; gear: ArmoryCharacterGear } | { ok: false; error: string } {
@@ -209,7 +287,7 @@ export function normalizeImportedArmoryGear(
   if (!characterName) return { ok: false, error: "Invalid character name." };
 
   const realm = sanitizeRealm(asString(payload.realm) ?? DEFAULT_REALM);
-  const items = normalizeEquipment(payload.items ?? payload.equipment);
+  const items = normalizeArmoryGearSlots(normalizeEquipment(payload.items ?? payload.equipment));
   if (items.length === 0) return { ok: false, error: "No gear items found in import." };
 
   return {
@@ -268,7 +346,7 @@ async function fetchWarmaneGearLive(
         realm: asString(data.realm) ?? sanitizedRealm,
         sourceUrl,
         fetchedAt: new Date().toISOString(),
-        items: await enrichGearWithWowhead(normalizeEquipment(data.equipment)),
+        items: normalizeArmoryGearSlots(await enrichGearWithWowhead(normalizeEquipment(data.equipment))),
       },
     };
   } catch (error) {
@@ -311,13 +389,13 @@ async function readCachedGear(characterName: string, realm: string): Promise<Arm
   });
 
   if (!cached || !isArmoryCharacterGear(cached.gear)) return null;
-  return cached.gear;
+  return { ...cached.gear, items: normalizeArmoryGearSlots(cached.gear.items) };
 }
 
 export async function writeCachedGear(gear: ArmoryCharacterGear): Promise<ArmoryCharacterGear> {
   const enrichedGear: ArmoryCharacterGear = {
     ...gear,
-    items: await enrichGearWithWowhead(gear.items),
+    items: normalizeArmoryGearSlots(await enrichGearWithWowhead(gear.items)),
   };
 
   await db.armoryGearCache.upsert({

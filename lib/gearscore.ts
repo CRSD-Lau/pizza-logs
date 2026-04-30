@@ -217,6 +217,13 @@ function isWeapon(equipLoc?: GearScoreEquipLoc): boolean {
     || equipLoc === "INVTYPE_HOLDABLE";
 }
 
+function isTitanGripWeapon(equipLoc?: GearScoreEquipLoc): boolean {
+  return equipLoc === "INVTYPE_2HWEAPON"
+    || equipLoc === "INVTYPE_WEAPONMAINHAND"
+    || equipLoc === "INVTYPE_WEAPONOFFHAND"
+    || equipLoc === "INVTYPE_WEAPON";
+}
+
 function isRanged(equipLoc?: GearScoreEquipLoc): boolean {
   return equipLoc === "INVTYPE_RANGED" || equipLoc === "INVTYPE_RANGEDRIGHT";
 }
@@ -238,7 +245,13 @@ export function calculateGearScore(items: GearScoreItemInput[], playerClass?: st
   const offHand = items.find(item => item.slot.toLowerCase() === "off hand");
   const mainHandLoc = mainHand ? calculateGearScoreForItem(mainHand)?.equipLoc : undefined;
   const offHandLoc = offHand ? calculateGearScoreForItem(offHand)?.equipLoc : undefined;
-  const titanGrip = mainHand && offHand && (mainHandLoc === "INVTYPE_2HWEAPON" || offHandLoc === "INVTYPE_2HWEAPON") ? 0.5 : 1;
+  const titanGrip = mainHand
+    && offHand
+    && isTitanGripWeapon(mainHandLoc)
+    && isTitanGripWeapon(offHandLoc)
+    && (mainHandLoc === "INVTYPE_2HWEAPON" || offHandLoc === "INVTYPE_2HWEAPON")
+    ? 0.5
+    : 1;
   let score = 0;
   let itemLevelTotal = 0;
   let scoredItemCount = 0;
