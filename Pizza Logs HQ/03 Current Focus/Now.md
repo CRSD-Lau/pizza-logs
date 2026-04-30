@@ -11,6 +11,8 @@ The recommended gear import path is now a Tampermonkey/userscript from `/admin`;
 The userscript is hosted at `/api/admin/armory-gear/userscript.user.js`, and `/admin` links directly to it so Tampermonkey can install/update from URL metadata.
 Userscript v1.0.2 supports both HTTP and HTTPS Warmane pages and waits for the page body before injecting the panel.
 Userscript v1.0.3 logs `Pizza Logs userscript starting` at startup and `Pizza Logs panel injection failed` if panel creation crashes.
+After enabling Tampermonkey/userscript injection, the Warmane page showed the **Pizza Logs Gear Sync** panel and began importing queued DB players (`Importing Rimeclaw (13/18)...`). The seamless path is now: install/update userscript from `/admin`, visit any Warmane Armory page, save/use the admin secret once, and let the userscript fill/refresh cache rows.
+Character-specific enchants/gems are still limited by what Warmane exposes to the browser/importer. Wowhead enrichment provides static item icons, quality, item level, and tooltip text, but not a player's chosen enchants/gems unless those are present in Warmane data.
 
 ---
 
@@ -19,7 +21,7 @@ Userscript v1.0.3 logs `Pizza Logs userscript starting` at startup and `Pizza Lo
 | Task | Type | Notes |
 |------|------|-------|
 | Fix HC/Normal difficulty detection | BUG | Regression - issue open on GitHub |
-| Test browser gear import | VERIFY | Install/update the hosted userscript from `/admin`, click Sync now once on Warmane, then confirm profile gear renders with icons/tooltips |
+| Spot-check completed gear sync | VERIFY | Let the hosted userscript finish, then confirm several `/players/<name>` pages render icons and native hover tooltips |
 | Stats / Analytics page | FEATURE | Brainstorm first, then design, then build |
 | Verify Skada numbers in-game | VERIFY | Neil to do manually next week |
 | Absorbs (PW:S) | FEATURE | Combined column. Do after verification. |

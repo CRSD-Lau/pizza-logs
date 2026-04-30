@@ -5,7 +5,7 @@
 
 ## Git
 **Branch:** `main`
-**Latest commit before this handoff commit:** `0d7e5ed chore: simplify gear admin workflow`
+**Latest commit before this handoff commit:** `6093d5c chore: add userscript diagnostics`
 **Release:** `v0.1.0` - tagged and published on GitHub
 
 ---
@@ -57,6 +57,8 @@
 - Userscript is now hosted at `/api/admin/armory-gear/userscript.user.js` with Tampermonkey `@downloadURL` and `@updateURL` metadata; `/admin` links directly to the hosted install/update URL. The older `/userscript` route remains a compatibility alias.
 - Userscript v1.0.2 matches both `https://armory.warmane.com/*` and `http://armory.warmane.com/*`, runs at `document-idle`, and waits for `document.body` before injecting the Pizza Logs panel
 - Userscript v1.0.3 adds startup and panel-injection console diagnostics so a missing panel can be distinguished from Tampermonkey not running the script
+- Confirmed in browser after enabling Tampermonkey injection: the **Pizza Logs Gear Sync** panel appeared on Warmane Armory and was actively importing queued players (`Importing Rimeclaw (13/18)...`)
+- Bookmarklet remains a fallback, but the hosted Tampermonkey userscript is now the supported production workflow for filling/refreshing gear cache rows from existing DB players
 
 ### 6. Verification
 - `tests/armory-gear-client-scripts.test.ts` passed
@@ -76,6 +78,7 @@
 - **Release**: `v0.1.0`
 - **Player profiles**: include a native Warmane Armory Gear section wired to a DB-backed gear cache
 - **Gear display**: uses Wowhead-enriched icons, quality, item level, and tooltip text when item IDs are present
+- **Gear sync**: hosted Tampermonkey userscript v1.0.3 is installed/running on Warmane and actively imports missing or enrichment-needed DB players
 - **Warmane local access**: blocked by Cloudflare/403 from this Codex shell, handled gracefully by UI
 - **Checks run**: cache fallback test passed; import normalization test passed; Wowhead parser test passed; `prisma validate` passed; `tsc --noEmit` passed; `next build` passed
 - **Local env blocker**: DB-backed pages cannot render locally until PostgreSQL is running on `localhost:5432`
@@ -112,11 +115,12 @@ Do after Skada verification.
 3. Merge into HPS column in API + UI
 
 ### 5. Gear follow-ups
-- Use `/admin` browser bookmarklet import when Warmane blocks Railway server refreshes
+- Use `/admin` hosted userscript install/update link for ongoing Warmane gear imports; bookmarklet is fallback only
 - Warmane API forum note: API accepts `/api/character/<name>/<realm>/summary`, returns JSON errors inside 200 responses, and currently lacks slot/itemlevel fields
 - Watch production import timing: each cached Warmane item may trigger Wowhead enrichment on first write or first re-enrichment
 - Prefer the hosted `/api/admin/armory-gear/userscript.user.js` install over bookmarklets for ongoing gear cache maintenance
 - Tampermonkey should update from the hosted URL; manual copy-paste userscripts still need replacement after deploys that change importer code
+- Enchants/gems are still source-limited: Wowhead can provide static item details, but character-specific gems/enchants require Warmane to expose them in the data the importer can read
 - Consider adding a dedicated item metadata cache if the Wowhead fetch volume becomes noisy
 - Consider historical gear snapshots per raid date
 
@@ -124,4 +128,4 @@ Do after Skada verification.
 
 ## Next Step
 
-Deploy the hosted Warmane userscript gear sync flow, install/update the userscript from `/admin`, click Sync now once on Warmane to save the admin secret, then verify that `/players/<name>` keeps icons and native hover details current. Parser priority remains fixing HC/Normal detection in `parser/parser_core.py`.
+Let the Warmane Gear Sync userscript finish its queued imports, then spot-check several player pages (`/players/Ashien`, `/players/Aalaska`, and any players that previously failed) for gear icons and native hover details. After that, parser priority remains fixing HC/Normal detection in `parser/parser_core.py`.
