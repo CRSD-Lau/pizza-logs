@@ -8,7 +8,7 @@ Gear items are enriched with Wowhead WotLK metadata when cached, giving the play
 Gear tooltips now render through a viewport-level portal from `components/players/GearItemCard.tsx`, so they are not clipped by the Gear accordion/table wrapper and can float above the sections below.
 The gear section now calculates and displays GearScoreLite totals using the addon-derived slot weights/formula, plus per-item GS values. Wowhead enrichment stores equip-location metadata so weapon slots can be scored accurately.
 Partial gear enrichment has been tightened: Wowhead item fetches retry with backoff, enrichment runs with limited concurrency, and fresh cached rows missing Wowhead metadata are re-enriched before the player page returns them.
-Gear slot labeling now repairs sparse Warmane equipment arrays using Wowhead `equipLoc` metadata. This fixes relics/ranged/wands sliding into the `Off Hand` or trinket labels when a character has empty slots, and GearScoreLite no longer applies the Titan Grip half-score modifier unless both main/off-hand items are actual weapons.
+Gear slot labeling now repairs sparse Warmane equipment arrays using Wowhead `equipLoc` metadata. This fixes relics/ranged/wands sliding into the `Off Hand` or trinket labels when a character has empty slots, displays that slot as `Ranged/Relic`, and GearScoreLite no longer applies the Titan Grip half-score modifier unless both main/off-hand items are actual weapons.
 The admin browser import queue includes older cached players whose gear is missing Wowhead details, so rerunning the bookmarklet upgrades existing cache rows too.
 The bookmarklet now retries intermittent Warmane per-character failures and reports failed names; old bookmark URLs must be replaced after deploys because the code is copied into the bookmark.
 The recommended gear import path is now a Tampermonkey/userscript from `/admin`; it adds a Pizza Logs panel on Warmane pages and auto-syncs at most once per hour after saving the admin secret in browser localStorage.
@@ -25,7 +25,7 @@ Character-specific enchants/gems are still limited by what Warmane exposes to th
 | Task | Type | Notes |
 |------|------|-------|
 | Fix HC/Normal difficulty detection | BUG | Regression - issue open on GitHub |
-| Spot-check gear slot/GearScore fix | VERIFY | After deploy, confirm `/players/Lausudo` shows the libram as `Ranged` and full 2H+relic GearScore; confirm `/players/Aalaska` shows staff/wand in the weapon row |
+| Spot-check gear slot/GearScore fix | VERIFY | After deploy, confirm `/players/Lausudo` shows the libram as `Ranged/Relic` and full 2H+relic GearScore; confirm `/players/Aalaska` shows staff/wand in the weapon row |
 | Refresh gear metadata | VERIFY | Rerun the hosted Warmane userscript so cached rows missing Wowhead `equipLoc` metadata get re-enriched for exact weapon scoring |
 | Stats / Analytics page | FEATURE | Brainstorm first, then design, then build |
 | Verify Skada numbers in-game | VERIFY | Neil to do manually next week |

@@ -57,7 +57,7 @@ assert.deepEqual(
     { slot: "Trinket 2", name: "Nightmare Ender", equipLoc: "INVTYPE_RANGEDRIGHT" },
     { slot: "Off Hand", name: "Libram of Three Truths", equipLoc: "INVTYPE_RELIC" },
   ]).map((item) => item.slot),
-  ["Main Hand", "Ranged", "Ranged"],
+  ["Main Hand", "Ranged/Relic", "Ranged/Relic"],
 );
 
 assert.equal(

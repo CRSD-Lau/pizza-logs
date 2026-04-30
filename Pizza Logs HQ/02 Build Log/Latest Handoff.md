@@ -95,6 +95,7 @@
 - Investigated `/players/Lausudo` and `/players/Aalaska` screenshots showing sparse Warmane equipment arrays sliding weapons/relics into the wrong display slots
 - Root cause: Warmane omits empty equipment slots, but Pizza Logs assigned slot labels by raw array index; the GearScore Titan Grip adjustment then saw Lausudo as `Main Hand` 2H + `Off Hand` relic and halved both item scores
 - Added `normalizeArmoryGearSlots` to repair display slot names from Wowhead `equipLoc` metadata after enrichment and when reading cached rows
+- The ranged/relic equipment slot now displays as `Ranged/Relic`, covering bows/guns/wands/thrown/relics without implying every class uses a physical ranged weapon
 - Added `lib/gear-layout.ts` so the player gear grid groups by normalized slot name instead of fixed array slices
 - Tightened Titan Grip scoring so the half-score modifier only applies when both main/off-hand items are actual weapons and at least one is a two-hander
 - Added regression coverage in `tests/gearscore-lite.test.ts`, `tests/warmane-armory-import.test.ts`, and `tests/gear-layout.test.ts`
@@ -157,4 +158,4 @@ Do after Skada verification.
 
 ## Next Step
 
-After deploy, spot-check `/players/Lausudo` and `/players/Aalaska`: Lausudo's libram should display as `Ranged`, not `Off Hand`, and the two-hander/relic pair should no longer be half-scored. Aalaska's staff/wand should appear in the weapon row even when missing shirt/tabard/off-hand slots compress the Warmane equipment array. Parser priority remains fixing HC/Normal detection in `parser/parser_core.py`.
+After deploy, spot-check `/players/Lausudo` and `/players/Aalaska`: Lausudo's libram should display as `Ranged/Relic`, not `Off Hand`, and the two-hander/relic pair should no longer be half-scored. Aalaska's staff/wand should appear in the weapon row even when missing shirt/tabard/off-hand slots compress the Warmane equipment array. Parser priority remains fixing HC/Normal detection in `parser/parser_core.py`.

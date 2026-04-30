@@ -2,7 +2,7 @@ import type { ArmoryGearItem } from "./warmane-armory";
 
 const LEFT_SLOTS = new Set(["Head", "Neck", "Shoulder", "Back", "Chest", "Shirt", "Tabard", "Wrist"]);
 const RIGHT_SLOTS = new Set(["Hands", "Waist", "Legs", "Feet", "Finger 1", "Finger 2", "Trinket 1", "Trinket 2"]);
-const WEAPON_SLOTS = new Set(["Main Hand", "Off Hand", "Ranged"]);
+const WEAPON_SLOTS = new Set(["Main Hand", "Off Hand", "Ranged", "Ranged/Relic"]);
 
 const SLOT_ORDER = new Map([
   "Head",
@@ -24,6 +24,7 @@ const SLOT_ORDER = new Map([
   "Main Hand",
   "Off Hand",
   "Ranged",
+  "Ranged/Relic",
 ].map((slot, index) => [slot, index]));
 
 function bySlotOrder(a: ArmoryGearItem, b: ArmoryGearItem): number {

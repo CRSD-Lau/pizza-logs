@@ -272,7 +272,7 @@ export function normalizeArmoryGearSlots(items: ArmoryGearItem[]): ArmoryGearIte
       case "INVTYPE_RANGED":
       case "INVTYPE_THROWN":
       case "INVTYPE_RANGEDRIGHT":
-        slot = "Ranged";
+        slot = "Ranged/Relic";
         break;
     }
 

@@ -125,6 +125,7 @@ const SLOT_FALLBACK_EQUIP_LOCS: Record<string, GearScoreEquipLoc | undefined> = 
   "main hand": "INVTYPE_WEAPON",
   "off hand": "INVTYPE_HOLDABLE",
   ranged: "INVTYPE_RANGEDRIGHT",
+  "ranged/relic": "INVTYPE_RANGEDRIGHT",
 };
 
 const WOWHEAD_INVENTORY_TYPES: Record<number, GearScoreEquipLoc | undefined> = {

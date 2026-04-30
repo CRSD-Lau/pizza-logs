@@ -17,7 +17,7 @@
 
 | Bug | Fix | Commit |
 |---|---|---|
-| Relics/ranged/wands displayed as Off Hand/trinkets and two-hander + relic characters got half GearScore | Slot labels are repaired from Wowhead `equipLoc`, gear layout groups by slot name instead of array index, and Titan Grip half-score only applies to real weapon pairs | pending |
+| Relics/ranged/wands displayed as Off Hand/trinkets and two-hander + relic characters got half GearScore | Slot labels are repaired from Wowhead `equipLoc`, the ranged/relic slot displays as `Ranged/Relic`, gear layout groups by slot name instead of array index, and Titan Grip half-score only applies to real weapon pairs | pending |
 | Player gear slots showed names but no icon/item level/GearScore after import | Wowhead item fetches now retry transient failures, enrichment concurrency is capped, and fresh partial cache rows are re-enriched before player pages return them | pending |
 | Native gear tooltip clipped inside player profile Gear wrapper | Moved gear item tooltip rendering into a client-side `document.body` portal with fixed viewport positioning, viewport edge clamping, and top-level overlay z-index | pending |
 | Public UI exposed upload analytics and raw filenames | Moved upload history/detail into `/admin/uploads`, removed public nav/home/weekly upload telemetry, and redirected `/uploads` into admin | pending |
