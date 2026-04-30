@@ -7,7 +7,6 @@ import { formatBytes, formatDuration } from "@/lib/utils";
 import { ClearDatabaseButton } from "./ClearDatabaseButton";
 import { DeleteUploadButton } from "./DeleteUploadButton";
 import { GearImportBookmarklet } from "./GearImportBookmarklet";
-import { SeedGearCacheButton } from "./SeedGearCacheButton";
 
 export const metadata: Metadata = { title: "Admin / Diagnostics" };
 export const dynamic = "force-dynamic";
@@ -82,19 +81,15 @@ export default async function AdminPage() {
 
       {/* Gear cache */}
       <section>
-        <SectionHeader title="Warmane Gear Cache" sub="Batch seed from existing DB players" />
+        <SectionHeader title="Warmane Gear Cache" sub="Browser-assisted import for player profile gear" />
         <div className="bg-bg-panel border border-gold-dim rounded p-4 space-y-4">
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+          <div className="grid grid-cols-2 gap-3">
             <StatCard label="Cached Characters" value={gearCacheTotal} />
-            <StatCard label="Recent Gear Errors" value={recentGearErrors} />
-            <StatCard label="Batch Size" value={100} sub="players per run" />
+            <StatCard label="Server Refresh Errors" value={recentGearErrors} />
           </div>
-          <div className="flex items-start justify-between gap-4 flex-wrap">
-            <p className="text-sm text-text-secondary max-w-2xl">
-              Attempts to refresh gear for existing Pizza Logs players. Successful Warmane responses are stored in the DB cache; failed requests are recorded without affecting player pages.
-            </p>
-            <SeedGearCacheButton />
-          </div>
+          <p className="text-sm text-text-secondary max-w-3xl">
+            Player pages read gear from this database cache. Railway cannot reliably fetch Warmane directly, so use the browser importer below from a Warmane Armory page to fill missing snapshots.
+          </p>
           <GearImportBookmarklet />
         </div>
       </section>

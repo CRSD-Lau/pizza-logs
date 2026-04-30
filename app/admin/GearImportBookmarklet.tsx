@@ -124,9 +124,15 @@ export function GearImportBookmarklet() {
       <div>
         <h3 className="heading-cinzel text-sm text-gold tracking-wide">Browser Gear Import</h3>
         <p className="text-sm text-text-secondary mt-1">
-          Create a bookmark manually, paste the bulk code below as its URL, open any Warmane Armory page, then click the bookmark to import missing Pizza Logs players through Warmane's browser-accessible API.
+          Create a bookmark manually and paste the bulk code below as its URL. Open any Warmane Armory page, click that bookmark, enter the admin secret, and the browser will import missing Pizza Logs players through Warmane's API.
         </p>
       </div>
+      <ol className="list-decimal space-y-1 pl-5 text-sm text-text-secondary">
+        <li>Create a new browser bookmark named Pizza Logs Bulk Gear Import.</li>
+        <li>Paste the full bulk bookmark URL below into the bookmark URL field.</li>
+        <li>Open any Warmane Armory page and click the bookmark.</li>
+        <li>Refresh this admin page and player profiles after the import completes.</li>
+      </ol>
       <div className="space-y-2">
         <label className="block text-xs font-bold uppercase tracking-widest text-text-dim">
           Bulk bookmark URL
