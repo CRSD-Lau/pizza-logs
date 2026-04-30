@@ -7,6 +7,7 @@ Native Warmane Armory gear UI has been added to player profiles. Gear now has a 
 Gear items are enriched with Wowhead WotLK metadata when cached, giving the player page native icons, item quality, item level, and hover/focus tooltip details without making each item card link away.
 The admin browser import queue includes older cached players whose gear is missing Wowhead details, so rerunning the bookmarklet upgrades existing cache rows too.
 The bookmarklet now retries intermittent Warmane per-character failures and reports failed names; old bookmark URLs must be replaced after deploys because the code is copied into the bookmark.
+The recommended gear import path is now a Tampermonkey/userscript from `/admin`; it adds a Pizza Logs panel on Warmane pages and auto-syncs at most once per hour after saving the admin secret in browser localStorage.
 
 ---
 
@@ -15,7 +16,7 @@ The bookmarklet now retries intermittent Warmane per-character failures and repo
 | Task | Type | Notes |
 |------|------|-------|
 | Fix HC/Normal difficulty detection | BUG | Regression - issue open on GitHub |
-| Test browser gear import | VERIFY | Replace the bookmark URL from `/admin`, run it on any Warmane Armory page until no players need import/enrichment, then confirm profile gear renders with icons/tooltips |
+| Test browser gear import | VERIFY | Install/update the userscript from `/admin`, click Sync now once on Warmane, then confirm profile gear renders with icons/tooltips |
 | Stats / Analytics page | FEATURE | Brainstorm first, then design, then build |
 | Verify Skada numbers in-game | VERIFY | Neil to do manually next week |
 | Absorbs (PW:S) | FEATURE | Combined column. Do after verification. |
@@ -31,4 +32,4 @@ The bookmarklet now retries intermittent Warmane per-character failures and repo
 - Warmane gear source pattern: `https://armory.warmane.com/api/character/<name>/Lordaeron/summary`
 - Wowhead item enrichment pattern: `https://www.wowhead.com/wotlk/item=<id>/<slug>`
 - Gear cache table: `armory_gear_cache`
-- Admin browser import: `/admin` -> Warmane Gear Cache -> copy Bulk bookmark URL into a browser bookmark, then run it from Warmane Armory
+- Admin browser import: `/admin` -> Warmane Gear Cache -> install/update the automatic userscript, then use the Pizza Logs panel on Warmane Armory

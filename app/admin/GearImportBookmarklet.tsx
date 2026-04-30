@@ -160,7 +160,216 @@ function buildSingleBookmarklet(): string {
   return `javascript:(${script.toString().replace("__PIZZA_LOGS_ORIGIN__", PIZZA_LOGS_ORIGIN)})()`;
 }
 
+function buildUserscript(): string {
+  const script = function pizzaLogsWarmaneAutoSync() {
+    const pizzaLogsOrigin = "__PIZZA_LOGS_ORIGIN__";
+    const secretKey = "pizzaLogsAdminSecret";
+    const lastRunKey = "pizzaLogsLastGearSyncAt";
+    const autoIntervalMs = 60 * 60 * 1000;
+
+    if (location.hostname !== "armory.warmane.com") return;
+
+    const wait = function wait(ms: number) {
+      return new Promise((resolve) => setTimeout(resolve, ms));
+    };
+
+    const state = {
+      running: false,
+      panel: null as HTMLDivElement | null,
+      status: null as HTMLDivElement | null,
+      button: null as HTMLButtonElement | null,
+    };
+
+    const setStatus = function setStatus(message: string) {
+      if (state.status) state.status.textContent = message;
+    };
+
+    const buildPanel = function buildPanel() {
+      if (state.panel) return;
+
+      const panel = document.createElement("div");
+      panel.style.cssText = [
+        "position:fixed",
+        "right:16px",
+        "bottom:16px",
+        "z-index:2147483647",
+        "width:260px",
+        "padding:12px",
+        "background:#0b0d12",
+        "border:1px solid #c9a227",
+        "border-radius:6px",
+        "box-shadow:0 12px 40px rgba(0,0,0,.45)",
+        "color:#e8dcc0",
+        "font:13px system-ui,sans-serif",
+      ].join(";");
+
+      const title = document.createElement("div");
+      title.textContent = "Pizza Logs Gear Sync";
+      title.style.cssText = "font-weight:700;color:#f1d36b;margin-bottom:6px";
+
+      const status = document.createElement("div");
+      status.textContent = "Ready";
+      status.style.cssText = "line-height:1.35;color:#b8aa8c;margin-bottom:10px";
+
+      const button = document.createElement("button");
+      button.type = "button";
+      button.textContent = "Sync now";
+      button.style.cssText = [
+        "width:100%",
+        "padding:8px 10px",
+        "border:1px solid #c9a227",
+        "border-radius:4px",
+        "background:#151922",
+        "color:#f1d36b",
+        "cursor:pointer",
+      ].join(";");
+      button.addEventListener("click", () => runSync(true));
+
+      const reset = document.createElement("button");
+      reset.type = "button";
+      reset.textContent = "Reset secret";
+      reset.style.cssText = "margin-top:8px;width:100%;border:0;background:transparent;color:#8f836b;cursor:pointer";
+      reset.addEventListener("click", () => {
+        localStorage.removeItem(secretKey);
+        localStorage.removeItem(lastRunKey);
+        setStatus("Secret cleared. Click Sync now to enter it again.");
+      });
+
+      panel.append(title, status, button, reset);
+      document.body.appendChild(panel);
+      state.panel = panel;
+      state.status = status;
+      state.button = button;
+    };
+
+    const getSecret = function getSecret(forcePrompt: boolean) {
+      const saved = localStorage.getItem(secretKey);
+      if (saved && !forcePrompt) return saved;
+
+      const secret = prompt("Pizza Logs admin secret?");
+      if (!secret) return null;
+      localStorage.setItem(secretKey, secret);
+      return secret;
+    };
+
+    const postJson = function postJson(url: string, body: unknown) {
+      return fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      }).then(async (response) => {
+        const data = await response.json();
+        if (!response.ok || !data.ok) throw new Error(data.error || `HTTP ${response.status}`);
+        return data;
+      });
+    };
+
+    const importPlayer = async function importPlayer(player: { characterName: string; realm: string }, secret: string) {
+      let lastError = "Unknown error";
+
+      for (let attempt = 1; attempt <= 4; attempt++) {
+        try {
+          const response = await fetch(`/api/character/${encodeURIComponent(player.characterName)}/${encodeURIComponent(player.realm)}/summary`, {
+            headers: { Accept: "application/json,text/plain,*/*" },
+          });
+          const warmaneData = await response.json();
+          if (!response.ok || warmaneData.error) throw new Error(warmaneData.error || `Warmane HTTP ${response.status}`);
+
+          await postJson(`${pizzaLogsOrigin}/api/admin/armory-gear/import`, {
+            secret,
+            ...warmaneData,
+            characterName: warmaneData.name || player.characterName,
+            realm: warmaneData.realm || player.realm,
+            sourceUrl: `https://armory.warmane.com/character/${encodeURIComponent(player.characterName)}/${encodeURIComponent(player.realm)}/summary`,
+          });
+          return;
+        } catch (error) {
+          lastError = error instanceof Error ? error.message : String(error);
+          console.warn(`Pizza Logs gear import attempt ${attempt} failed`, player, error);
+          if (attempt < 4) await wait(2500 * attempt);
+        }
+      }
+
+      throw new Error(lastError);
+    };
+
+    async function runSync(forcePrompt = false) {
+      if (state.running) return;
+
+      const secret = getSecret(forcePrompt);
+      if (!secret) {
+        setStatus("Admin secret is required.");
+        return;
+      }
+
+      state.running = true;
+      if (state.button) state.button.disabled = true;
+
+      try {
+        setStatus("Checking Pizza Logs queue...");
+        const queue = await postJson(`${pizzaLogsOrigin}/api/admin/armory-gear/missing`, { secret });
+        const players = queue.players || [];
+
+        if (players.length === 0) {
+          localStorage.setItem(lastRunKey, String(Date.now()));
+          setStatus("No players need import or enrichment.");
+          return;
+        }
+
+        let imported = 0;
+        const failed: string[] = [];
+        for (const player of players) {
+          setStatus(`Importing ${player.characterName} (${imported + failed.length + 1}/${players.length})...`);
+          try {
+            await importPlayer(player, secret);
+            imported++;
+          } catch (error) {
+            failed.push(`${player.characterName}: ${error instanceof Error ? error.message : String(error)}`);
+          }
+          await wait(2000);
+        }
+
+        localStorage.setItem(lastRunKey, String(Date.now()));
+        setStatus(`Imported ${imported}; failed ${failed.length}${failed.length ? `. ${failed.slice(0, 3).join("; ")}` : "."}`);
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        if (message === "Unauthorized.") localStorage.removeItem(secretKey);
+        setStatus(`Sync failed: ${message}`);
+      } finally {
+        state.running = false;
+        if (state.button) state.button.disabled = false;
+      }
+    }
+
+    buildPanel();
+
+    const lastRun = Number(localStorage.getItem(lastRunKey) || "0");
+    const hasSecret = Boolean(localStorage.getItem(secretKey));
+    if (hasSecret && Date.now() - lastRun > autoIntervalMs) {
+      setTimeout(() => runSync(false), 2500);
+    } else if (!hasSecret) {
+      setStatus("Click Sync now once to save the admin secret and enable auto-sync.");
+    } else {
+      setStatus("Auto-sync armed. Click Sync now to force a refresh.");
+    }
+  };
+
+  return [
+    "// ==UserScript==",
+    "// @name         Pizza Logs Warmane Gear Auto Sync",
+    "// @namespace    https://pizza-logs-production.up.railway.app",
+    "// @version      1.0.0",
+    "// @description  Automatically sync Pizza Logs gear cache from Warmane Armory pages.",
+    "// @match        https://armory.warmane.com/*",
+    "// @grant        none",
+    "// ==/UserScript==",
+    "",
+    `(${script.toString().replace("__PIZZA_LOGS_ORIGIN__", PIZZA_LOGS_ORIGIN)})();`,
+  ].join("\n");
+}
+
 export function GearImportBookmarklet() {
+  const userscriptCode = buildUserscript();
   const bulkCode = buildBookmarklet();
   const singleCode = buildSingleBookmarklet();
 
@@ -169,19 +378,30 @@ export function GearImportBookmarklet() {
       <div>
         <h3 className="heading-cinzel text-sm text-gold tracking-wide">Browser Gear Import</h3>
         <p className="text-sm text-text-secondary mt-1">
-          Create a bookmark manually and paste the bulk code below as its URL. Open any Warmane Armory page, click that bookmark, enter the admin secret, and the browser will import missing Pizza Logs players through Warmane's API.
-          Existing cached rows that do not have Wowhead item details will be re-imported and enriched too.
-          Replace the bookmark URL after deploys that change this importer.
+          Install the userscript below with Tampermonkey, then open Warmane Armory. It adds a small Pizza Logs sync panel and automatically imports missing or unenriched players through Warmane's browser-accessible API.
+          The admin secret is stored in browser localStorage on Warmane so auto-sync can run.
         </p>
       </div>
       <ol className="list-decimal space-y-1 pl-5 text-sm text-text-secondary">
-        <li>Create a new browser bookmark named Pizza Logs Bulk Gear Import.</li>
-        <li>Paste the full bulk bookmark URL below into the bookmark URL field.</li>
-        <li>Open any Warmane Armory page and click the bookmark.</li>
-        <li>Refresh this admin page and player profiles after the import completes.</li>
+        <li>Install Tampermonkey or another userscript manager.</li>
+        <li>Create a new userscript and paste the automatic sync script below.</li>
+        <li>Open any Warmane Armory page and click Sync now once to save the admin secret.</li>
+        <li>After that, visiting Warmane Armory will auto-sync at most once per hour.</li>
       </ol>
       <div className="space-y-2">
         <label className="block text-xs font-bold uppercase tracking-widest text-text-dim">
+          Automatic userscript
+        </label>
+        <textarea
+          readOnly
+          rows={10}
+          value={userscriptCode}
+          className="w-full rounded border border-gold-dim bg-bg-deep p-3 font-mono text-xs text-text-secondary"
+        />
+      </div>
+      <details className="text-sm text-text-secondary">
+        <summary className="cursor-pointer text-gold hover:text-gold-light">Bookmarklet fallback code</summary>
+        <label className="mt-2 block text-xs font-bold uppercase tracking-widest text-text-dim">
           Bulk bookmark URL
         </label>
         <textarea
@@ -190,9 +410,9 @@ export function GearImportBookmarklet() {
           value={bulkCode}
           className="w-full rounded border border-gold-dim bg-bg-deep p-3 font-mono text-xs text-text-secondary"
         />
-      </div>
-      <details className="text-sm text-text-secondary">
-        <summary className="cursor-pointer text-gold hover:text-gold-light">Single-page fallback code</summary>
+        <label className="mt-3 block text-xs font-bold uppercase tracking-widest text-text-dim">
+          Single-page fallback URL
+        </label>
         <textarea
           readOnly
           rows={4}
