@@ -54,7 +54,7 @@
 - Admin missing-player queue now treats cached rows without Wowhead metadata as needing re-import/enrichment, so older cached gear can be upgraded by rerunning the bookmarklet
 - Browser bookmarklet import now retries each Warmane character fetch up to 4 times with backoff and reports failed character names, because Warmane intermittently fails individual API reads
 - Added a recommended Tampermonkey/userscript flow on `/admin` that injects a Pizza Logs Gear Sync panel on Warmane Armory pages and auto-syncs at most once per hour after the admin secret is saved locally in that browser
-- Userscript is now hosted at `/api/admin/armory-gear/userscript` with Tampermonkey `@downloadURL` and `@updateURL` metadata; `/admin` links directly to the hosted install/update URL
+- Userscript is now hosted at `/api/admin/armory-gear/userscript.user.js` with Tampermonkey `@downloadURL` and `@updateURL` metadata; `/admin` links directly to the hosted install/update URL. The older `/userscript` route remains a compatibility alias.
 
 ### 6. Verification
 - `tests/armory-gear-client-scripts.test.ts` passed
@@ -113,7 +113,7 @@ Do after Skada verification.
 - Use `/admin` browser bookmarklet import when Warmane blocks Railway server refreshes
 - Warmane API forum note: API accepts `/api/character/<name>/<realm>/summary`, returns JSON errors inside 200 responses, and currently lacks slot/itemlevel fields
 - Watch production import timing: each cached Warmane item may trigger Wowhead enrichment on first write or first re-enrichment
-- Prefer the hosted `/api/admin/armory-gear/userscript` install over bookmarklets for ongoing gear cache maintenance
+- Prefer the hosted `/api/admin/armory-gear/userscript.user.js` install over bookmarklets for ongoing gear cache maintenance
 - Tampermonkey should update from the hosted URL; manual copy-paste userscripts still need replacement after deploys that change importer code
 - Consider adding a dedicated item metadata cache if the Wowhead fetch volume becomes noisy
 - Consider historical gear snapshots per raid date

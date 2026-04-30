@@ -1,5 +1,6 @@
 export const PIZZA_LOGS_ORIGIN = "https://pizza-logs-production.up.railway.app";
-export const USERSCRIPT_URL = `${PIZZA_LOGS_ORIGIN}/api/admin/armory-gear/userscript`;
+export const USERSCRIPT_PATH = "/api/admin/armory-gear/userscript.user.js";
+export const USERSCRIPT_URL = `${PIZZA_LOGS_ORIGIN}${USERSCRIPT_PATH}`;
 
 export function buildBookmarklet(): string {
   const script = function pizzaLogsGearImport() {

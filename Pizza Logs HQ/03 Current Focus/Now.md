@@ -8,7 +8,7 @@ Gear items are enriched with Wowhead WotLK metadata when cached, giving the play
 The admin browser import queue includes older cached players whose gear is missing Wowhead details, so rerunning the bookmarklet upgrades existing cache rows too.
 The bookmarklet now retries intermittent Warmane per-character failures and reports failed names; old bookmark URLs must be replaced after deploys because the code is copied into the bookmark.
 The recommended gear import path is now a Tampermonkey/userscript from `/admin`; it adds a Pizza Logs panel on Warmane pages and auto-syncs at most once per hour after saving the admin secret in browser localStorage.
-The userscript is hosted at `/api/admin/armory-gear/userscript`, and `/admin` links directly to it so Tampermonkey can install/update from URL metadata.
+The userscript is hosted at `/api/admin/armory-gear/userscript.user.js`, and `/admin` links directly to it so Tampermonkey can install/update from URL metadata.
 
 ---
 
@@ -33,4 +33,4 @@ The userscript is hosted at `/api/admin/armory-gear/userscript`, and `/admin` li
 - Warmane gear source pattern: `https://armory.warmane.com/api/character/<name>/Lordaeron/summary`
 - Wowhead item enrichment pattern: `https://www.wowhead.com/wotlk/item=<id>/<slug>`
 - Gear cache table: `armory_gear_cache`
-- Admin browser import: `/admin` -> Warmane Gear Cache -> install/update hosted userscript (`/api/admin/armory-gear/userscript`), then use the Pizza Logs panel on Warmane Armory
+- Admin browser import: `/admin` -> Warmane Gear Cache -> install/update hosted userscript (`/api/admin/armory-gear/userscript.user.js`), then use the Pizza Logs panel on Warmane Armory
