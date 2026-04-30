@@ -1,16 +1,23 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { Suspense } from "react";
 import { notFound } from "next/navigation";
 import { db } from "@/lib/db";
 import { StatCard } from "@/components/ui/StatCard";
 import { AccordionSection } from "@/components/ui/AccordionSection";
-import { Badge } from "@/components/ui/Badge";
 import { EmptyState } from "@/components/ui/EmptyState";
-import { formatNumber, formatDps, formatDuration } from "@/lib/utils";
+import { PlayerGearSection, PlayerGearSectionSkeleton } from "@/components/players/PlayerGearSection";
+import { getWarmaneCharacterGear } from "@/lib/warmane-armory";
+import { formatDps } from "@/lib/utils";
 import { getClassColor } from "@/lib/constants/classes";
 import { cn } from "@/lib/utils";
 
 interface Props { params: Promise<{ playerName: string }> }
+
+async function PlayerGear({ name, realm }: { name: string; realm?: string }) {
+  const result = await getWarmaneCharacterGear(name, realm ?? "Lordaeron");
+  return <PlayerGearSection result={result} />;
+}
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { playerName } = await params;
@@ -49,9 +56,6 @@ export default async function PlayerPage({ params }: Props) {
   });
 
   const kills       = participants.filter(p => p.encounter.outcome === "KILL");
-  const wipes       = participants.filter(p => p.encounter.outcome === "WIPE");
-  const totalDamage = participants.reduce((a, p) => a + p.totalDamage, 0);
-  const totalDeaths = participants.reduce((a, p) => a + p.deaths, 0);
   const avgDps      = kills.length > 0
     ? kills.reduce((a, p) => a + p.dps, 0) / kills.length : 0;
   const bestDps     = Math.max(0, ...participants.map(p => p.dps));
@@ -101,6 +105,11 @@ export default async function PlayerPage({ params }: Props) {
         <StatCard label="Best DPS"   value={formatDps(bestDps)} sub="single encounter" />
         <StatCard label="Avg DPS"    value={formatDps(avgDps)} sub="on kills" />
       </div>
+
+      {/* Gear */}
+      <Suspense fallback={<PlayerGearSectionSkeleton />}>
+        <PlayerGear name={name} realm={player.realm?.name ?? "Lordaeron"} />
+      </Suspense>
 
       {/* Milestones */}
       {player.milestones.length > 0 && (

@@ -1,35 +1,42 @@
 # Latest Handoff
 
 ## Date
-2026-04-27
+2026-04-30
 
 ## Git
 **Branch:** `main`
-**Latest commit before this handoff commit:** `2c85850` docs: add Codex repo instructions
+**Latest commit before this handoff commit:** unknown locally - `git` unavailable on PATH in this Codex shell
 **Release:** `v0.1.0` - tagged and published on GitHub
 
 ---
 
 ## What Was Done This Session
 
-### 1. Issue #2 fixed: upload analytics moved out of the player-facing UI
-- Removed upload-history/telemetry surfaces from the public nav and homepage
-- Removed weekly upload counts from the player-facing weekly summary
-- Moved file-level upload history/detail pages behind admin-only routes: `/admin/uploads` and `/admin/uploads/[id]`
-- Public `/uploads` and `/uploads/[id]` now redirect into the admin experience
-- Upload success/error flow now links back into raids instead of upload history and no longer surfaces filenames to players
+### 1. Native Warmane Armory gear section added to player profiles
+- Added `lib/warmane-armory.ts` as the isolated server-side Warmane reader
+- Uses the Warmane character summary API endpoint for Lordaeron by default:
+  `https://armory.warmane.com/api/character/<name>/<realm>/summary`
+- Sanitizes character names before URL construction
+- Adds timeout handling, user-agent headers, server-side logging, and graceful public error messages
+- Uses Next `unstable_cache` with 12-hour revalidation
+- Maps Warmane API equipment order to native slot labels
 
-### 2. Issue #3 fixed: mobile responsiveness pass on data-dense views
-- Rebuilt the mobile nav into a menu button + grid panel instead of a cramped inline link strip
-- Reworked `/raids` session cards to stack cleanly on narrow screens
-- Reworked leaderboard rows so rank, player, boss, difficulty, value, date, and CTA fit without horizontal overflow
-- Updated encounter/session/player breadcrumbs and links to favor raid/session navigation instead of upload-history framing
+### 2. Player profile UI integration
+- Added `components/players/PlayerGearSection.tsx`
+- `/players/[playerName]` now renders a native "Gear" `AccordionSection`
+- Gear is streamed behind `Suspense` with a skeleton loading state
+- Empty/error states are non-blocking and still render the rest of the player page
+- The Warmane page is linked as the source, not embedded as an iframe
 
-### 3. Verification
-- `tsc --noEmit` passes
-- Mobile screenshots were checked at 390px and 1280px using a temporary mock route with the real nav/card/leaderboard components
-- No horizontal overflow was detected on the verified responsive layouts
-- Full local browser verification against DB-backed pages was blocked because local PostgreSQL was not running on `localhost:5432`
+### 3. Warmane access note
+- Direct local requests to Warmane HTML and API returned Cloudflare/403 from this environment
+- The feature is built to fail gracefully when Warmane blocks, is down, or changes behavior
+- Railway behavior still needs verification after deploy because Warmane may treat Railway egress differently
+
+### 4. Verification
+- `tsc --noEmit` passed via bundled Node runtime
+- `next build` passed via bundled Node runtime
+- `next lint` could not run non-interactively because this Next.js 15 project has no ESLint config yet and Next prompts for setup
 
 ---
 
@@ -37,10 +44,9 @@
 
 - **Live app**: https://pizza-logs-production.up.railway.app
 - **Release**: `v0.1.0`
-- **Public UI**: upload analytics/file-history surfaces moved to admin-only routes
-- **Admin UI**: upload history now lives under `/admin/uploads`
-- **Responsive status**: nav, raids cards, and leaderboard rows updated for mobile
-- **Checks run**: `tsc --noEmit` passed
+- **Player profiles**: include a native Warmane Armory Gear section wired to server-side fetch/cache
+- **Warmane local access**: blocked by Cloudflare/403 from this Codex shell, handled gracefully by UI
+- **Checks run**: `tsc --noEmit` passed; `next build` passed
 - **Local env blocker**: DB-backed pages cannot render locally until PostgreSQL is running on `localhost:5432`
 - **HPS gap**: ~21-28% under Skada for Disc priests - expected until absorbs are implemented
 - **DPS**: <1% residual from orphaned pets - accepted
@@ -74,8 +80,13 @@ Do after Skada verification.
 2. Parse `absorbed` field on damage events - attribute to Disc priest
 3. Merge into HPS column in API + UI
 
+### 5. Gear follow-ups
+- Verify Warmane API access from Railway production
+- Add item quality/item level/icon/gem/enchant enrichment if a reliable source is chosen
+- Consider historical gear snapshots per raid date
+
 ---
 
 ## Next Step
 
-Fix the HC/Normal detection regression in `parser/parser_core.py`, then add regression tests before moving on to `/stats`.
+Run type/build verification for the gear section, then verify `/players/Ashien` after deployment. Parser priority remains fixing HC/Normal detection in `parser/parser_core.py`.

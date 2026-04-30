@@ -4,6 +4,12 @@
 
 *(none)*
 
+## Active External Blockers
+
+| Blocker | Impact | Status |
+|---|---|---|
+| Warmane Armory returned Cloudflare/403 to direct local server requests during gear feature work | Gear section may show its graceful unavailable state until verified from Railway egress | Needs production verification |
+
 ---
 
 ## Resolved (for reference)
@@ -39,3 +45,4 @@
 | HPS gap ~21-28% vs Skada | Parser matches Skada heal events exactly. Gap is Power Word: Shield absorbs - Skada tracks these separately in Absorbs.lua (not yet implemented) |
 | DPS residual gap <1% vs Skada | Parser matches all Skada damage events. Sub-1% from orphaned pets (no SPELL_SUMMON before log start) |
 | Progress bar fake before file received | File write to parser happens before SSE can start; first event is at 28% |
+| Warmane gear enrichment is limited by source fields | Warmane summary API equipment currently exposes item name/id/transmog in documented examples, not item level, quality, gems, enchants, or icons |
