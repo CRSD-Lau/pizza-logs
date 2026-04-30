@@ -17,6 +17,7 @@
 
 | Bug | Fix | Commit |
 |---|---|---|
+| Native gear tooltip clipped inside player profile Gear wrapper | Moved gear item tooltip rendering into a client-side `document.body` portal with fixed viewport positioning, viewport edge clamping, and top-level overlay z-index | pending |
 | Public UI exposed upload analytics and raw filenames | Moved upload history/detail into `/admin/uploads`, removed public nav/home/weekly upload telemetry, and redirected `/uploads` into admin | pending |
 | Mobile layout issues on raids/leaderboards | Rebuilt mobile nav, stacked raid-session cards, and made leaderboard rows fit small screens without overflow | pending |
 | HPS = 0 on all encounters | SPELL_HEAL length check was `< 15`, fixed to `< 11`; crit was `parts[14]`, fixed to `parts[13]` | c630c12 |

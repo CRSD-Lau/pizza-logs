@@ -70,6 +70,13 @@
 - `next build` passed via bundled Node runtime
 - `next lint` could not run non-interactively because this Next.js 15 project has no ESLint config yet and Next prompts for setup
 
+### 7. Gear tooltip clipping fix
+- Fixed native gear hover/focus tooltips being clipped inside the player profile Gear accordion/table wrapper
+- Root cause: the tooltip was absolutely positioned inside `AccordionSection` content, whose animated collapse wrapper uses `overflow-hidden`
+- Extracted `components/players/GearItemCard.tsx` as a client component and renders the tooltip through a `document.body` portal with fixed viewport positioning and top-level overlay z-index
+- Tooltip placement now clamps to the viewport and flips above the item when there is not enough room below
+- Added `tests/gear-tooltip-position.test.ts` for the viewport positioning helper
+
 ---
 
 ## Current State
@@ -77,10 +84,10 @@
 - **Live app**: https://pizza-logs-production.up.railway.app
 - **Release**: `v0.1.0`
 - **Player profiles**: include a native Warmane Armory Gear section wired to a DB-backed gear cache
-- **Gear display**: uses Wowhead-enriched icons, quality, item level, and tooltip text when item IDs are present
+- **Gear display**: uses Wowhead-enriched icons, quality, item level, and tooltip text when item IDs are present; tooltips render in a viewport-level portal so they are not clipped by accordion/table wrappers
 - **Gear sync**: hosted Tampermonkey userscript v1.0.3 is installed/running on Warmane and actively imports missing or enrichment-needed DB players
 - **Warmane local access**: blocked by Cloudflare/403 from this Codex shell, handled gracefully by UI
-- **Checks run**: cache fallback test passed; import normalization test passed; Wowhead parser test passed; `prisma validate` passed; `tsc --noEmit` passed; `next build` passed
+- **Checks run**: cache fallback test passed; import normalization test passed; Wowhead parser test passed; gear tooltip positioning test passed; `prisma validate` passed; `tsc --noEmit` passed; `next build` passed
 - **Local env blocker**: DB-backed pages cannot render locally until PostgreSQL is running on `localhost:5432`
 - **HPS gap**: ~21-28% under Skada for Disc priests - expected until absorbs are implemented
 - **DPS**: <1% residual from orphaned pets - accepted
@@ -128,4 +135,4 @@ Do after Skada verification.
 
 ## Next Step
 
-Let the Warmane Gear Sync userscript finish its queued imports, then spot-check several player pages (`/players/Ashien`, `/players/Aalaska`, and any players that previously failed) for gear icons and native hover details. After that, parser priority remains fixing HC/Normal detection in `parser/parser_core.py`.
+After deploy, spot-check `/players/Ashien` gear hover details in production to confirm the portal tooltip floats above the Gear section and All-Time Records. Parser priority remains fixing HC/Normal detection in `parser/parser_core.py`.
