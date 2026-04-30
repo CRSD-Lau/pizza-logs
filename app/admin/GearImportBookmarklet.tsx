@@ -23,6 +23,39 @@ function buildBookmarklet(): string {
       });
     };
 
+    const wait = function wait(ms: number) {
+      return new Promise((resolve) => setTimeout(resolve, ms));
+    };
+
+    const importPlayer = async function importPlayer(player: { characterName: string; realm: string }) {
+      let lastError = "Unknown error";
+
+      for (let attempt = 1; attempt <= 4; attempt++) {
+        try {
+          const response = await fetch(`/api/character/${encodeURIComponent(player.characterName)}/${encodeURIComponent(player.realm)}/summary`, {
+            headers: { Accept: "application/json,text/plain,*/*" },
+          });
+          const warmaneData = await response.json();
+          if (!response.ok || warmaneData.error) throw new Error(warmaneData.error || `Warmane HTTP ${response.status}`);
+
+          await postJson(`${pizzaLogsOrigin}/api/admin/armory-gear/import`, {
+            secret,
+            ...warmaneData,
+            characterName: warmaneData.name || player.characterName,
+            realm: warmaneData.realm || player.realm,
+            sourceUrl: `https://armory.warmane.com/character/${encodeURIComponent(player.characterName)}/${encodeURIComponent(player.realm)}/summary`,
+          });
+          return;
+        } catch (error) {
+          lastError = error instanceof Error ? error.message : String(error);
+          console.warn(`Pizza Logs gear import attempt ${attempt} failed`, player, error);
+          if (attempt < 4) await wait(2500 * attempt);
+        }
+      }
+
+      throw new Error(lastError);
+    };
+
     postJson(`${pizzaLogsOrigin}/api/admin/armory-gear/missing`, { secret })
       .then(async (queue) => {
         const players = queue.players || [];
@@ -32,33 +65,25 @@ function buildBookmarklet(): string {
         }
 
         let cached = 0;
-        let failed = 0;
+        const failed: string[] = [];
 
         for (const player of players) {
           try {
-            const response = await fetch(`/api/character/${encodeURIComponent(player.characterName)}/${encodeURIComponent(player.realm)}/summary`, {
-              headers: { Accept: "application/json,text/plain,*/*" },
-            });
-            const warmaneData = await response.json();
-            if (!response.ok || warmaneData.error) throw new Error(warmaneData.error || `Warmane HTTP ${response.status}`);
-
-            await postJson(`${pizzaLogsOrigin}/api/admin/armory-gear/import`, {
-              secret,
-              ...warmaneData,
-              characterName: warmaneData.name || player.characterName,
-              realm: warmaneData.realm || player.realm,
-              sourceUrl: `https://armory.warmane.com/character/${encodeURIComponent(player.characterName)}/${encodeURIComponent(player.realm)}/summary`,
-            });
+            await importPlayer(player);
             cached++;
           } catch (error) {
             console.warn("Pizza Logs gear import failed", player, error);
-            failed++;
+            failed.push(`${player.characterName}: ${error instanceof Error ? error.message : String(error)}`);
           }
 
-          await new Promise((resolve) => setTimeout(resolve, 1500));
+          await wait(2000);
         }
 
-        alert(`Pizza Logs: imported ${cached}; failed ${failed}.`);
+        const failedPreview = failed.slice(0, 8).join("\n");
+        const suffix = failed.length > 0
+          ? `\n\nFailed after retries (${failed.length}):\n${failedPreview}${failed.length > 8 ? "\n..." : ""}`
+          : "";
+        alert(`Pizza Logs: imported ${cached}; failed ${failed.length}.${suffix}`);
       })
       .catch((error) => {
         alert(`Pizza Logs import failed: ${error.message}`);
@@ -83,25 +108,45 @@ function buildSingleBookmarklet(): string {
     const secret = prompt("Pizza Logs admin secret?");
     if (secret === null) return;
 
-    fetch(`/api/character/${encodeURIComponent(characterName)}/${encodeURIComponent(realm)}/summary`, {
-      headers: { Accept: "application/json,text/plain,*/*" },
-    })
-      .then(async (warmaneResponse) => {
-        const warmaneData = await warmaneResponse.json();
-        if (!warmaneResponse.ok || warmaneData.error) throw new Error(warmaneData.error || `Warmane HTTP ${warmaneResponse.status}`);
+    const wait = function wait(ms: number) {
+      return new Promise((resolve) => setTimeout(resolve, ms));
+    };
 
-        return fetch(`${pizzaLogsOrigin}/api/admin/armory-gear/import`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            secret,
-            ...warmaneData,
-            characterName: warmaneData.name || characterName,
-            realm: warmaneData.realm || realm,
-            sourceUrl: location.href,
-          }),
-        });
-      })
+    const importCharacter = async function importCharacter() {
+      let lastError = "Unknown error";
+
+      for (let attempt = 1; attempt <= 4; attempt++) {
+        try {
+          const warmaneResponse = await fetch(`/api/character/${encodeURIComponent(characterName)}/${encodeURIComponent(realm)}/summary`, {
+            headers: { Accept: "application/json,text/plain,*/*" },
+          });
+          const warmaneData = await warmaneResponse.json();
+          if (!warmaneResponse.ok || warmaneData.error) throw new Error(warmaneData.error || `Warmane HTTP ${warmaneResponse.status}`);
+
+          const response = await fetch(`${pizzaLogsOrigin}/api/admin/armory-gear/import`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              secret,
+              ...warmaneData,
+              characterName: warmaneData.name || characterName,
+              realm: warmaneData.realm || realm,
+              sourceUrl: location.href,
+            }),
+          });
+
+          return response;
+        } catch (error) {
+          lastError = error instanceof Error ? error.message : String(error);
+          console.warn(`Pizza Logs single gear import attempt ${attempt} failed`, error);
+          if (attempt < 4) await wait(2500 * attempt);
+        }
+      }
+
+      throw new Error(lastError);
+    };
+
+    importCharacter()
       .then(async (response) => {
         const data = await response.json();
         if (!response.ok || !data.ok) throw new Error(data.error || `HTTP ${response.status}`);
@@ -126,6 +171,7 @@ export function GearImportBookmarklet() {
         <p className="text-sm text-text-secondary mt-1">
           Create a bookmark manually and paste the bulk code below as its URL. Open any Warmane Armory page, click that bookmark, enter the admin secret, and the browser will import missing Pizza Logs players through Warmane's API.
           Existing cached rows that do not have Wowhead item details will be re-imported and enriched too.
+          Replace the bookmark URL after deploys that change this importer.
         </p>
       </div>
       <ol className="list-decimal space-y-1 pl-5 text-sm text-text-secondary">

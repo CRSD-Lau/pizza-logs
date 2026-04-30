@@ -6,6 +6,7 @@ Public upload analytics have been moved into admin-only routes, and the mobile n
 Native Warmane Armory gear UI has been added to player profiles. Gear now has a DB-backed cache and a browser bookmarklet that bulk-imports missing players through Warmane's browser-accessible API.
 Gear items are enriched with Wowhead WotLK metadata when cached, giving the player page native icons, item quality, item level, and hover/focus tooltip details without making each item card link away.
 The admin browser import queue includes older cached players whose gear is missing Wowhead details, so rerunning the bookmarklet upgrades existing cache rows too.
+The bookmarklet now retries intermittent Warmane per-character failures and reports failed names; old bookmark URLs must be replaced after deploys because the code is copied into the bookmark.
 
 ---
 
@@ -14,7 +15,7 @@ The admin browser import queue includes older cached players whose gear is missi
 | Task | Type | Notes |
 |------|------|-------|
 | Fix HC/Normal difficulty detection | BUG | Regression - issue open on GitHub |
-| Test browser gear import | VERIFY | Use `/admin` bulk bookmarklet on any Warmane Armory page until no players need import/enrichment, then confirm profile gear renders with icons/tooltips |
+| Test browser gear import | VERIFY | Replace the bookmark URL from `/admin`, run it on any Warmane Armory page until no players need import/enrichment, then confirm profile gear renders with icons/tooltips |
 | Stats / Analytics page | FEATURE | Brainstorm first, then design, then build |
 | Verify Skada numbers in-game | VERIFY | Neil to do manually next week |
 | Absorbs (PW:S) | FEATURE | Combined column. Do after verification. |
