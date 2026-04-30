@@ -26,6 +26,9 @@ const QUALITY_BY_ID: Record<number, string> = {
 };
 
 const WOWHEAD_TIMEOUT_MS = 8_000;
+const WOWHEAD_RETRY_ATTEMPTS = 3;
+const WOWHEAD_RETRY_DELAY_MS = 600;
+const WOWHEAD_ENRICHMENT_CONCURRENCY = 3;
 
 export function getWowheadItemUrl(itemId: string, itemName?: string): string {
   const suffix = itemName ? `/${slugify(itemName)}` : "";
@@ -156,6 +159,10 @@ function readNestedNumber(record: Record<string, unknown> | null, key: string): 
   return asNumber(jsonEquip?.[key]);
 }
 
+function wait(ms: number): Promise<void> {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
 export function parseWowheadItemPage(itemId: string | number, pageHtml: string): WowheadItemData | null {
   const id = String(itemId);
   const extendData = asRecord(extractJsonObjectAfter(pageHtml, `$.extend(g_items[${id}],`));
@@ -185,43 +192,74 @@ export function parseWowheadItemPage(itemId: string | number, pageHtml: string):
 }
 
 export async function fetchWowheadItemData(itemId: string, itemName?: string): Promise<WowheadItemData | null> {
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), WOWHEAD_TIMEOUT_MS);
+  let lastError: unknown;
 
-  try {
-    const response = await fetch(getWowheadItemUrl(itemId, itemName), {
-      headers: {
-        Accept: "text/html,*/*",
-        "User-Agent": "PizzaLogsBot/0.1 (+https://pizza-logs-production.up.railway.app)",
-      },
-      signal: controller.signal,
-      next: { revalidate: 60 * 60 * 24 * 7 },
-    } as RequestInit & { next: { revalidate: number } });
+  for (let attempt = 1; attempt <= WOWHEAD_RETRY_ATTEMPTS; attempt++) {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), WOWHEAD_TIMEOUT_MS);
 
-    if (!response.ok) return null;
-    return parseWowheadItemPage(itemId, await response.text());
-  } catch (error) {
-    console.error("Wowhead item fetch failed", { itemId, error });
-    return null;
-  } finally {
-    clearTimeout(timeout);
+    try {
+      const response = await fetch(getWowheadItemUrl(itemId, itemName), {
+        headers: {
+          Accept: "text/html,*/*",
+          "User-Agent": "PizzaLogsBot/0.1 (+https://pizza-logs-production.up.railway.app)",
+        },
+        signal: controller.signal,
+        next: { revalidate: 60 * 60 * 24 * 7 },
+      } as RequestInit & { next: { revalidate: number } });
+
+      if (response.ok) {
+        return parseWowheadItemPage(itemId, await response.text());
+      }
+
+      lastError = new Error(`Wowhead returned ${response.status}`);
+    } catch (error) {
+      lastError = error;
+    } finally {
+      clearTimeout(timeout);
+    }
+
+    if (attempt < WOWHEAD_RETRY_ATTEMPTS) {
+      await wait(WOWHEAD_RETRY_DELAY_MS * attempt);
+    }
   }
+
+  console.error("Wowhead item fetch failed", { itemId, error: lastError });
+  return null;
 }
 
 export async function enrichGearWithWowhead(items: ArmoryGearItem[]): Promise<ArmoryGearItem[]> {
-  return Promise.all(items.map(async (item) => {
-    if (!item.itemId) return item;
+  const enriched: ArmoryGearItem[] = new Array(items.length);
+  let nextIndex = 0;
 
-    const wowhead = await fetchWowheadItemData(item.itemId, item.name);
-    return {
-      ...item,
-      name: wowhead?.name ?? item.name,
-      quality: wowhead?.quality ?? item.quality,
-      itemLevel: wowhead?.itemLevel ?? item.itemLevel,
-      iconUrl: wowhead?.iconUrl ?? item.iconUrl,
-      itemUrl: wowhead?.itemUrl ?? item.itemUrl ?? getWowheadItemUrl(item.itemId, item.name),
-      equipLoc: wowhead?.equipLoc ?? item.equipLoc,
-      details: wowhead?.details ?? item.details,
-    };
-  }));
+  async function worker() {
+    while (nextIndex < items.length) {
+      const index = nextIndex;
+      nextIndex++;
+      const item = items[index];
+
+      if (!item.itemId) {
+        enriched[index] = item;
+        continue;
+      }
+
+      const wowhead = await fetchWowheadItemData(item.itemId, item.name);
+      enriched[index] = {
+        ...item,
+        name: wowhead?.name ?? item.name,
+        quality: wowhead?.quality ?? item.quality,
+        itemLevel: wowhead?.itemLevel ?? item.itemLevel,
+        iconUrl: wowhead?.iconUrl ?? item.iconUrl,
+        itemUrl: wowhead?.itemUrl ?? item.itemUrl ?? getWowheadItemUrl(item.itemId, item.name),
+        equipLoc: wowhead?.equipLoc ?? item.equipLoc,
+        details: wowhead?.details ?? item.details,
+      };
+    }
+  }
+
+  await Promise.all(
+    Array.from({ length: Math.min(WOWHEAD_ENRICHMENT_CONCURRENCY, items.length) }, () => worker())
+  );
+
+  return enriched;
 }

@@ -314,7 +314,7 @@ async function readCachedGear(characterName: string, realm: string): Promise<Arm
   return cached.gear;
 }
 
-export async function writeCachedGear(gear: ArmoryCharacterGear): Promise<void> {
+export async function writeCachedGear(gear: ArmoryCharacterGear): Promise<ArmoryCharacterGear> {
   const enrichedGear: ArmoryCharacterGear = {
     ...gear,
     items: await enrichGearWithWowhead(gear.items),
@@ -345,6 +345,8 @@ export async function writeCachedGear(gear: ArmoryCharacterGear): Promise<void> 
       lastError: null,
     },
   });
+
+  return enrichedGear;
 }
 
 async function markRefreshFailed(
@@ -388,11 +390,14 @@ export async function getWarmaneCharacterGear(
     };
   }
 
-  const cachedGear = await readCachedGear(sanitizedName, sanitizedRealm);
-  const cachedFetchedAt = cachedGear ? new Date(cachedGear.fetchedAt).getTime() : 0;
-  const cacheIsFresh = cachedGear && Number.isFinite(cachedFetchedAt) && Date.now() - cachedFetchedAt < CACHE_MS;
+  let cachedGear = await readCachedGear(sanitizedName, sanitizedRealm);
+  if (shouldRefreshArmoryGearCache({ cachedGear, now: new Date() }) && cachedGear && gearNeedsWowheadEnrichment(cachedGear)) {
+    cachedGear = await writeCachedGear(cachedGear);
+  }
 
-  if (cacheIsFresh) {
+  const cacheIsFresh = cachedGear && !shouldRefreshArmoryGearCache({ cachedGear, now: new Date() });
+
+  if (cachedGear && cacheIsFresh) {
     return { ok: true, gear: cachedGear };
   }
 
@@ -405,4 +410,18 @@ export async function getWarmaneCharacterGear(
   }
 
   return resolveArmoryGearResult({ cachedGear, liveResult });
+}
+
+export function shouldRefreshArmoryGearCache({
+  cachedGear,
+  now,
+}: {
+  cachedGear?: ArmoryCharacterGear | null;
+  now: Date;
+}): boolean {
+  if (!cachedGear) return true;
+  if (gearNeedsWowheadEnrichment(cachedGear)) return true;
+
+  const cachedFetchedAt = new Date(cachedGear.fetchedAt).getTime();
+  return !Number.isFinite(cachedFetchedAt) || now.getTime() - cachedFetchedAt >= CACHE_MS;
 }

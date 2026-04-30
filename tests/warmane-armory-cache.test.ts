@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { resolveArmoryGearResult } from "../lib/warmane-armory";
+import { resolveArmoryGearResult, shouldRefreshArmoryGearCache } from "../lib/warmane-armory";
 import type { ArmoryCharacterGear, ArmoryGearResult } from "../lib/warmane-armory";
 
 const cachedGear: ArmoryCharacterGear = {
@@ -30,6 +30,40 @@ const liveGear: ArmoryCharacterGear = {
 assert.deepEqual(
   resolveArmoryGearResult({ cachedGear, liveResult: { ok: true, gear: liveGear } }),
   { ok: true, gear: liveGear },
+);
+
+const freshButPartialGear: ArmoryCharacterGear = {
+  ...cachedGear,
+  fetchedAt: "2026-04-30T12:00:00.000Z",
+  items: [{ slot: "Head", name: "Lightsworn Helmet", itemId: "50326" }],
+};
+
+assert.equal(
+  shouldRefreshArmoryGearCache({
+    cachedGear: freshButPartialGear,
+    now: new Date("2026-04-30T12:05:00.000Z"),
+  }),
+  true,
+);
+
+assert.equal(
+  shouldRefreshArmoryGearCache({
+    cachedGear: {
+      ...freshButPartialGear,
+      items: [{
+        slot: "Head",
+        name: "Lightsworn Helmet",
+        itemId: "50326",
+        itemLevel: 251,
+        iconUrl: "https://wow.zamimg.com/images/wow/icons/large/inv_helmet_154.jpg",
+        itemUrl: "https://www.wowhead.com/wotlk/item=50326/lightsworn-helmet",
+        equipLoc: "INVTYPE_HEAD",
+        details: ["Item Level 251"],
+      }],
+    },
+    now: new Date("2026-04-30T12:05:00.000Z"),
+  }),
+  false,
 );
 
 console.log("warmane-armory-cache tests passed");

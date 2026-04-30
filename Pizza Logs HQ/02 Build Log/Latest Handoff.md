@@ -84,6 +84,13 @@
 - Existing cached rows missing `equipLoc` are treated as needing re-enrichment by the admin gear sync queue
 - Added `tests/gearscore-lite.test.ts` for the core formula, Wowhead inventory-type mapping, two-hand/titan-grip behavior, hunter weapon modifiers, and character summary output
 
+### 9. Partial gear enrichment bug fixed
+- Investigated `/players/Lausudo`: all 18 gear slots were present, and missing rows had item IDs/Wowhead URLs, but only 8 slots had enriched icon/item-level/equip-location details
+- Root cause: `enrichGearWithWowhead` fetched every item concurrently and saved partial snapshots when individual Wowhead requests failed transiently
+- Added retry/backoff to `fetchWowheadItemData` and capped Wowhead enrichment concurrency at 3 requests
+- Fresh cached rows that still need Wowhead enrichment are now re-enriched before being returned by `getWarmaneCharacterGear`, instead of staying partial for the 12-hour cache window
+- Added `tests/wowhead-enrichment-retry.test.ts` and expanded `tests/warmane-armory-cache.test.ts`
+
 ---
 
 ## Current State
@@ -91,10 +98,10 @@
 - **Live app**: https://pizza-logs-production.up.railway.app
 - **Release**: `v0.1.0`
 - **Player profiles**: include a native Warmane Armory Gear section wired to a DB-backed gear cache
-- **Gear display**: uses Wowhead-enriched icons, quality, item level, equip-location metadata, GearScoreLite totals/per-item scores, and tooltip text when item IDs are present; tooltips render in a viewport-level portal so they are not clipped by accordion/table wrappers
+- **Gear display**: uses Wowhead-enriched icons, quality, item level, equip-location metadata, GearScoreLite totals/per-item scores, and tooltip text when item IDs are present; partial cached snapshots are re-enriched with retry/backoff before rendering; tooltips render in a viewport-level portal so they are not clipped by accordion/table wrappers
 - **Gear sync**: hosted Tampermonkey userscript v1.0.3 is installed/running on Warmane and actively imports missing or enrichment-needed DB players
 - **Warmane local access**: blocked by Cloudflare/403 from this Codex shell, handled gracefully by UI
-- **Checks run**: GearScoreLite formula test passed; cache fallback test passed; import normalization test passed; Wowhead parser test passed; gear tooltip positioning test passed; admin gear script test passed; `prisma validate` passed; `tsc --noEmit` passed; `next build` passed
+- **Checks run**: GearScoreLite formula test passed; Wowhead parser/enrichment retry tests passed; cache fallback/refresh test passed; import normalization test passed; gear tooltip positioning test passed; admin gear script test passed; `prisma validate` passed; `tsc --noEmit` passed; `next build` passed
 - **Local env blocker**: DB-backed pages cannot render locally until PostgreSQL is running on `localhost:5432`
 - **HPS gap**: ~21-28% under Skada for Disc priests - expected until absorbs are implemented
 - **DPS**: <1% residual from orphaned pets - accepted
@@ -142,4 +149,4 @@ Do after Skada verification.
 
 ## Next Step
 
-After deploy, spot-check `/players/Ashien` gear hover details and GearScoreLite summary in production. Rerun the hosted Warmane userscript so cached rows missing Wowhead `equipLoc` metadata are refreshed for exact weapon scoring. Parser priority remains fixing HC/Normal detection in `parser/parser_core.py`.
+After deploy, spot-check `/players/Lausudo` and `/players/Ashien` gear details and GearScoreLite summaries in production. The first request to a partial cached row may spend extra time re-enriching Wowhead details; rerunning the hosted Warmane userscript remains useful for broader cache refreshes. Parser priority remains fixing HC/Normal detection in `parser/parser_core.py`.
