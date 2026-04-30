@@ -1,4 +1,4 @@
-import { unstable_cache } from "next/cache";
+import { db } from "./db";
 
 export type ArmoryGearItem = {
   slot: string;
@@ -20,7 +20,7 @@ export type ArmoryCharacterGear = {
 };
 
 export type ArmoryGearResult =
-  | { ok: true; gear: ArmoryCharacterGear }
+  | { ok: true; gear: ArmoryCharacterGear; stale?: boolean }
   | { ok: false; sourceUrl: string; message: string };
 
 type WarmaneEquipmentItem = {
@@ -44,6 +44,7 @@ type WarmaneCharacterSummary = {
 
 const DEFAULT_REALM = "Lordaeron";
 const CACHE_SECONDS = 60 * 60 * 12;
+const CACHE_MS = CACHE_SECONDS * 1000;
 const FETCH_TIMEOUT_MS = 8_000;
 const USER_AGENT = "PizzaLogsBot/0.1 (+https://pizza-logs-production.up.railway.app)";
 
@@ -75,6 +76,10 @@ function sanitizeCharacterName(name: string): string | null {
   return normalized;
 }
 
+function getCharacterKey(name: string): string {
+  return name.trim().toLowerCase();
+}
+
 function sanitizeRealm(realm: string): string {
   return /^[A-Za-z]{2,24}$/.test(realm) ? realm : DEFAULT_REALM;
 }
@@ -100,6 +105,26 @@ function asStringArray(value: unknown): string[] | undefined {
   if (!Array.isArray(value)) return undefined;
   const strings = value.map(asString).filter((gem): gem is string => Boolean(gem));
   return strings.length > 0 ? strings : undefined;
+}
+
+function isArmoryGearItem(value: unknown): value is ArmoryGearItem {
+  if (!value || typeof value !== "object") return false;
+  const item = value as Record<string, unknown>;
+  return typeof item.slot === "string" && typeof item.name === "string";
+}
+
+function isArmoryCharacterGear(value: unknown): value is ArmoryCharacterGear {
+  if (!value || typeof value !== "object") return false;
+  const gear = value as Record<string, unknown>;
+
+  return (
+    typeof gear.characterName === "string" &&
+    typeof gear.realm === "string" &&
+    typeof gear.sourceUrl === "string" &&
+    typeof gear.fetchedAt === "string" &&
+    Array.isArray(gear.items) &&
+    gear.items.every(isArmoryGearItem)
+  );
 }
 
 function normalizeEquipment(items: unknown): ArmoryGearItem[] {
@@ -129,18 +154,21 @@ function normalizeEquipment(items: unknown): ArmoryGearItem[] {
     .filter((item): item is ArmoryGearItem => Boolean(item));
 }
 
-async function fetchWarmaneGearUncached(
+async function fetchWarmaneGearLive(
   characterName: string,
   realm: string = DEFAULT_REALM
-): Promise<ArmoryCharacterGear> {
+): Promise<ArmoryGearResult> {
   const sanitizedName = sanitizeCharacterName(characterName);
   const sanitizedRealm = sanitizeRealm(realm);
+  const sourceUrl = getSourceUrl(sanitizedName ?? characterName, sanitizedRealm);
 
   if (!sanitizedName) {
-    throw new Error("Invalid Warmane character name");
+    return {
+      ok: false,
+      sourceUrl,
+      message: "No gear data available from Warmane Armory.",
+    };
   }
-
-  const sourceUrl = getSourceUrl(sanitizedName, sanitizedRealm);
 
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
@@ -163,25 +191,111 @@ async function fetchWarmaneGearUncached(
       throw new Error("Warmane Armory returned an error response");
     }
 
-    const items = normalizeEquipment(data.equipment);
+    return {
+      ok: true,
+      gear: {
+        characterName: asString(data.name) ?? sanitizedName,
+        realm: asString(data.realm) ?? sanitizedRealm,
+        sourceUrl,
+        fetchedAt: new Date().toISOString(),
+        items: normalizeEquipment(data.equipment),
+      },
+    };
+  } catch (error) {
+    console.error("Warmane Armory fetch error", {
+      characterName: sanitizedName,
+      realm: sanitizedRealm,
+      error,
+    });
 
     return {
-      characterName: asString(data.name) ?? sanitizedName,
-      realm: asString(data.realm) ?? sanitizedRealm,
+      ok: false,
       sourceUrl,
-      fetchedAt: new Date().toISOString(),
-      items,
+      message: "Gear data is temporarily unavailable from Warmane Armory.",
     };
   } finally {
     clearTimeout(timeout);
   }
 }
 
-const getCachedWarmaneCharacterGear = unstable_cache(
-  fetchWarmaneGearUncached,
-  ["warmane-character-gear"],
-  { revalidate: CACHE_SECONDS }
-);
+export function resolveArmoryGearResult({
+  cachedGear,
+  liveResult,
+}: {
+  cachedGear?: ArmoryCharacterGear | null;
+  liveResult: ArmoryGearResult;
+}): ArmoryGearResult {
+  if (liveResult.ok) return liveResult;
+  if (cachedGear) return { ok: true, gear: cachedGear, stale: true };
+  return liveResult;
+}
+
+async function readCachedGear(characterName: string, realm: string): Promise<ArmoryCharacterGear | null> {
+  const cached = await db.armoryGearCache.findUnique({
+    where: {
+      characterKey_realm: {
+        characterKey: getCharacterKey(characterName),
+        realm,
+      },
+    },
+  });
+
+  if (!cached || !isArmoryCharacterGear(cached.gear)) return null;
+  return cached.gear;
+}
+
+async function writeCachedGear(gear: ArmoryCharacterGear): Promise<void> {
+  await db.armoryGearCache.upsert({
+    where: {
+      characterKey_realm: {
+        characterKey: getCharacterKey(gear.characterName),
+        realm: gear.realm,
+      },
+    },
+    create: {
+      characterName: gear.characterName,
+      characterKey: getCharacterKey(gear.characterName),
+      realm: gear.realm,
+      sourceUrl: gear.sourceUrl,
+      gear,
+      fetchedAt: new Date(gear.fetchedAt),
+      lastAttemptAt: new Date(),
+    },
+    update: {
+      characterName: gear.characterName,
+      sourceUrl: gear.sourceUrl,
+      gear,
+      fetchedAt: new Date(gear.fetchedAt),
+      lastAttemptAt: new Date(),
+      lastError: null,
+    },
+  });
+}
+
+async function markRefreshFailed(
+  characterName: string,
+  realm: string,
+  sourceUrl: string,
+  message: string
+): Promise<void> {
+  try {
+    await db.armoryGearCache.update({
+      where: {
+        characterKey_realm: {
+          characterKey: getCharacterKey(characterName),
+          realm,
+        },
+      },
+      data: {
+        sourceUrl,
+        lastAttemptAt: new Date(),
+        lastError: message,
+      },
+    });
+  } catch {
+    // No cached row exists yet; the returned public result already handles that state.
+  }
+}
 
 export async function getWarmaneCharacterGear(
   characterName: string,
@@ -199,20 +313,21 @@ export async function getWarmaneCharacterGear(
     };
   }
 
-  try {
-    const gear = await getCachedWarmaneCharacterGear(sanitizedName, sanitizedRealm);
-    return { ok: true, gear };
-  } catch (error) {
-    console.error("Warmane Armory fetch error", {
-      characterName: sanitizedName,
-      realm: sanitizedRealm,
-      error,
-    });
+  const cachedGear = await readCachedGear(sanitizedName, sanitizedRealm);
+  const cachedFetchedAt = cachedGear ? new Date(cachedGear.fetchedAt).getTime() : 0;
+  const cacheIsFresh = cachedGear && Number.isFinite(cachedFetchedAt) && Date.now() - cachedFetchedAt < CACHE_MS;
 
-    return {
-      ok: false,
-      sourceUrl,
-      message: "Gear data is temporarily unavailable from Warmane Armory.",
-    };
+  if (cacheIsFresh) {
+    return { ok: true, gear: cachedGear };
   }
+
+  const liveResult = await fetchWarmaneGearLive(sanitizedName, sanitizedRealm);
+
+  if (liveResult.ok) {
+    await writeCachedGear(liveResult.gear);
+  } else {
+    await markRefreshFailed(sanitizedName, sanitizedRealm, sourceUrl, liveResult.message);
+  }
+
+  return resolveArmoryGearResult({ cachedGear, liveResult });
 }

@@ -66,7 +66,7 @@ function GearItemCard({ item }: { item: ArmoryGearItem }) {
   );
 }
 
-function GearGrid({ gear }: { gear: ArmoryCharacterGear }) {
+function GearGrid({ gear, stale = false }: { gear: ArmoryCharacterGear; stale?: boolean }) {
   const leftSlots = gear.items.slice(0, 8);
   const rightSlots = gear.items.slice(8, 16);
   const weaponSlots = gear.items.slice(16);
@@ -89,7 +89,10 @@ function GearGrid({ gear }: { gear: ArmoryCharacterGear }) {
       )}
 
       <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-text-dim">
-        <span>Fetched {new Date(gear.fetchedAt).toLocaleString()}</span>
+        <span>
+          {stale ? "Cached copy from " : "Fetched "}
+          {new Date(gear.fetchedAt).toLocaleString()}
+        </span>
         <Link href={gear.sourceUrl} target="_blank" className="text-gold hover:text-gold-light">
           Source: Warmane Armory
         </Link>
@@ -132,11 +135,10 @@ export function PlayerGearSection({ result }: { result: ArmoryGearResult }) {
       defaultOpen
     >
       {result.gear.items.length > 0 ? (
-        <GearGrid gear={result.gear} />
+        <GearGrid gear={result.gear} stale={result.stale} />
       ) : (
         <EmptyState title="No gear data available from Warmane Armory." />
       )}
     </AccordionSection>
   );
 }
-

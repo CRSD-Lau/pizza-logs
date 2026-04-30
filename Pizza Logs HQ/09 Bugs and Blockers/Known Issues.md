@@ -8,7 +8,7 @@
 
 | Blocker | Impact | Status |
 |---|---|---|
-| Warmane Armory returned Cloudflare/403 to direct local server requests during gear feature work | Gear section may show its graceful unavailable state until verified from Railway egress | Needs production verification |
+| Warmane Armory returned Cloudflare/403 to direct server requests during gear feature work | Gear section shows unavailable state until a character has a cached snapshot; once cached, stale gear can still render | Needs a reliable first-fill/refresh path |
 
 ---
 

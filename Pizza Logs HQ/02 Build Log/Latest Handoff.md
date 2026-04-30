@@ -18,7 +18,9 @@
   `https://armory.warmane.com/api/character/<name>/<realm>/summary`
 - Sanitizes character names before URL construction
 - Adds timeout handling, user-agent headers, server-side logging, and graceful public error messages
-- Uses Next `unstable_cache` with 12-hour revalidation
+- Uses a persistent Prisma `ArmoryGearCache` table with 12-hour freshness
+- Player pages render cached gear from the database without requiring a new combat-log upload
+- If Warmane blocks a refresh but cached gear exists, the page renders the stale cached snapshot
 - Maps Warmane API equipment order to native slot labels
 
 ### 2. Player profile UI integration
@@ -34,6 +36,8 @@
 - Railway behavior still needs verification after deploy because Warmane may treat Railway egress differently
 
 ### 4. Verification
+- `tests/warmane-armory-cache.test.ts` passed
+- `prisma validate` passed with a dummy local `DATABASE_URL`
 - `tsc --noEmit` passed via bundled Node runtime
 - `next build` passed via bundled Node runtime
 - `next lint` could not run non-interactively because this Next.js 15 project has no ESLint config yet and Next prompts for setup
@@ -44,9 +48,9 @@
 
 - **Live app**: https://pizza-logs-production.up.railway.app
 - **Release**: `v0.1.0`
-- **Player profiles**: include a native Warmane Armory Gear section wired to server-side fetch/cache
+- **Player profiles**: include a native Warmane Armory Gear section wired to a DB-backed gear cache
 - **Warmane local access**: blocked by Cloudflare/403 from this Codex shell, handled gracefully by UI
-- **Checks run**: `tsc --noEmit` passed; `next build` passed
+- **Checks run**: cache fallback test passed; `prisma validate` passed; `tsc --noEmit` passed; `next build` passed
 - **Local env blocker**: DB-backed pages cannot render locally until PostgreSQL is running on `localhost:5432`
 - **HPS gap**: ~21-28% under Skada for Disc priests - expected until absorbs are implemented
 - **DPS**: <1% residual from orphaned pets - accepted
@@ -82,6 +86,7 @@ Do after Skada verification.
 
 ### 5. Gear follow-ups
 - Verify Warmane API access from Railway production
+- Seed/cache at least one successful Warmane gear snapshot so blocked refreshes can still show gear
 - Add item quality/item level/icon/gem/enchant enrichment if a reliable source is chosen
 - Consider historical gear snapshots per raid date
 

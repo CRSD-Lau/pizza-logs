@@ -144,6 +144,24 @@ model Player {
   @@map("players")
 }
 
+model ArmoryGearCache {
+  id            String   @id @default(cuid())
+  characterName String
+  characterKey  String
+  realm         String   @default("Lordaeron")
+  sourceUrl     String
+  gear          Json
+  fetchedAt     DateTime
+  lastAttemptAt DateTime @default(now())
+  lastError     String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@unique([characterKey, realm])
+  @@index([fetchedAt])
+  @@map("armory_gear_cache")
+}
+
 // ─────────────────────────────────────────────
 //  PARTICIPANT (player stats within one encounter)
 // ─────────────────────────────────────────────
