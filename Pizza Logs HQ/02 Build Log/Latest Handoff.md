@@ -35,6 +35,9 @@
 - The action loops over up to 100 existing DB players and attempts Warmane gear refreshes
 - Successful responses are stored in `armory_gear_cache`
 - Failed requests are counted and recorded without affecting player pages
+- Added a browser-side "Pizza Logs Gear Import" bookmarklet on `/admin`
+- Added `POST /api/admin/armory-gear/import` for authenticated browser imports from Warmane pages
+- Bookmarklet scans visible Warmane item links, prompts for the admin secret, and stores normalized gear in `armory_gear_cache`
 
 ### 4. Warmane access note
 - Direct local requests to Warmane HTML and API returned Cloudflare/403 from this environment
@@ -43,6 +46,7 @@
 
 ### 5. Verification
 - `tests/warmane-armory-cache.test.ts` passed
+- `tests/warmane-armory-import.test.ts` passed
 - `prisma validate` passed with a dummy local `DATABASE_URL`
 - `tsc --noEmit` passed via bundled Node runtime
 - `next build` passed via bundled Node runtime
@@ -56,7 +60,7 @@
 - **Release**: `v0.1.0`
 - **Player profiles**: include a native Warmane Armory Gear section wired to a DB-backed gear cache
 - **Warmane local access**: blocked by Cloudflare/403 from this Codex shell, handled gracefully by UI
-- **Checks run**: cache fallback test passed; `prisma validate` passed; `tsc --noEmit` passed; `next build` passed
+- **Checks run**: cache fallback test passed; import normalization test passed; `prisma validate` passed; `tsc --noEmit` passed; `next build` passed
 - **Local env blocker**: DB-backed pages cannot render locally until PostgreSQL is running on `localhost:5432`
 - **HPS gap**: ~21-28% under Skada for Disc priests - expected until absorbs are implemented
 - **DPS**: <1% residual from orphaned pets - accepted
@@ -92,7 +96,7 @@ Do after Skada verification.
 
 ### 5. Gear follow-ups
 - Run `/admin` Seed Gear Cache after deploy and inspect success/failure counts
-- If all Warmane server refreshes fail, add a browser-assisted/manual import path for first-fill snapshots
+- Use `/admin` browser bookmarklet import when Warmane blocks Railway server refreshes
 - Add item quality/item level/icon/gem/enchant enrichment if a reliable source is chosen
 - Consider historical gear snapshots per raid date
 
@@ -100,4 +104,4 @@ Do after Skada verification.
 
 ## Next Step
 
-Deploy the admin seeding action, run `/admin` Seed Gear Cache, then verify whether any `armory_gear_cache` rows are populated. Parser priority remains fixing HC/Normal detection in `parser/parser_core.py`.
+Deploy the bookmarklet import workflow, import one Warmane character from the browser, then verify that `/players/<name>` renders cached gear. Parser priority remains fixing HC/Normal detection in `parser/parser_core.py`.

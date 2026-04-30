@@ -42,6 +42,13 @@ type WarmaneCharacterSummary = {
   error?: unknown;
 };
 
+export type ImportedArmoryGearPayload = {
+  characterName?: unknown;
+  realm?: unknown;
+  sourceUrl?: unknown;
+  items?: unknown;
+};
+
 const DEFAULT_REALM = "Lordaeron";
 const CACHE_SECONDS = 60 * 60 * 12;
 const CACHE_MS = CACHE_SECONDS * 1000;
@@ -107,6 +114,20 @@ function asStringArray(value: unknown): string[] | undefined {
   return strings.length > 0 ? strings : undefined;
 }
 
+function sanitizeSourceUrl(value: unknown, characterName: string, realm: string): string {
+  const fallback = getSourceUrl(characterName, realm);
+  const url = asString(value);
+  if (!url) return fallback;
+
+  try {
+    const parsed = new URL(url);
+    if (parsed.hostname !== "armory.warmane.com") return fallback;
+    return parsed.toString();
+  } catch {
+    return fallback;
+  }
+}
+
 function isArmoryGearItem(value: unknown): value is ArmoryGearItem {
   if (!value || typeof value !== "object") return false;
   const item = value as Record<string, unknown>;
@@ -152,6 +173,28 @@ function normalizeEquipment(items: unknown): ArmoryGearItem[] {
       };
     })
     .filter((item): item is ArmoryGearItem => Boolean(item));
+}
+
+export function normalizeImportedArmoryGear(
+  payload: ImportedArmoryGearPayload
+): { ok: true; gear: ArmoryCharacterGear } | { ok: false; error: string } {
+  const characterName = sanitizeCharacterName(asString(payload.characterName) ?? "");
+  if (!characterName) return { ok: false, error: "Invalid character name." };
+
+  const realm = sanitizeRealm(asString(payload.realm) ?? DEFAULT_REALM);
+  const items = normalizeEquipment(payload.items);
+  if (items.length === 0) return { ok: false, error: "No gear items found in import." };
+
+  return {
+    ok: true,
+    gear: {
+      characterName,
+      realm,
+      sourceUrl: sanitizeSourceUrl(payload.sourceUrl, characterName, realm),
+      fetchedAt: new Date().toISOString(),
+      items,
+    },
+  };
 }
 
 async function fetchWarmaneGearLive(
@@ -244,7 +287,7 @@ async function readCachedGear(characterName: string, realm: string): Promise<Arm
   return cached.gear;
 }
 
-async function writeCachedGear(gear: ArmoryCharacterGear): Promise<void> {
+export async function writeCachedGear(gear: ArmoryCharacterGear): Promise<void> {
   await db.armoryGearCache.upsert({
     where: {
       characterKey_realm: {

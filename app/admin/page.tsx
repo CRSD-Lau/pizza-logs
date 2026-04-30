@@ -6,6 +6,7 @@ import { StatCard } from "@/components/ui/StatCard";
 import { formatBytes, formatDuration } from "@/lib/utils";
 import { ClearDatabaseButton } from "./ClearDatabaseButton";
 import { DeleteUploadButton } from "./DeleteUploadButton";
+import { GearImportBookmarklet } from "./GearImportBookmarklet";
 import { SeedGearCacheButton } from "./SeedGearCacheButton";
 
 export const metadata: Metadata = { title: "Admin / Diagnostics" };
@@ -94,6 +95,7 @@ export default async function AdminPage() {
             </p>
             <SeedGearCacheButton />
           </div>
+          <GearImportBookmarklet />
         </div>
       </section>
 
