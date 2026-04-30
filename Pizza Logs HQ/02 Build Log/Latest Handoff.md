@@ -100,6 +100,11 @@
 - Tightened Titan Grip scoring so the half-score modifier only applies when both main/off-hand items are actual weapons and at least one is a two-hander
 - Added regression coverage in `tests/gearscore-lite.test.ts`, `tests/warmane-armory-import.test.ts`, and `tests/gear-layout.test.ts`
 
+### 11. Git/Railway push expectations clarified
+- Updated `AGENTS.md`, `CLAUDE.md`, `START HERE.md`, and the Railway runbook with the canonical GitHub remote
+- Documented that user requests to push/deploy/publish/get changes live mean `git push origin main`, which triggers Railway's deployment from `origin/main`
+- Documented the local Windows Git fallback path: `C:\Program Files\Git\cmd\git.exe`
+
 ---
 
 ## Current State
@@ -109,6 +114,7 @@
 - **Player profiles**: include a native Warmane Armory Gear section wired to a DB-backed gear cache
 - **Gear display**: uses Wowhead-enriched icons, quality, item level, equip-location metadata, GearScoreLite totals/per-item scores, and tooltip text when item IDs are present; partial cached snapshots are re-enriched with retry/backoff before rendering; slot labels are repaired from equip-location metadata so sparse Warmane arrays do not shift weapons/relics into the wrong UI slot; tooltips render in a viewport-level portal so they are not clipped by accordion/table wrappers
 - **Gear sync**: hosted Tampermonkey userscript v1.0.3 is installed/running on Warmane and actively imports missing or enrichment-needed DB players
+- **Git/deploy**: canonical remote is `origin` -> `https://github.com/CRSD-Lau/Pizza-Logs.git`; push live changes with `git push origin main` so Railway deploys from `origin/main`
 - **Warmane local access**: blocked by Cloudflare/403 from this Codex shell, handled gracefully by UI
 - **Checks run**: GearScoreLite formula test passed; Wowhead parser/enrichment retry tests passed; cache fallback/refresh test passed; import normalization test passed; gear tooltip positioning test passed; admin gear script test passed; `prisma validate` passed; `tsc --noEmit` passed; `next build` passed
 - **Local env blocker**: DB-backed pages cannot render locally until PostgreSQL is running on `localhost:5432`

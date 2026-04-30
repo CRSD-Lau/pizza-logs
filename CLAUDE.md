@@ -29,6 +29,9 @@ Include vault file changes in the same git commit as code changes.
 
 - **Live app**: https://pizza-logs-production.up.railway.app
 - **Repo**: https://github.com/CRSD-Lau/pizza-logs
+- **Canonical git remote**: `origin` -> `https://github.com/CRSD-Lau/Pizza-Logs.git`
+- **Deploy rule**: when the user asks to push, deploy, publish, or get changes live, commit the scoped changes and push `main` to `origin` (`git push origin main`). Railway auto-deploys from `origin/main`.
+- **Git on this Windows machine**: if `git` is missing from PATH, use `C:\Program Files\Git\cmd\git.exe`.
 - **Stack**: Next.js 15 + TypeScript + Prisma + PostgreSQL + Python FastAPI parser
 - **Hosting**: Railway (two services: "Web Service" + "parser-py")
 - **Vault**: `Pizza Logs HQ/` — Obsidian vault committed to repo

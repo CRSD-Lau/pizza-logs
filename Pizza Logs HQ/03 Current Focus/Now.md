@@ -17,6 +17,7 @@ Userscript v1.0.2 supports both HTTP and HTTPS Warmane pages and waits for the p
 Userscript v1.0.3 logs `Pizza Logs userscript starting` at startup and `Pizza Logs panel injection failed` if panel creation crashes.
 After enabling Tampermonkey/userscript injection, the Warmane page showed the **Pizza Logs Gear Sync** panel and began importing queued DB players (`Importing Rimeclaw (13/18)...`). The seamless path is now: install/update userscript from `/admin`, visit any Warmane Armory page, save/use the admin secret once, and let the userscript fill/refresh cache rows.
 Character-specific enchants/gems are still limited by what Warmane exposes to the browser/importer. Wowhead enrichment provides static item icons, quality, item level, and tooltip text, but not a player's chosen enchants/gems unless those are present in Warmane data.
+Git/deploy expectations are now explicit in root instructions and the Railway runbook: canonical remote is `origin` -> `https://github.com/CRSD-Lau/Pizza-Logs.git`, and user requests to push/deploy/publish/get changes live mean push `main` to `origin` so Railway deploys from `origin/main`. If `git` is missing from PATH on this Windows machine, use `C:\Program Files\Git\cmd\git.exe`.
 
 ---
 

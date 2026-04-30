@@ -8,8 +8,10 @@
 
 **Pizza Logs** is a WoW WotLK raid log parser and leaderboard site for a Warmane private server guild. Raiders upload their `WoWCombatLog.txt` and the site shows DPS/HPS rankings, boss kill history, and personal progression — matching what players see in **Skada** in-game.
 
-**Live site:** https://pizza-logs-production.up.railway.app  
-**Repo:** https://github.com/CRSD-Lau/pizza-logs
+- **Live site:** https://pizza-logs-production.up.railway.app
+- **Repo:** https://github.com/CRSD-Lau/pizza-logs
+- **Canonical git remote:** `origin` -> `https://github.com/CRSD-Lau/Pizza-Logs.git`
+- **Deploy rule:** user "push/deploy/publish/live" requests mean commit scoped changes and run `git push origin main`; Railway auto-deploys `origin/main`. If `git` is not on PATH locally, use `C:\Program Files\Git\cmd\git.exe`.
 
 ---
 

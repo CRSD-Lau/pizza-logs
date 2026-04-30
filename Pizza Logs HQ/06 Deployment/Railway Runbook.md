@@ -18,6 +18,9 @@
 
 ## Normal Deploy
 
+Canonical remote: `origin` -> `https://github.com/CRSD-Lau/Pizza-Logs.git`.
+When Neil asks to push, deploy, publish, or make changes live, push `main` to `origin` so Railway picks up the deployment. Do not ask for the repo URL; it is the canonical remote above. If `git` is missing from PATH on Neil's Windows machine, use `C:\Program Files\Git\cmd\git.exe`.
+
 ```bash
 git push origin main
 # Railway auto-deploys on push to main
