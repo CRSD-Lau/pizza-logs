@@ -123,7 +123,7 @@ function buildRosterScriptBody(autoRun: boolean): string {
       panel.style.cssText = [
         "position:fixed",
         "right:16px",
-        "bottom:16px",
+        "bottom:176px",
         "z-index:2147483647",
         "width:280px",
         "padding:12px",
@@ -201,7 +201,7 @@ export function buildGuildRosterUserscript(): string {
     "// ==UserScript==",
     "// @name         Pizza Logs Warmane Guild Roster Sync",
     "// @namespace    https://pizza-logs-production.up.railway.app",
-    "// @version      1.0.2",
+    "// @version      1.0.3",
     "// @description  Sync Pizza Logs guild roster from Warmane Armory in-browser.",
     "// @match        https://armory.warmane.com/*",
     "// @match        http://armory.warmane.com/*",

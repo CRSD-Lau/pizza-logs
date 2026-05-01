@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { buildGuildRosterUserscript } from "../lib/guild-roster-client-scripts";
 import { buildUserscript, PIZZA_LOGS_ORIGIN, USERSCRIPT_PATH, USERSCRIPT_URL } from "../lib/armory-gear-client-scripts";
 
 const userscript = buildUserscript();
@@ -17,5 +18,12 @@ assert.match(userscript, /DOMContentLoaded/);
 assert.match(userscript, /Pizza Logs userscript starting/);
 assert.match(userscript, /Pizza Logs panel injection failed/);
 assert.match(userscript, /Pizza Logs Gear Sync/);
+
+const rosterUserscript = buildGuildRosterUserscript();
+const gearBottom = userscript.match(/"bottom:([^"]+)"/)?.[1];
+const rosterBottom = rosterUserscript.match(/"bottom:([^"]+)"/)?.[1];
+assert.ok(gearBottom);
+assert.ok(rosterBottom);
+assert.notEqual(gearBottom, rosterBottom);
 
 console.log("armory-gear-client-scripts tests passed");

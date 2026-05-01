@@ -8,7 +8,7 @@
 
 | Blocker | Impact | Status |
 |---|---|---|
-| Warmane Armory returned Cloudflare/403 to direct server requests during gear and guild-roster feature work | Gear section shows unavailable state until a character has a cached snapshot; roster sync may fail from server/Railway, but `/guild-roster` still reads previously synced DB rows | Hosted Tampermonkey userscript confirmed working for gear in browser. Roster now has the same browser-assisted fallback via `/admin` -> Guild Roster Sync -> Install / Update Roster Userscript; roster userscript v1.0.2 prefers Warmane HTML for Rank/Professions and uses JSON as fallback. |
+| Warmane Armory returned Cloudflare/403 to direct server requests during gear and guild-roster feature work | Gear section shows unavailable state until a character has a cached snapshot; roster sync may fail from server/Railway, but `/guild-roster` still reads previously synced DB rows | Hosted Tampermonkey userscript confirmed working for gear in browser. Roster now has the same browser-assisted fallback via `/admin` -> Guild Roster Sync -> Install / Update Roster Userscript; roster userscript v1.0.3 prefers Warmane HTML for Rank/Professions, uses JSON as fallback, and docks above the Gear Sync panel. |
 | Warmane API omits rich item details | Native gear cards need a second source for icons, item level, quality, and tooltip text | Wowhead WotLK page enrichment added during cache writes; older cached rows are now re-queued for enrichment |
 
 ---
@@ -17,6 +17,7 @@
 
 | Bug | Fix | Commit |
 |---|---|---|
+| Warmane Gear Sync userscript panel hidden after installing roster userscript | Roster userscript panel now docks above the Gear Sync panel instead of sharing `bottom:16px`; roster userscript bumped to v1.0.3 | pending |
 | Warriors with two two-handed weapons double-counted both weapon GearScores | `INVTYPE_2HWEAPON` normalization now assigns the first 2H to `Main Hand` and the second 2H to `Off Hand`, allowing the existing Titan Grip half-score modifier to apply | pending |
 | Guild roster Rank/Professions blank after sync | Warmane HTML roster can use guild-summary member links; parser now handles those links and `Image:` text, and roster sync/userscript prefer HTML first | pending |
 | Roster-only members had no Pizza Logs player profile or gear queue entry | `/players/<name>` now resolves roster rows and the Warmane gear queue includes roster-only guild members | pending |
