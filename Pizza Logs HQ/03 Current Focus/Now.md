@@ -2,13 +2,9 @@
 
 ## Status
 
-GuildRosterSyncButton component has been deleted as dead code. The component was previously removed from usage when GuildRosterSyncPanel stopped accepting an `action` prop. The deletion is committed. Next task will clean up stale imports and prop references in `app/admin/page.tsx` and the test file.
+Admin page cleanup is **complete and validated**. TypeScript is clean (`tsc --noEmit` zero errors). All bookmarklet/copy-paste/GuildRosterSyncButton references removed. `clearDatabase` now only deletes volatile upload-derived data (weeklySummaries + uploads via cascade). Branch is ready to push and deploy.
 
-Vault priority for this session:
-1. Remove GuildRosterSyncButton import from `app/admin/page.tsx(10)`
-2. Remove `action` prop from GuildRosterSyncPanel call at line 112
-3. Remove `action` prop from test setup in `tests/guild-roster-admin-panel.test.ts`
-4. Run `npx tsc --noEmit` to verify TypeScript errors cleared
+Note: Jest test suites fail with a pre-existing ESM/Babel config issue (no `jest.config.*` in repo, no transform for `import` syntax). This is not caused by the admin cleanup and existed before this branch.
 
 ---
 
@@ -16,11 +12,8 @@ Vault priority for this session:
 
 | Task | Type | Notes |
 |------|------|-------|
-| Clean up page.tsx import | CLEANUP | Delete import of GuildRosterSyncButton from `app/admin/page.tsx(10)` |
-| Clean up GuildRosterSyncPanel props | CLEANUP | Remove `action` prop from `GuildRosterSyncPanel` call at line 112 |
-| Clean up test file props | CLEANUP | Remove `action` prop from test setup in `tests/guild-roster-admin-panel.test.ts` |
-| Verify TypeScript passes | VERIFY | Run `npx tsc --noEmit` and confirm all errors cleared |
 | Fix HC/Normal difficulty detection | BUG | Regression - issue open on GitHub |
+| Push and deploy this branch | DEPLOY | Push to `origin/main`; Railway auto-deploys; update Tampermonkey if userscript versions bumped |
 | Spot-check gear slot/GearScore fix | VERIFY | After deploy, confirm `/players/Lausudo` shows the libram as `Ranged/Relic` and full 2H+relic GearScore; confirm `/players/Aalaska` shows staff/wand in the weapon row |
 | Spot-check Titan Grip GS fix | VERIFY | After deploy, confirm `/players/Contents` no longer double-counts both two-handed weapons |
 | Refresh gear metadata | VERIFY | Rerun the hosted Warmane userscript so cached rows missing Wowhead `equipLoc` metadata get re-enriched for exact weapon scoring |
