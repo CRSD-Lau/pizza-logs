@@ -8,8 +8,9 @@
 
 | Blocker | Impact | Status |
 |---|---|---|
-| Warmane Armory returned Cloudflare/403 to direct server requests during gear and guild-roster feature work | Gear section shows unavailable state until a character has a cached snapshot; roster sync may fail from server/Railway, but `/guild-roster` still reads previously synced DB rows | Hosted Tampermonkey userscripts provide browser fallbacks: Gear Sync v1.0.4 runs on character pages, and Roster Sync v1.0.4 runs on guild pages, preferring Warmane HTML for Rank/Professions and JSON as fallback. |
+| Warmane Armory returned Cloudflare/403 to direct server requests during gear and guild-roster feature work | Gear section shows unavailable state until a character has a cached snapshot; roster sync may fail from server/Railway, but `/guild-roster` still reads previously synced DB rows | Design written for laptop-primary Warmane sync agent so Railway no longer needs to fetch Warmane live. Existing hosted userscripts remain the temporary fallback. |
 | Warmane API omits rich item details | Native gear cards need a second source for icons, item level, quality, and tooltip text | Wowhead WotLK page enrichment added during cache writes; older cached rows are now re-queued for enrichment |
+| Manual Warmane roster/gear sync is operationally fragile | App data can become stale or incomplete if the admin forgets to run userscripts or if a partial source response is imported | Planned fix: local automated sync agent plus stricter snapshot validation that preserves last known good roster/gear data |
 
 ---
 
