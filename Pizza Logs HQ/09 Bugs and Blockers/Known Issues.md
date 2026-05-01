@@ -17,6 +17,7 @@
 
 | Bug | Fix | Commit |
 |---|---|---|
+| Warriors with two two-handed weapons double-counted both weapon GearScores | `INVTYPE_2HWEAPON` normalization now assigns the first 2H to `Main Hand` and the second 2H to `Off Hand`, allowing the existing Titan Grip half-score modifier to apply | pending |
 | Guild roster Rank/Professions blank after sync | Warmane HTML roster can use guild-summary member links; parser now handles those links and `Image:` text, and roster sync/userscript prefer HTML first | pending |
 | Roster-only members had no Pizza Logs player profile or gear queue entry | `/players/<name>` now resolves roster rows and the Warmane gear queue includes roster-only guild members | pending |
 | Relics/ranged/wands displayed as Off Hand/trinkets and two-hander + relic characters got half GearScore | Slot labels are repaired from Wowhead `equipLoc`, the ranged/relic slot displays as `Ranged/Relic`, gear layout groups by slot name instead of array index, and Titan Grip half-score only applies to real weapon pairs | pending |

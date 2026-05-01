@@ -255,10 +255,10 @@ export function normalizeArmoryGearSlots(items: ArmoryGearItem[]): ArmoryGearIte
         seen.trinket += 1;
         slot = seen.trinket === 1 ? "Trinket 1" : "Trinket 2";
         break;
-      case "INVTYPE_2HWEAPON":
       case "INVTYPE_WEAPONMAINHAND":
         slot = "Main Hand";
         break;
+      case "INVTYPE_2HWEAPON":
       case "INVTYPE_WEAPON":
         seen.weapon += 1;
         slot = seen.weapon === 1 ? "Main Hand" : "Off Hand";

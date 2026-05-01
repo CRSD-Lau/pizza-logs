@@ -9,6 +9,7 @@ Gear tooltips now render through a viewport-level portal from `components/player
 The gear section now calculates and displays GearScoreLite totals using the addon-derived slot weights/formula, plus per-item GS values. Wowhead enrichment stores equip-location metadata so weapon slots can be scored accurately.
 Partial gear enrichment has been tightened: Wowhead item fetches retry with backoff, enrichment runs with limited concurrency, and fresh cached rows missing Wowhead metadata are re-enriched before the player page returns them.
 Gear slot labeling now repairs sparse Warmane equipment arrays using Wowhead `equipLoc` metadata. This fixes relics/ranged/wands sliding into the `Off Hand` or trinket labels when a character has empty slots, displays that slot as `Ranged/Relic`, and GearScoreLite no longer applies the Titan Grip half-score modifier unless both main/off-hand items are actual weapons.
+Warrior Titan Grip gear now handles two `INVTYPE_2HWEAPON` items by normalizing the second 2H weapon to `Off Hand`, allowing the existing half-score modifier to apply. Single 2H users with relic/ranged slots still keep the doubled main-hand 2H score.
 The admin browser import queue includes older cached players whose gear is missing Wowhead details, so rerunning the bookmarklet upgrades existing cache rows too.
 The bookmarklet now retries intermittent Warmane per-character failures and reports failed names; old bookmark URLs must be replaced after deploys because the code is copied into the bookmark.
 The recommended gear import path is now a Tampermonkey/userscript from `/admin`; it adds a Pizza Logs panel on Warmane pages and auto-syncs at most once per hour after saving the admin secret in browser localStorage.
@@ -37,6 +38,7 @@ Local direct Warmane calls for guild roster returned 403 from this environment, 
 |------|------|-------|
 | Fix HC/Normal difficulty detection | BUG | Regression - issue open on GitHub |
 | Spot-check gear slot/GearScore fix | VERIFY | After deploy, confirm `/players/Lausudo` shows the libram as `Ranged/Relic` and full 2H+relic GearScore; confirm `/players/Aalaska` shows staff/wand in the weapon row |
+| Spot-check Titan Grip GS fix | VERIFY | After deploy, confirm `/players/Contents` no longer double-counts both two-handed weapons |
 | Refresh gear metadata | VERIFY | Rerun the hosted Warmane userscript so cached rows missing Wowhead `equipLoc` metadata get re-enriched for exact weapon scoring |
 | Stats / Analytics page | FEATURE | Brainstorm first, then design, then build |
 | Populate Guild Roster | VERIFY | Apply migrations, deploy, install/update roster userscript v1.0.2 from `/admin`, sync from Warmane guild page, then run Warmane Gear Sync so roster-only players get gear/GS |

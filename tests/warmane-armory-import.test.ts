@@ -60,6 +60,14 @@ assert.deepEqual(
   ["Main Hand", "Ranged/Relic", "Ranged/Relic"],
 );
 
+assert.deepEqual(
+  normalizeArmoryGearSlots([
+    { slot: "Main Hand", name: "Bryntroll, the Bone Arbiter", equipLoc: "INVTYPE_2HWEAPON" },
+    { slot: "Off Hand", name: "Shadowmourne", equipLoc: "INVTYPE_2HWEAPON" },
+  ]).map((item) => item.slot),
+  ["Main Hand", "Off Hand"],
+);
+
 assert.equal(
   gearNeedsWowheadEnrichment({
     characterName: "Aalaska",

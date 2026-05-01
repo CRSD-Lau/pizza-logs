@@ -5,7 +5,7 @@
 
 ## Git
 **Branch:** `main`
-**Latest commit before this handoff commit:** `ccdb350 feat: add browser roster import`
+**Latest commit before this handoff commit:** `ac5f754 fix: import roster ranks and roster-only gear`
 **Release:** `v0.1.0` - tagged and published on GitHub
 
 ---
@@ -173,6 +173,12 @@
 - The admin Warmane gear queue now includes roster-only members as well as combat-log `players`, so the existing Warmane Gear Sync userscript can import their gear, enrich it with Wowhead metadata, and calculate GS on the roster/player pages
 - Added tests for Warmane guild-route HTML parsing, roster-only gear queue entries, and roster-only player profile resolution
 
+### 16. Warrior Titan Grip gear slot scoring fixed
+- Investigated `/players/Contents` screenshot showing a warrior with two two-handed weapons reporting too much GearScore
+- Root cause: `normalizeArmoryGearSlots` mapped every `INVTYPE_2HWEAPON` to `Main Hand`, so Titan Grip characters could have two `Main Hand` items and no `Off Hand`; the GearScore half-score modifier never activated
+- Updated two-handed weapon slot normalization to assign the first 2H weapon to `Main Hand` and the second 2H weapon to `Off Hand`
+- Added a regression assertion in `tests/warmane-armory-import.test.ts` so dual-2H gear normalizes to `Main Hand` + `Off Hand`
+
 ---
 
 ## Current State
@@ -183,6 +189,7 @@
 - **Guild roster**: `/guild-roster` reads from the DB-backed `guild_roster_members` table; `/api/guild-roster/sync` refreshes from Warmane with JSON-first retrieval and HTML fallback
 - **Guild roster rank/professions/GS**: roster rows preserve Warmane rank order, store professions, and show GearScore from existing armory gear cache snapshots where available
 - **Gear display**: uses Wowhead-enriched icons, quality, item level, equip-location metadata, GearScoreLite totals/per-item scores, and tooltip text when item IDs are present; partial cached snapshots are re-enriched with retry/backoff before rendering; slot labels are repaired from equip-location metadata so sparse Warmane arrays do not shift weapons/relics into the wrong UI slot; tooltips render in a viewport-level portal so they are not clipped by accordion/table wrappers
+- **GearScore Titan Grip**: dual two-handed weapons now normalize as main hand + off hand so the existing Titan Grip half-score modifier applies; single 2H + relic/ranged still scores as a single doubled 2H plus ranged/relic
 - **Gear sync**: hosted Tampermonkey userscript v1.0.3 is installed/running on Warmane and actively imports missing or enrichment-needed DB players
 - **Git/deploy**: canonical remote is `origin` -> `https://github.com/CRSD-Lau/Pizza-Logs.git`; push live changes with `git push origin main` so Railway deploys from `origin/main`
 - **Warmane local access**: blocked by Cloudflare/403 from this Codex shell, handled gracefully by UI
