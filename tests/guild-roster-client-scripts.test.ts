@@ -8,7 +8,10 @@ import {
 const userscript = buildGuildRosterUserscript();
 assert.match(userscript, /Pizza Logs Warmane Guild Roster Sync/);
 assert.match(userscript, /api\/admin\/guild-roster\/import/);
-assert.match(userscript, /\/\/ @version\s+1\.0\.3/);
+assert.match(userscript, /\/\/ @version\s+1\.0\.4/);
+assert.match(userscript, /\/\/ @match\s+https:\/\/armory\.warmane\.com\/guild\/\*/);
+assert.match(userscript, /\/\/ @match\s+http:\/\/armory\.warmane\.com\/guild\/\*/);
+assert.match(userscript, /isGuildPage/);
 assert.match(userscript, /api\/guild\/Pizza\+Warriors\/Lordaeron\/summary/);
 assert.match(userscript, /guild\/Pizza\+Warriors\/Lordaeron\/summary/);
 assert.ok(

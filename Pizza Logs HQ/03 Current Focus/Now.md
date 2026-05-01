@@ -24,9 +24,9 @@ Guild Roster feature has been added. `/guild-roster` reads from a new DB-backed 
 
 Guild Roster has been extended for rank/profession/GS visibility. `guild_roster_members` now has nullable `rank_order`, `professions_json`, and `gear_score` columns. Sync preserves Warmane's source order so the public table sorts by guild rank order, with Maximusboom first if Warmane returns him first. Warmane JSON is still attempted first, but rankless JSON falls through to the guild HTML page because Warmane's API has historically omitted rank while the HTML roster includes the Rank column. The roster userscript is v1.0.1 and mirrors this behavior. `/guild-roster` now shows GS and Professions columns; GS is computed with the same GearScoreLite code as the player page from existing `armory_gear_cache` snapshots when available, so roster rendering stays DB-backed.
 
-Roster rank/profession import has been tightened again after production still showed blanks. Warmane's guild roster HTML can link members as `/guild/Pizza+Warriors/Lordaeron/summary/<Character>`, not only `/character/<Character>/Lordaeron/summary`; the parser now handles that route shape and `Image: ...` table text. Roster sync and the browser roster userscript now prefer HTML first, then JSON fallback, because HTML is the reliable source for Rank and Professions. The roster userscript is now v1.0.3.
+Roster rank/profession import has been tightened again after production still showed blanks. Warmane's guild roster HTML can link members as `/guild/Pizza+Warriors/Lordaeron/summary/<Character>`, not only `/character/<Character>/Lordaeron/summary`; the parser now handles that route shape and `Image: ...` table text. Roster sync and the browser roster userscript now prefer HTML first, then JSON fallback, because HTML is the reliable source for Rank and Professions.
 
-Warmane userscript panels are intentionally stacked. The Gear Sync panel stays at the lower-right corner, and the Roster Sync panel docks above it, fixing the issue where the roster panel hid the gear panel because both were rendered at `bottom:16px`.
+Warmane userscripts are page-specific as of v1.0.4. Gear Sync matches/runs only on Warmane character pages, and Roster Sync matches/runs only on Warmane guild pages. Both also have runtime path guards in case stale Tampermonkey metadata still tries to run them on the wrong page type.
 
 Roster-only player profiles are now supported. `/players/<name>` can resolve a `guild_roster_members` row even if that character has never appeared in combat logs, and combat-log profiles merge roster metadata when present. The admin Warmane gear queue includes roster-only members too, so the existing Warmane Gear Sync userscript can scrape/import their equipment, then the existing player gear section and roster table can calculate GearScore from cached gear.
 
@@ -43,8 +43,8 @@ Local direct Warmane calls for guild roster returned 403 from this environment, 
 | Spot-check Titan Grip GS fix | VERIFY | After deploy, confirm `/players/Contents` no longer double-counts both two-handed weapons |
 | Refresh gear metadata | VERIFY | Rerun the hosted Warmane userscript so cached rows missing Wowhead `equipLoc` metadata get re-enriched for exact weapon scoring |
 | Stats / Analytics page | FEATURE | Brainstorm first, then design, then build |
-| Populate Guild Roster | VERIFY | Apply migrations, deploy, install/update roster userscript v1.0.3 from `/admin`, sync from Warmane guild page, then run Warmane Gear Sync so roster-only players get gear/GS |
-| Spot-check Warmane panels | VERIFY | On any Warmane Armory page, confirm Gear Sync and Roster Sync panels are both visible and stacked |
+| Populate Guild Roster | VERIFY | Apply migrations, deploy, install/update roster userscript v1.0.4 from `/admin`, sync from Warmane guild page, then run Warmane Gear Sync from a character page so roster-only players get gear/GS |
+| Spot-check Warmane panels | VERIFY | Confirm Gear Sync appears on character pages and Roster Sync appears on guild pages |
 | Verify Skada numbers in-game | VERIFY | Neil to do manually next week |
 | Absorbs (PW:S) | FEATURE | Combined column. Do after verification. |
 

@@ -5,7 +5,7 @@
 
 ## Git
 **Branch:** `main`
-**Latest commit before this handoff commit:** `06fb650 fix: normalize titan grip weapon slots`
+**Latest commit before this handoff commit:** `50d3d04 fix: stack warmane userscript panels`
 **Release:** `v0.1.0` - tagged and published on GitHub
 
 ---
@@ -186,6 +186,14 @@
 - Bumped the roster userscript to v1.0.3 so Tampermonkey can pick up the layout fix
 - Added a regression assertion in `tests/armory-gear-client-scripts.test.ts` ensuring the gear and roster panels do not share the same bottom dock position
 
+### 18. Warmane userscripts made page-specific
+- Adjusted the previous userscript overlap fix after screenshot verification showed the roster panel on character pages
+- Gear userscript now matches and runs only on Warmane character pages (`/character/*`)
+- Guild roster userscript now matches and runs only on Warmane guild pages (`/guild/*`)
+- Added runtime path guards (`isCharacterPage`, `isGuildPage`) so manually installed/stale match metadata still exits on the wrong page type
+- Bumped both Warmane userscripts to v1.0.4
+- Updated userscript tests to assert page-specific match metadata and guards
+
 ---
 
 ## Current State
@@ -197,8 +205,8 @@
 - **Guild roster rank/professions/GS**: roster rows preserve Warmane rank order, store professions, and show GearScore from existing armory gear cache snapshots where available
 - **Gear display**: uses Wowhead-enriched icons, quality, item level, equip-location metadata, GearScoreLite totals/per-item scores, and tooltip text when item IDs are present; partial cached snapshots are re-enriched with retry/backoff before rendering; slot labels are repaired from equip-location metadata so sparse Warmane arrays do not shift weapons/relics into the wrong UI slot; tooltips render in a viewport-level portal so they are not clipped by accordion/table wrappers
 - **GearScore Titan Grip**: dual two-handed weapons now normalize as main hand + off hand so the existing Titan Grip half-score modifier applies; single 2H + relic/ranged still scores as a single doubled 2H plus ranged/relic
-- **Gear sync**: hosted Tampermonkey userscript v1.0.3 is installed/running on Warmane and actively imports missing or enrichment-needed DB players
-- **Roster sync userscript**: v1.0.3 now docks above the Gear Sync panel so both Warmane-side panels can be visible at the same time
+- **Gear sync userscript**: v1.0.4 appears only on Warmane character pages and imports missing/enrichment-needed gear rows
+- **Roster sync userscript**: v1.0.4 appears only on Warmane guild pages and imports guild roster rows
 - **Git/deploy**: canonical remote is `origin` -> `https://github.com/CRSD-Lau/Pizza-Logs.git`; push live changes with `git push origin main` so Railway deploys from `origin/main`
 - **Warmane local access**: blocked by Cloudflare/403 from this Codex shell, handled gracefully by UI
 - **Checks run**: Guild roster parser/client-script/admin-panel/table tests passed; armory gear queue tests passed; roster-only player profile tests passed; `prisma validate` passed; `tsc --noEmit` passed; `next build` passed
@@ -248,10 +256,10 @@ Do after Skada verification.
 ### 6. Guild roster follow-ups
 - Apply the Prisma migration in the target database before using `/guild-roster`
 - After deploy, open `/admin` and click **Sync Roster** in the Guild Roster Sync panel
-- If server-side sync reports Warmane unavailable, install/update the roster userscript v1.0.3 from `/admin`, open `https://armory.warmane.com/guild/Pizza+Warriors/Lordaeron/summary`, and click the floating **Sync roster** button
+- If server-side sync reports Warmane unavailable, install/update the roster userscript v1.0.4 from `/admin`, open `https://armory.warmane.com/guild/Pizza+Warriors/Lordaeron/summary`, and click the floating **Sync roster** button
 
 ---
 
 ## Next Step
 
-Apply the new roster migration if it has not already been applied, deploy, then install/update the roster userscript from `/admin` so Tampermonkey gets v1.0.3. On Warmane, confirm both **Pizza Logs Gear Sync** and **Pizza Logs Roster Sync** panels are visible and stacked. Open the Warmane Pizza Warriors guild page and click **Sync roster**; confirm `/guild-roster` lists PizzaWarriors members sorted with Warmane rank order and professions. Then run the Warmane Gear Sync userscript from any Warmane Armory page so roster-only members get cached gear and GS. After that, spot-check `/players/Maximusboom`, `/players/Contents`, `/players/Lausudo`, and `/players/Aalaska`; parser priority remains fixing HC/Normal detection in `parser/parser_core.py`.
+Apply the new roster migration if it has not already been applied, deploy, then install/update both Warmane userscripts from `/admin` so Tampermonkey gets v1.0.4. Confirm **Pizza Logs Gear Sync** appears on Warmane character pages and **Pizza Logs Roster Sync** appears on Warmane guild pages. Open the Warmane Pizza Warriors guild page and click **Sync roster**; confirm `/guild-roster` lists PizzaWarriors members sorted with Warmane rank order and professions. Then run the Warmane Gear Sync userscript from a Warmane character page so roster-only members get cached gear and GS. After that, spot-check `/players/Maximusboom`, `/players/Contents`, `/players/Lausudo`, and `/players/Aalaska`; parser priority remains fixing HC/Normal detection in `parser/parser_core.py`.

@@ -18,6 +18,8 @@ function buildRosterScriptBody(autoRun: boolean): string {
       alert("Pizza Logs: open Warmane Armory first, then run the roster importer.");
       return;
     }
+    const isGuildPage = /^\/guild\/[^/]+\/[^/]+\/summary(?:\/[^/]+)?\/?$/i.test(location.pathname);
+    if (!isGuildPage) return;
 
     const state = {
       running: false,
@@ -201,10 +203,10 @@ export function buildGuildRosterUserscript(): string {
     "// ==UserScript==",
     "// @name         Pizza Logs Warmane Guild Roster Sync",
     "// @namespace    https://pizza-logs-production.up.railway.app",
-    "// @version      1.0.3",
+    "// @version      1.0.4",
     "// @description  Sync Pizza Logs guild roster from Warmane Armory in-browser.",
-    "// @match        https://armory.warmane.com/*",
-    "// @match        http://armory.warmane.com/*",
+    "// @match        https://armory.warmane.com/guild/*",
+    "// @match        http://armory.warmane.com/guild/*",
     `// @downloadURL   ${GUILD_ROSTER_USERSCRIPT_URL}`,
     `// @updateURL     ${GUILD_ROSTER_USERSCRIPT_URL}`,
     "// @run-at       document-idle",

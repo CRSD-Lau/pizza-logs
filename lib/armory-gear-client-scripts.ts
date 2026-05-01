@@ -176,6 +176,8 @@ export function buildUserscript(): string {
     });
 
     if (location.hostname !== "armory.warmane.com") return;
+    const isCharacterPage = /^\/character\/[^/]+\/[^/]+\/summary\/?$/i.test(location.pathname);
+    if (!isCharacterPage) return;
 
     const wait = function wait(ms: number) {
       return new Promise((resolve) => setTimeout(resolve, ms));
@@ -374,10 +376,10 @@ export function buildUserscript(): string {
     "// ==UserScript==",
     "// @name         Pizza Logs Warmane Gear Auto Sync",
     "// @namespace    https://pizza-logs-production.up.railway.app",
-    "// @version      1.0.3",
+    "// @version      1.0.4",
     "// @description  Automatically sync Pizza Logs gear cache from Warmane Armory pages.",
-    "// @match        https://armory.warmane.com/*",
-    "// @match        http://armory.warmane.com/*",
+    "// @match        https://armory.warmane.com/character/*",
+    "// @match        http://armory.warmane.com/character/*",
     `// @downloadURL   ${USERSCRIPT_URL}`,
     `// @updateURL     ${USERSCRIPT_URL}`,
     "// @run-at       document-idle",
