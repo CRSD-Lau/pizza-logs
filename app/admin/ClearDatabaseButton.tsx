@@ -28,7 +28,7 @@ export function ClearDatabaseButton() {
         onClick={() => setPhase("confirm")}
         className="px-4 py-2 text-sm border border-danger/40 text-danger/80 hover:border-danger hover:text-danger rounded transition-colors"
       >
-        Clear Database
+        Clear Upload Data
       </button>
     );
   }
@@ -36,12 +36,15 @@ export function ClearDatabaseButton() {
   if (phase === "confirm") {
     return (
       <div className="flex items-center gap-3">
-        <span className="text-sm text-warning">Wipes all uploads, encounters, players. Sure?</span>
+        <span className="text-sm text-warning max-w-md">
+          This will delete uploaded logs, parsed raids, encounters, combat events, and upload analytics.
+          Cached Warmane gear, player profiles, and guild roster data will be retained.
+        </span>
         <button
           onClick={handleConfirm}
           className="px-3 py-1.5 text-sm border border-danger text-danger hover:bg-danger/10 rounded transition-colors"
         >
-          Yes, wipe it
+          Yes, clear uploads
         </button>
         <button
           onClick={() => setPhase("idle")}
@@ -58,7 +61,7 @@ export function ClearDatabaseButton() {
   }
 
   if (phase === "done") {
-    return <span className="text-sm text-success">✓ Database cleared</span>;
+    return <span className="text-sm text-success">✓ Upload data cleared</span>;
   }
 
   // error
