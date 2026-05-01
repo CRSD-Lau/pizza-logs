@@ -16,11 +16,12 @@ async function verifyAdmin(): Promise<boolean> {
 export async function clearDatabase(): Promise<{ ok: true } | { ok: false; error: string }> {
   if (!(await verifyAdmin())) return { ok: false, error: "Unauthorized" };
 
-  await db.milestone.deleteMany();
-  await db.participant.deleteMany();
-  await db.encounter.deleteMany();
+  // Retention policy:
+  //   CLEARED  – volatile upload-derived data: weekly_summaries, uploads (cascade → encounters → participants → milestones)
+  //   RETAINED – persistent profile/cache data: players, armory_gear_cache, guild_roster_members, realms, guilds, bosses
+  await db.weeklySummary.deleteMany();
+  // Cascade path: uploads → encounters (onDelete: Cascade) → participants + milestones (onDelete: Cascade)
   await db.upload.deleteMany();
-  await db.player.deleteMany();
 
   return { ok: true };
 }
