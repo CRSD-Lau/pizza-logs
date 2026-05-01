@@ -108,6 +108,11 @@
 ### 12. Guild Roster feature added
 - Added a dedicated `/guild-roster` route and nav link
 - Added route-level loading, empty, and error states for the roster page
+- Added `/admin` Guild Roster Sync controls:
+  - Shows roster row count and latest sync time
+  - Uses the existing admin login/cookie via a server action
+  - Calls the Warmane sync with `force: true`
+  - Revalidates `/admin` and `/guild-roster` after a successful sync
 - Added `GuildRosterMember` / `guild_roster_members` as a separate Prisma-backed roster table, distinct from combat-log `Player` rows
 - Added a Prisma migration SQL file at `prisma/migrations/20260430210000_add_guild_roster_members/migration.sql`
 - Added `lib/warmane-guild-roster.ts` for JSON-first Warmane roster retrieval:
@@ -128,6 +133,7 @@
   - HTML fallback parsing
   - upsert payload behavior
   - roster table empty/data render states
+  - admin sync panel copy/rendering
 - Verified existing Warmane player gear tests still pass
 
 ### 13. Warmane roster API investigation
@@ -196,11 +202,11 @@ Do after Skada verification.
 
 ### 6. Guild roster follow-ups
 - Apply the Prisma migration in the target database before using `/guild-roster`
-- After deploy, run `POST /api/guild-roster/sync` with the admin secret and `{ "guild": "PizzaWarriors", "realm": "Lordaeron", "force": true }`
+- After deploy, open `/admin` and click **Sync Roster** in the Guild Roster Sync panel
 - If Railway can reach Warmane, the sync should populate `guild_roster_members`; if Warmane blocks Railway too, keep the page DB-backed and consider a browser-assisted roster importer similar to the gear userscript
 
 ---
 
 ## Next Step
 
-Apply the roster migration, deploy, then call `POST /api/guild-roster/sync` with admin auth and `{ "guild": "PizzaWarriors", "realm": "Lordaeron", "force": true }`. Confirm `/guild-roster` lists PizzaWarriors members from the DB. After that, spot-check `/players/Lausudo` and `/players/Aalaska` for the gear slot fixes; parser priority remains fixing HC/Normal detection in `parser/parser_core.py`.
+Apply the roster migration, deploy, then open `/admin` and click **Sync Roster** in the Guild Roster Sync panel. Confirm `/guild-roster` lists PizzaWarriors members from the DB. After that, spot-check `/players/Lausudo` and `/players/Aalaska` for the gear slot fixes; parser priority remains fixing HC/Normal detection in `parser/parser_core.py`.

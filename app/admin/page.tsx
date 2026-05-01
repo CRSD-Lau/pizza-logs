@@ -7,6 +7,8 @@ import { formatBytes, formatDuration } from "@/lib/utils";
 import { ClearDatabaseButton } from "./ClearDatabaseButton";
 import { DeleteUploadButton } from "./DeleteUploadButton";
 import { GearImportBookmarklet } from "./GearImportBookmarklet";
+import { GuildRosterSyncButton } from "./GuildRosterSyncButton";
+import { GuildRosterSyncPanel } from "./GuildRosterSyncPanel";
 
 export const metadata: Metadata = { title: "Admin / Diagnostics" };
 export const dynamic = "force-dynamic";
@@ -24,6 +26,8 @@ export default async function AdminPage() {
     bossCount,
     gearCacheTotal,
     recentGearErrors,
+    rosterCount,
+    latestRosterSync,
   ] = await Promise.all([
     db.upload.count(),
     db.encounter.count(),
@@ -54,6 +58,11 @@ export default async function AdminPage() {
     db.boss.count(),
     db.armoryGearCache.count(),
     db.armoryGearCache.count({ where: { lastError: { not: null } } }),
+    db.guildRosterMember.count(),
+    db.guildRosterMember.findFirst({
+      orderBy: { lastSyncedAt: "desc" },
+      select: { lastSyncedAt: true },
+    }),
   ]);
 
   return (
@@ -92,6 +101,16 @@ export default async function AdminPage() {
           </p>
           <GearImportBookmarklet />
         </div>
+      </section>
+
+      {/* Guild roster */}
+      <section>
+        <SectionHeader title="Guild Roster Sync" sub="Server-side Warmane roster import for PizzaWarriors" />
+        <GuildRosterSyncPanel
+          rosterCount={rosterCount}
+          latestSync={latestRosterSync?.lastSyncedAt ?? null}
+          action={<GuildRosterSyncButton />}
+        />
       </section>
 
       {/* Service health */}

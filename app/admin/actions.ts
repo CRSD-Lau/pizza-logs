@@ -1,7 +1,9 @@
 "use server";
 
 import { cookies } from "next/headers";
+import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
+import { syncGuildRoster } from "@/lib/warmane-guild-roster";
 
 async function verifyAdmin(): Promise<boolean> {
   const secret = process.env.ADMIN_SECRET;
@@ -43,4 +45,24 @@ export async function deleteUpload(
   await db.upload.delete({ where: { id: uploadId } });
 
   return { ok: true };
+}
+
+export async function syncGuildRosterFromAdmin(): Promise<
+  | { ok: true; count: number; skipped?: boolean }
+  | { ok: false; error: string }
+> {
+  if (!(await verifyAdmin())) return { ok: false, error: "Unauthorized" };
+
+  const result = await syncGuildRoster({ force: true });
+  if (!result.ok) {
+    return {
+      ok: false,
+      error: "Roster sync is temporarily unavailable from Warmane.",
+    };
+  }
+
+  revalidatePath("/admin");
+  revalidatePath("/guild-roster");
+
+  return result;
 }

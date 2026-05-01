@@ -19,7 +19,7 @@ After enabling Tampermonkey/userscript injection, the Warmane page showed the **
 Character-specific enchants/gems are still limited by what Warmane exposes to the browser/importer. Wowhead enrichment provides static item icons, quality, item level, and tooltip text, but not a player's chosen enchants/gems unless those are present in Warmane data.
 Git/deploy expectations are now explicit in root instructions and the Railway runbook: canonical remote is `origin` -> `https://github.com/CRSD-Lau/Pizza-Logs.git`, and user requests to push/deploy/publish/get changes live mean push `main` to `origin` so Railway deploys from `origin/main`. If `git` is missing from PATH on this Windows machine, use `C:\Program Files\Git\cmd\git.exe`.
 
-Guild Roster feature has been added. `/guild-roster` reads from a new DB-backed `guild_roster_members` table, separate from combat-log `players`. The Warmane roster service tries JSON first (`/api/guild/<guild>/<realm>/summary`, then `/members`) and falls back to parsing the native guild summary HTML. It tries `Pizza+Warriors` before `PizzaWarriors` because Warmane search/index results show the guild title with a space. The sync endpoint is `POST /api/guild-roster/sync` and uses the same `ADMIN_SECRET` style as admin gear import when configured.
+Guild Roster feature has been added. `/guild-roster` reads from a new DB-backed `guild_roster_members` table, separate from combat-log `players`. The Warmane roster service tries JSON first (`/api/guild/<guild>/<realm>/summary`, then `/members`) and falls back to parsing the native guild summary HTML. It tries `Pizza+Warriors` before `PizzaWarriors` because Warmane search/index results show the guild title with a space. `/admin` now has a **Guild Roster Sync** panel with row count, last sync time, and a **Sync Roster** button. The button uses the existing admin session/cookie through a server action and runs a forced PizzaWarriors/Lordaeron sync.
 
 Local direct Warmane calls for guild roster returned 403 from this environment, same as prior gear work. The roster page remains DB-backed and does not depend on live Warmane availability at render time. After deployment, test whether Railway can call Warmane; if not, the next enhancement should be a browser-assisted roster import path modeled after the gear userscript.
 
@@ -33,7 +33,7 @@ Local direct Warmane calls for guild roster returned 403 from this environment, 
 | Spot-check gear slot/GearScore fix | VERIFY | After deploy, confirm `/players/Lausudo` shows the libram as `Ranged/Relic` and full 2H+relic GearScore; confirm `/players/Aalaska` shows staff/wand in the weapon row |
 | Refresh gear metadata | VERIFY | Rerun the hosted Warmane userscript so cached rows missing Wowhead `equipLoc` metadata get re-enriched for exact weapon scoring |
 | Stats / Analytics page | FEATURE | Brainstorm first, then design, then build |
-| Populate Guild Roster | VERIFY | Apply migration, deploy, then POST `/api/guild-roster/sync` with admin auth and force=true |
+| Populate Guild Roster | VERIFY | Apply migration, deploy, then use `/admin` -> Guild Roster Sync -> Sync Roster |
 | Verify Skada numbers in-game | VERIFY | Neil to do manually next week |
 | Absorbs (PW:S) | FEATURE | Combined column. Do after verification. |
 
