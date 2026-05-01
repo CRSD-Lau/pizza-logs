@@ -103,7 +103,7 @@ export default async function PlayersPage({ searchParams }: Props) {
         <p className="text-text-secondary text-sm mt-1">
           {classFilter
             ? `${players.length} ${classFilter}${players.length !== 1 ? "s" : ""} · ${totalCount} total`
-            : `${totalCount} players across all raids`}
+            : `${totalCount} players tracked across logs and the guild roster`}
         </p>
       </div>
 
