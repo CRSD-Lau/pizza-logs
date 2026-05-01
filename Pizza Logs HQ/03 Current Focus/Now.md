@@ -6,6 +6,8 @@ Admin page cleanup is complete and validated. TypeScript was clean in the previo
 
 Current active focus is **Warmane roster/gear automation**. The approved direction is laptop-primary automation: a local sync agent will fetch Warmane Armory roster and character gear from Neil's laptop, validate snapshots, and POST imports into the hosted Pizza Logs app. Railway should serve cached snapshots and should not depend on live Warmane/Wowhead requests during page render.
 
+`CLAUDE.md` now contains a dedicated handoff section for this work so Claude sessions on the laptop/desktop should pick up the sync-agent context quickly.
+
 Design spec: `docs/superpowers/specs/2026-05-01-warmane-sync-agent-design.md`.
 
 Note: Jest test suites fail with a pre-existing ESM/Babel config issue (no `jest.config.*` in repo, no transform for `import` syntax). This is not caused by the admin cleanup.
@@ -16,6 +18,7 @@ Note: Jest test suites fail with a pre-existing ESM/Babel config issue (no `jest
 
 | Task | Type | Notes |
 |------|------|-------|
+| Move context to desktop/Claude | HANDOFF | Ensure desktop checkout includes the sync-agent design spec and updated `CLAUDE.md` |
 | Review Warmane sync agent design | PLAN | Approve or revise `docs/superpowers/specs/2026-05-01-warmane-sync-agent-design.md` before implementation |
 | Write Warmane sync implementation plan | PLAN | Use the design to plan backend hardening, sync CLI, admin health UI, and laptop scheduling |
 | Build laptop-primary Warmane sync agent | FEATURE | First command should be `npm run sync:warmane`; runs from laptop, not Railway |

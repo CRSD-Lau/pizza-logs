@@ -7,6 +7,9 @@
 - If Neil says "push", "deploy", "publish", or "make it live", push `main` to `origin` after committing scoped changes; Railway deploys automatically.
 - Current expected local-only noise from the Codex workspace may include `Pizza Logs HQ/.obsidian/graph.json`, `Pizza Logs HQ/.obsidian/workspace.json`, and `tmp-mobile-check/`. Do not commit or delete those unless Neil explicitly asks.
 - Warmane gear and roster syncs are browser-assisted because direct server/Warmane calls are often Cloudflare-blocked. The hosted userscripts live on `/admin` and must be updated in Tampermonkey after deploys that bump their versions.
+- Current active project direction is the **laptop-primary Warmane sync agent**. Read `docs/superpowers/specs/2026-05-01-warmane-sync-agent-design.md` before planning or implementing roster/gear automation.
+- For the sync-agent work, write an implementation plan before coding. The planned first command is `npm run sync:warmane`; it should run from Neil's laptop/desktop, fetch Warmane Armory data from the local network, validate snapshots, and POST imports to the hosted Pizza Logs app.
+- Do not build a Railway residential proxy or Cloudflare-bypass path. Railway should serve cached snapshots and receive imports; it should not depend on live Warmane/Wowhead requests during normal page render.
 
 ## MANDATORY: Read vault at session start
 
@@ -43,6 +46,24 @@ Include vault file changes in the same git commit as code changes.
 - **Stack**: Next.js 15 + TypeScript + Prisma + PostgreSQL + Python FastAPI parser
 - **Hosting**: Railway (two services: "Web Service" + "parser-py")
 - **Vault**: `Pizza Logs HQ/` — Obsidian vault committed to repo
+
+## Current Warmane Sync Agent Handoff
+
+Neil wants roster and gear updates fully automated from Warmane Armory. The chosen architecture is a local sync agent running from his laptop first, with desktop backup later. The agent should fetch Warmane guild roster and character summaries, validate the data, enrich item metadata, and import clean snapshots into Pizza Logs.
+
+Primary design spec:
+- `docs/superpowers/specs/2026-05-01-warmane-sync-agent-design.md`
+
+Implementation priorities:
+1. Harden backend import validation so empty, HTML challenge, error, or partial payloads never overwrite last known good data.
+2. Add the repo-local sync CLI with dry-run support.
+3. Add admin sync health visibility.
+4. Add a Windows Task Scheduler PowerShell helper for laptop/desktop automation.
+
+V1 decisions:
+- Gear is stale after 24 hours for cached players and roster members.
+- Roster inactive marking is not included in v1.
+- Laptop is the first active sync agent; desktop backup can come later with a backend lease/lock.
 
 ## Parser Philosophy — Skada-First
 
