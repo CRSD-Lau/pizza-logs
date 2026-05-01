@@ -1,5 +1,13 @@
 # Pizza Logs — Claude Instructions
 
+## Claude Workspace Handoff Notes
+
+- This repo is the active project workspace. Do not ask Neil for the GitHub repo URL; use the canonical `origin` remote listed below.
+- At session start, run `git status --short --branch` and read the three mandatory vault files before making changes.
+- If Neil says "push", "deploy", "publish", or "make it live", push `main` to `origin` after committing scoped changes; Railway deploys automatically.
+- Current expected local-only noise from the Codex workspace may include `Pizza Logs HQ/.obsidian/graph.json`, `Pizza Logs HQ/.obsidian/workspace.json`, and `tmp-mobile-check/`. Do not commit or delete those unless Neil explicitly asks.
+- Warmane gear and roster syncs are browser-assisted because direct server/Warmane calls are often Cloudflare-blocked. The hosted userscripts live on `/admin` and must be updated in Tampermonkey after deploys that bump their versions.
+
 ## MANDATORY: Read vault at session start
 
 At the start of EVERY session (before writing any code or answering any question),

@@ -28,6 +28,8 @@ Roster rank/profession import has been tightened again after production still sh
 
 Warmane userscripts are page-specific as of v1.0.4. Gear Sync matches/runs only on Warmane character pages, and Roster Sync matches/runs only on Warmane guild pages. Both also have runtime path guards in case stale Tampermonkey metadata still tries to run them on the wrong page type.
 
+Claude workspace transition is prepared. `CLAUDE.md` now has a dedicated handoff section telling Claude to use this repo workspace, read the vault first, use the canonical `origin` remote, push `main` to `origin` for live/Railway deploy requests, ignore current local-only Codex noise unless Neil asks, and remember the Warmane userscript workflow from `/admin`.
+
 Roster-only player profiles are now supported. `/players/<name>` can resolve a `guild_roster_members` row even if that character has never appeared in combat logs, and combat-log profiles merge roster metadata when present. The admin Warmane gear queue includes roster-only members too, so the existing Warmane Gear Sync userscript can scrape/import their equipment, then the existing player gear section and roster table can calculate GearScore from cached gear.
 
 Local direct Warmane calls for guild roster returned 403 from this environment, same as prior gear work. Production `/admin` also showed "Roster sync is temporarily unavailable from Warmane" for the server-side sync. Use the browser roster userscript fallback from `/admin` when the server-side button is blocked. The roster page remains DB-backed and does not depend on live Warmane availability at render time.
@@ -45,6 +47,7 @@ Local direct Warmane calls for guild roster returned 403 from this environment, 
 | Stats / Analytics page | FEATURE | Brainstorm first, then design, then build |
 | Populate Guild Roster | VERIFY | Apply migrations, deploy, install/update roster userscript v1.0.4 from `/admin`, sync from Warmane guild page, then run Warmane Gear Sync from a character page so roster-only players get gear/GS |
 | Spot-check Warmane panels | VERIFY | Confirm Gear Sync appears on character pages and Roster Sync appears on guild pages |
+| Claude handoff | VERIFY | In Claude, run `git status --short --branch`, read the required vault files, and pull latest `origin/main` if the workspace is behind |
 | Verify Skada numbers in-game | VERIFY | Neil to do manually next week |
 | Absorbs (PW:S) | FEATURE | Combined column. Do after verification. |
 

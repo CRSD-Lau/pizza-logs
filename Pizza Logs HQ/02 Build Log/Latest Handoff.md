@@ -5,7 +5,7 @@
 
 ## Git
 **Branch:** `main`
-**Latest commit before this handoff commit:** `50d3d04 fix: stack warmane userscript panels`
+**Latest commit before this handoff commit:** `1844c36 fix: scope warmane userscripts by page`
 **Release:** `v0.1.0` - tagged and published on GitHub
 
 ---
@@ -194,6 +194,15 @@
 - Bumped both Warmane userscripts to v1.0.4
 - Updated userscript tests to assert page-specific match metadata and guards
 
+### 19. Claude workspace transition prepared
+- Updated `CLAUDE.md` with a dedicated Claude handoff block:
+  - Use the existing PizzaLogs repo workspace and canonical `origin` remote
+  - Read the vault files first, then check git status before edits
+  - Treat "push/deploy/publish/live" as `git push origin main` after a scoped commit
+  - Ignore current local-only Codex noise unless Neil asks otherwise
+  - Remember that Warmane gear/roster sync uses browser-assisted Tampermonkey scripts from `/admin`
+- This handoff is intended for a seamless switch to Claude near the current chat rate limit
+
 ---
 
 ## Current State
@@ -207,6 +216,7 @@
 - **GearScore Titan Grip**: dual two-handed weapons now normalize as main hand + off hand so the existing Titan Grip half-score modifier applies; single 2H + relic/ranged still scores as a single doubled 2H plus ranged/relic
 - **Gear sync userscript**: v1.0.4 appears only on Warmane character pages and imports missing/enrichment-needed gear rows
 - **Roster sync userscript**: v1.0.4 appears only on Warmane guild pages and imports guild roster rows
+- **Claude transition**: `CLAUDE.md` now includes a workspace handoff note with remote/deploy rules, expected local-only noise, and Warmane userscript workflow reminders
 - **Git/deploy**: canonical remote is `origin` -> `https://github.com/CRSD-Lau/Pizza-Logs.git`; push live changes with `git push origin main` so Railway deploys from `origin/main`
 - **Warmane local access**: blocked by Cloudflare/403 from this Codex shell, handled gracefully by UI
 - **Checks run**: Guild roster parser/client-script/admin-panel/table tests passed; armory gear queue tests passed; roster-only player profile tests passed; `prisma validate` passed; `tsc --noEmit` passed; `next build` passed
@@ -262,4 +272,4 @@ Do after Skada verification.
 
 ## Next Step
 
-Apply the new roster migration if it has not already been applied, deploy, then install/update both Warmane userscripts from `/admin` so Tampermonkey gets v1.0.4. Confirm **Pizza Logs Gear Sync** appears on Warmane character pages and **Pizza Logs Roster Sync** appears on Warmane guild pages. Open the Warmane Pizza Warriors guild page and click **Sync roster**; confirm `/guild-roster` lists PizzaWarriors members sorted with Warmane rank order and professions. Then run the Warmane Gear Sync userscript from a Warmane character page so roster-only members get cached gear and GS. After that, spot-check `/players/Maximusboom`, `/players/Contents`, `/players/Lausudo`, and `/players/Aalaska`; parser priority remains fixing HC/Normal detection in `parser/parser_core.py`.
+In Claude, first run `git status --short --branch`, read `START HERE.md`, this handoff, and `Now.md`, then pull latest `origin/main` if needed. After Railway deploys the latest pushed commits, install/update both Warmane userscripts from `/admin` so Tampermonkey gets v1.0.4. Confirm **Pizza Logs Gear Sync** appears on Warmane character pages and **Pizza Logs Roster Sync** appears on Warmane guild pages. Open the Warmane Pizza Warriors guild page and click **Sync roster**; confirm `/guild-roster` lists PizzaWarriors members sorted with Warmane rank order and professions. Then run the Warmane Gear Sync userscript from a Warmane character page so roster-only members get cached gear and GS. After that, spot-check `/players/Maximusboom`, `/players/Contents`, `/players/Lausudo`, and `/players/Aalaska`; parser priority remains fixing HC/Normal detection in `parser/parser_core.py`.
