@@ -111,7 +111,15 @@ export function SyncHealthPanel() {
       {message && <p className="text-xs text-text-secondary">{message}</p>}
 
       <p className="text-xs text-text-dim">
-        Desktop bridge must be running to process queued jobs.
+        Bridge processes jobs automatically when your browser is open.{" "}
+        <a
+          href="/api/admin/sync/userscript.user.js"
+          className="text-gold underline hover:text-gold/80"
+          target="_blank"
+          rel="noreferrer"
+        >
+          Install userscript
+        </a>
       </p>
     </div>
   );
