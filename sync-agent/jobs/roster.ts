@@ -1,5 +1,6 @@
 import { fetchGuildRoster } from "../warmane/roster";
 import { log } from "../logger";
+import { fetchWithTimeout } from "../fetch-util";
 import type { SyncConfig } from "../config";
 
 export type RosterJobResult = {
@@ -27,7 +28,7 @@ export async function runRosterJob(
     return { membersImported: 0 };
   }
 
-  const res = await fetch(
+  const res = await fetchWithTimeout(
     `${config.origin}/api/admin/guild-roster/import`,
     {
       method: "POST",
@@ -41,6 +42,11 @@ export async function runRosterJob(
     }
   );
 
+  if (!res.ok) {
+    const error = `Import failed: HTTP ${res.status}`;
+    log.error("ROSTER job:", error);
+    return { membersImported: 0, error };
+  }
   const data = (await res.json()) as Record<string, unknown>;
   if (!data.ok) {
     const error =

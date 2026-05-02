@@ -2,6 +2,7 @@ import { loadConfig } from "./config";
 import { log } from "./logger";
 import { runRosterJob } from "./jobs/roster";
 import { runGearJob } from "./jobs/gear";
+import { fetchWithTimeout } from "./fetch-util";
 
 type ClaimedJob = { id: string; type: "ROSTER" | "GEAR" };
 
@@ -13,7 +14,7 @@ if (config.dryRun) log.warn("DRY_RUN mode enabled — no data will be imported")
 
 async function claimPendingJob(): Promise<ClaimedJob | null> {
   try {
-    const res = await fetch(`${config.origin}/api/admin/sync/pending`, {
+    const res = await fetchWithTimeout(`${config.origin}/api/admin/sync/pending`, {
       headers: {
         "x-admin-secret": config.adminSecret,
         "x-agent-id": config.agentId,
@@ -34,7 +35,7 @@ async function completeJob(
   error?: string
 ): Promise<void> {
   try {
-    await fetch(`${config.origin}/api/admin/sync/complete`, {
+    await fetchWithTimeout(`${config.origin}/api/admin/sync/complete`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -47,11 +48,12 @@ async function completeJob(
 
 async function triggerJob(type: "ROSTER" | "GEAR"): Promise<ClaimedJob | null> {
   try {
-    const res = await fetch(`${config.origin}/api/admin/sync/trigger`, {
+    const res = await fetchWithTimeout(`${config.origin}/api/admin/sync/trigger`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ type }),
     });
+    if (!res.ok) return null;
     const data = (await res.json()) as { ok: boolean; jobId?: string };
     if (!data.ok || !data.jobId) return null;
     // Immediately claim the job we just created
@@ -115,7 +117,7 @@ async function schedulerTick(): Promise<void> {
 setTimeout(async () => {
   log.info("Running startup sync…");
   lastRosterRun = Date.now();
-  lastGearRun = Date.now();
+  lastGearRun = Date.now(); // suppress scheduler until first interval elapses
   const rosterJob = await triggerJob("ROSTER");
   if (rosterJob) await runJob(rosterJob);
 }, 15_000);

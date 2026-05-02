@@ -1,5 +1,6 @@
 import { fetchCharacterGear } from "../warmane/character";
 import { log } from "../logger";
+import { fetchWithTimeout } from "../fetch-util";
 import type { SyncConfig } from "../config";
 
 export type GearJobResult = {
@@ -13,7 +14,7 @@ type QueueEntry = { characterName: string; realm: string };
 
 async function getGearQueue(config: SyncConfig): Promise<QueueEntry[]> {
   try {
-    const res = await fetch(`${config.origin}/api/admin/armory-gear/missing`);
+    const res = await fetchWithTimeout(`${config.origin}/api/admin/armory-gear/missing`);
     if (!res.ok) return [];
     const data = (await res.json()) as Record<string, unknown>;
     if (!data.ok || !Array.isArray(data.players)) return [];
@@ -53,7 +54,6 @@ export async function runGearJob(
     const gear = await fetchCharacterGear(entry.characterName, entry.realm, {
       enrich: true,
     });
-    await sleep(config.requestDelayMs);
 
     if (!gear) {
       log.warn(`GEAR job: no gear returned for ${entry.characterName}`);
@@ -61,7 +61,9 @@ export async function runGearJob(
       continue;
     }
 
-    const res = await fetch(
+    await sleep(config.requestDelayMs);
+
+    const res = await fetchWithTimeout(
       `${config.origin}/api/admin/armory-gear/import`,
       {
         method: "POST",
@@ -76,6 +78,11 @@ export async function runGearJob(
       }
     );
 
+    if (!res.ok) {
+      log.warn(`GEAR job: HTTP ${res.status} for ${gear.characterName}`);
+      failed++;
+      continue;
+    }
     const data = (await res.json()) as Record<string, unknown>;
     if (data.ok) {
       log.info(
