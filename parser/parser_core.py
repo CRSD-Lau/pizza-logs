@@ -23,7 +23,8 @@ from bosses import BossDef, lookup_boss, lookup_boss_by_id, ALL_BOSS_NAMES
 # ── Constants ─────────────────────────────────────────────────────
 
 # Spell names that only appear in heroic difficulty encounters.
-# Used to upgrade "25N"/"10N" to "25H"/"10H" when ENCOUNTER_START is absent.
+# Used to upgrade "25N"/"10N" to "25H"/"10H" — runs regardless of whether
+# ENCOUNTER_START is present, because Warmane emits difficultyID=4 (25N) for heroic runs.
 HEROIC_SPELL_MARKERS: frozenset[str] = frozenset({
     # Lord Marrowgar (ICC) — multi-target cleave only present in heroic
     "bone slice",
@@ -38,6 +39,30 @@ HEROIC_SPELL_MARKERS: frozenset[str] = frozenset({
     # On Warmane these spells also appear in 10N, so they cannot be used as heroic-exclusive
     # markers.  Sindragosa and BPC in a 25H session instead inherit the session's heroic
     # difficulty via _normalize_session_difficulty (25N → 25H promotion).
+})
+
+# Gunship Battle: Warmane emits ENCOUNTER_END success=0 even on a genuine kill
+# (the fight ends via scripted ship destruction, not a boss UNIT_DIED).
+# A KILL is detected by any crew member dying during the encounter window.
+# Sources: Horde log = players board The Skybreaker (Alliance ship crew die).
+#          Alliance log = players board Orgrim's Hammer (Kor'kron crew die).
+GUNSHIP_CREW_NAMES: frozenset[str] = frozenset({
+    # Skybreaker (Alliance ship) crew — appear in Horde-side logs
+    "muradin bronzebeard",
+    "high captain justin bartlett",
+    "skybreaker sorcerer",
+    "skybreaker rifleman",
+    "skybreaker sergeant",
+    "skybreaker mortar soldier",
+    "skybreaker vindicator",
+    "skybreaker marksman",
+    # Kor'kron (Horde ship) crew — appear in Alliance-side logs
+    "kor'kron battle-mage",
+    "kor'kron primalist",
+    "kor'kron defender",
+    "kor'kron invoker",
+    "kor'kron reaver",
+    "kor'kron sergeant",
 })
 
 # Source: Skada-WoTLK Skada/Modules/Damage.lua — RegisterForCL call.
@@ -219,6 +244,24 @@ class RawEncounterEvent:
     overkill:  float
     is_crit:   bool
     is_heal:   bool
+
+
+@dataclass
+class DebugInfo:
+    """Optional debug metadata produced by parsing one encounter segment."""
+    boss_name: str
+    difficulty_method: str           # "encounter_start" | "heuristic"
+    difficulty_raw: str              # difficulty before heroic upgrade
+    difficulty_final: str            # difficulty after heroic upgrade
+    heroic_markers_found: list[str]  # spell names that triggered upgrade
+    outcome_method: str              # "encounter_end" | "unit_died" | "gunship_crew" | "heuristic"
+    outcome_evidence: str            # human-readable reason
+    event_count: int                 # total events in segment
+    skipped_event_count: int         # events skipped (currently 0 — placeholder for future)
+    pet_remaps: list[str]            # "PetName → OwnerName" strings
+    actor_count: int                 # distinct actors counted
+    boss_guid_count: int             # number of GUIDs identified as the boss
+    parser_warnings: list[str]       # parser warnings at time of encounter
 
 
 @dataclass
@@ -638,9 +681,12 @@ class CombatLogParser:
         self,
         segment: list[tuple[str, list[str], float]],
         pet_owner: Optional[dict[str, tuple[str, str]]] = None,
-    ) -> Optional[ParsedEncounter]:
+        debug: bool = False,
+    ) -> "Optional[ParsedEncounter] | tuple[Optional[ParsedEncounter], Optional[DebugInfo]]":
         """Turn a list of raw log lines into a ParsedEncounter."""
         if not segment:
+            if debug:
+                return None, None
             return None
 
         # Determine boss from ENCOUNTER_START if present
@@ -651,6 +697,13 @@ class CombatLogParser:
         outcome    = "UNKNOWN"
         first_ts_str = segment[0][0]
         last_ts_str  = segment[-1][0]
+
+        _debug_difficulty_method = "heuristic"
+        _debug_difficulty_raw = "10N"
+        _debug_markers: list[str] = []
+        _debug_outcome_method = "heuristic"
+        _debug_outcome_evidence = ""
+        _debug_pet_remaps: list[str] = []
 
         # Check for ENCOUNTER_START / ENCOUNTER_END markers
         for ts_str, parts, ts in segment:
@@ -665,6 +718,8 @@ class CombatLogParser:
                 success   = _safe_int(parts[5])
                 outcome   = "KILL" if success == 1 else "WIPE"
                 last_ts_str = ts_str
+                _debug_outcome_method = "encounter_end"
+                _debug_outcome_evidence = f"ENCOUNTER_END success={success}"
 
         # Gunship Battle: ENCOUNTER_END emits success=0 on Warmane even on a genuine
         # kill (the fight ends via scripted ship destruction, not a boss death event).
@@ -672,29 +727,42 @@ class CombatLogParser:
         # Horde-side kill (players board The Skybreaker): Skybreaker crew die.
         # Alliance-side kill (players board Orgrim's Hammer): Kor'kron crew die.
         if outcome in ("WIPE", "UNKNOWN") and boss_name and "gunship" in boss_name.lower():
-            _gunship_crew = {
-                # Horde log: Skybreaker (Alliance ship) crew
-                "muradin bronzebeard", "high captain justin bartlett",
-                "skybreaker sorcerer", "skybreaker rifleman", "skybreaker sergeant",
-                # Alliance log: Kor'kron (Horde ship) crew on Orgrim's Hammer
-                "kor'kron battle-mage", "kor'kron primalist",
-                "kor'kron defender", "kor'kron invoker",
-            }
             for _, gparts, _ in segment:
                 if gparts[0] == UNIT_DIED_EVENT and len(gparts) >= 6:
-                    if gparts[5].strip('"').strip().lower() in _gunship_crew:
+                    if gparts[5].strip('"').strip().lower() in GUNSHIP_CREW_NAMES:
                         outcome = "KILL"
+                        _debug_outcome_method = "gunship_crew"
+                        _debug_outcome_evidence = f"{gparts[5].strip(chr(34)).strip()} died"
                         break
 
         # Heuristic boss detection if no ENCOUNTER_START
+        _debug_difficulty_method = "encounter_start" if boss_name else "heuristic"
         if not boss_name:
             boss_name, boss_id = self._infer_boss(segment)
             group_size, difficulty = self._infer_difficulty(segment)
             outcome = self._infer_outcome(segment, boss_name)
-            if self._detect_heroic(segment):
-                difficulty = difficulty.replace("N", "H")
+        _debug_difficulty_raw = difficulty  # capture after both paths
+
+        # Heroic upgrade: run even when ENCOUNTER_START was present, because Warmane
+        # (and many WotLK private servers) emit difficultyID=4 (25N) for heroic runs.
+        # HEROIC_SPELL_MARKERS contains spells that only appear in heroic difficulty.
+        # If the difficulty was correctly set to H via difficultyID, the replace() is a no-op.
+        if difficulty in ("10N", "25N") and self._detect_heroic(segment):
+            difficulty = difficulty.replace("N", "H")
+            if debug and difficulty != _debug_difficulty_raw:
+                for _, _mp, _ in segment:
+                    if _mp[0] == "SWING_DAMAGE" or _mp[0] == UNIT_DIED_EVENT:
+                        continue
+                    if len(_mp) > 8:
+                        spell = _mp[8].strip('"').strip().lower()
+                        if spell in HEROIC_SPELL_MARKERS:
+                            marker = _mp[8].strip('"').strip()
+                            if marker not in _debug_markers:
+                                _debug_markers.append(marker)
 
         if not boss_name:
+            if debug:
+                return None, None
             return None  # Cannot identify boss — skip
 
         boss_def = (lookup_boss_by_id(boss_id) if boss_id else None) or lookup_boss(boss_name)
@@ -962,6 +1030,8 @@ class CombatLogParser:
         # Discard false-positive segments: no player output AND very short
         # (pre-pull buffs / noise captured before first real pull)
         if total_damage == 0 and duration < 60:
+            if debug:
+                return None, None
             return None
 
         started_at = parse_ts_to_iso(first_ts_str, self.file_year)
@@ -974,7 +1044,7 @@ class CombatLogParser:
             participants = [p["name"] for p in participants],
         )
 
-        return ParsedEncounter(
+        enc = ParsedEncounter(
             boss_name         = boss_def.name if boss_def else boss_name,
             boss_def          = boss_def,
             boss_id           = boss_id,
@@ -991,6 +1061,25 @@ class CombatLogParser:
             participants      = participants,
             raw_event_count   = len(segment),
         )
+
+        if debug:
+            dbg = DebugInfo(
+                boss_name=boss_name or "",
+                difficulty_method=_debug_difficulty_method,
+                difficulty_raw=_debug_difficulty_raw,
+                difficulty_final=difficulty,
+                heroic_markers_found=_debug_markers,
+                outcome_method=_debug_outcome_method,
+                outcome_evidence=_debug_outcome_evidence,
+                event_count=len(segment),
+                skipped_event_count=0,
+                pet_remaps=_debug_pet_remaps,
+                actor_count=len(actors),
+                boss_guid_count=len(boss_guids),
+                parser_warnings=list(self.warnings),
+            )
+            return enc, dbg
+        return enc
 
     def _infer_boss(
         self, segment: list[tuple[str, list[str], float]]
@@ -1061,16 +1150,10 @@ class CombatLogParser:
         # Gunship Battle: ends via scripted ship destruction — no single boss UNIT_DIED.
         # KILL = any crew member died. Horde log: Skybreaker crew. Alliance log: Kor'kron crew.
         if "gunship" in bn:
-            _gunship_crew = {
-                "muradin bronzebeard", "high captain justin bartlett",
-                "skybreaker sorcerer", "skybreaker rifleman", "skybreaker sergeant",
-                "kor'kron battle-mage", "kor'kron primalist",
-                "kor'kron defender", "kor'kron invoker",
-            }
             for _, parts, _ in segment:
                 if parts[0] == UNIT_DIED_EVENT and len(parts) >= 6:
                     name = parts[5].strip('"').strip().lower()
-                    if name in _gunship_crew:
+                    if name in GUNSHIP_CREW_NAMES:
                         return "KILL"
             return "WIPE"
 

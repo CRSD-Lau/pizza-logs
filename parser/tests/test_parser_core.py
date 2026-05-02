@@ -12,6 +12,7 @@ import pytest
 from parser_core import (
     CombatLogParser, ParsedEncounter, DMG_EVENTS,
     UNIT_DIED_EVENT, ENCOUNTER_START, ENCOUNTER_END,
+    GUNSHIP_CREW_NAMES,
     _decode_difficulty, _is_player,
 )
 from bosses import lookup_boss
@@ -256,6 +257,58 @@ def test_gunship_kill_from_encounter_end_success():
     enc = parser._aggregate_segment(seg, {})
     assert enc is not None
     assert enc.outcome == "KILL"
+
+
+# ── Gunship crew name coverage ───────────────────────────────────────────────
+
+_ALL_GUNSHIP_CREW_NAMES = [
+    # Horde log: Skybreaker (Alliance ship) crew
+    "Muradin Bronzebeard",
+    "High Captain Justin Bartlett",
+    "Skybreaker Sorcerer",
+    "Skybreaker Rifleman",
+    "Skybreaker Sergeant",
+    "Skybreaker Mortar Soldier",
+    "Skybreaker Vindicator",
+    "Skybreaker Marksman",
+    # Alliance log: Kor'kron (Horde ship) crew
+    "Kor'kron Battle-Mage",
+    "Kor'kron Primalist",
+    "Kor'kron Defender",
+    "Kor'kron Invoker",
+    "Kor'kron Reaver",
+    "Kor'kron Sergeant",
+]
+
+
+@pytest.mark.parametrize("crew_name", _ALL_GUNSHIP_CREW_NAMES)
+def test_gunship_kill_all_crew_names(crew_name):
+    """Any crew member dying during Gunship produces KILL outcome."""
+    seg = make_gunship_segment(crew_death=crew_name, encounter_end_success=0)
+    p = CombatLogParser()
+    enc = p._aggregate_segment(seg, {})
+    assert enc is not None
+    assert enc.outcome == "KILL", (
+        f"Expected KILL when '{crew_name}' dies, got {enc.outcome}"
+    )
+
+
+def test_gunship_wipe_no_crew_deaths():
+    """No crew deaths + ENCOUNTER_END success=0 → WIPE."""
+    ts = 46800.0
+    seg = [
+        ("4/19 13:00:00.000", [ENCOUNTER_START, "1234", '"Gunship Battle"', "4", "25"], ts),
+        ("4/19 13:01:00.000",
+         _spell_damage_parts(PLAYER_GUID, "Phyre", NPC_GUID, "Gunship Battle", 50_000),
+         ts + 60),
+        ("4/19 13:02:30.000",
+         [ENCOUNTER_END, "1234", '"Gunship Battle"', "4", "25", "0"],
+         ts + 150),
+    ]
+    p = CombatLogParser()
+    enc = p._aggregate_segment(seg, {})
+    assert enc is not None
+    assert enc.outcome == "WIPE", f"Expected WIPE, got {enc.outcome}"
 
 
 # ── Gunship difficulty: session-level normalization ────────────────────────────
@@ -1894,4 +1947,135 @@ def test_normalize_session_difficulty_upgrades_25n_sindragosa_to_25h():
     assert sindragosa_25n.difficulty == "25H", (
         f"Sindragosa 25N in a 25H session must be upgraded to '25H', "
         f"got '{sindragosa_25n.difficulty}'"
+    )
+
+
+# ── Heroic detection with ENCOUNTER_START present ────────────────────────────
+
+def _make_encounter_start_segment(
+    boss_name: str,
+    diff_id: int,
+    group_size: int,
+    heroic_spell: str | None = None,
+    extra_player_count: int = 0,
+) -> list[tuple[str, list[str], float]]:
+    """Build a minimal segment with ENCOUNTER_START/END and optional heroic spell."""
+    ts_base = 46800.0
+    seg = [
+        (
+            "4/19 13:00:00.000",
+            [ENCOUNTER_START, "1234", f'"{boss_name}"', str(diff_id), str(group_size)],
+            ts_base,
+        ),
+    ]
+    if heroic_spell:
+        seg.append((
+            "4/19 13:00:01.000",
+            _spell_damage_parts(
+                PLAYER_GUID, "Phyre",
+                NPC_GUID, boss_name,
+                50_000, spell=heroic_spell,
+            ),
+            ts_base + 1,
+        ))
+    for i in range(extra_player_count):
+        guid = f"0x0600000000{i:08x}"
+        seg.append((
+            "4/19 13:00:02.000",
+            _spell_damage_parts(guid, f"Player{i}", NPC_GUID, boss_name, 1000),
+            ts_base + 2,
+        ))
+    seg.append((
+        "4/19 13:00:30.000",
+        _unit_died_parts(boss_name),
+        ts_base + 30,
+    ))
+    seg.append((
+        "4/19 13:00:30.100",
+        [ENCOUNTER_END, "1234", f'"{boss_name}"', str(diff_id), str(group_size), "1"],
+        ts_base + 30.1,
+    ))
+    return seg
+
+
+def test_heroic_detected_with_encounter_start_25h():
+    """ENCOUNTER_START difficultyID=4 (25N) + Bone Slice → difficulty must be 25H."""
+    seg = _make_encounter_start_segment(
+        "Lord Marrowgar", diff_id=4, group_size=25,
+        heroic_spell="Bone Slice", extra_player_count=20,
+    )
+    p = CombatLogParser()
+    enc = p._aggregate_segment(seg, {})
+    assert enc is not None
+    assert enc.difficulty == "25H", f"Expected 25H, got {enc.difficulty}"
+
+
+def test_heroic_detected_with_encounter_start_10h():
+    """ENCOUNTER_START difficultyID=4 (25N) + Bone Slice + ≤12 players → 10H."""
+    seg = _make_encounter_start_segment(
+        "Lord Marrowgar", diff_id=3, group_size=10,
+        heroic_spell="Bone Slice", extra_player_count=8,
+    )
+    p = CombatLogParser()
+    enc = p._aggregate_segment(seg, {})
+    assert enc is not None
+    assert enc.difficulty == "10H", f"Expected 10H, got {enc.difficulty}"
+
+
+def test_no_heroic_upgrade_without_markers():
+    """ENCOUNTER_START difficultyID=4 with no heroic spells → stays 25N."""
+    seg = _make_encounter_start_segment(
+        "Lord Marrowgar", diff_id=4, group_size=25,
+        heroic_spell=None, extra_player_count=20,
+    )
+    p = CombatLogParser()
+    enc = p._aggregate_segment(seg, {})
+    assert enc is not None
+    assert enc.difficulty == "25N", f"Expected 25N, got {enc.difficulty}"
+
+
+def test_heroic_correct_diff_id_unchanged():
+    """ENCOUNTER_START difficultyID=6 (25H) already → stays 25H without needing markers."""
+    seg = _make_encounter_start_segment(
+        "Lord Marrowgar", diff_id=6, group_size=25,
+        heroic_spell=None, extra_player_count=20,
+    )
+    p = CombatLogParser()
+    enc = p._aggregate_segment(seg, {})
+    assert enc is not None
+    assert enc.difficulty == "25H", f"Expected 25H, got {enc.difficulty}"
+
+
+# ── Debug mode ───────────────────────────────────────────────────────────────
+
+def test_debug_info_returned_when_requested():
+    """_aggregate_segment returns (enc, DebugInfo) when debug=True."""
+    from parser_core import DebugInfo
+    seg = _make_encounter_start_segment(
+        "Lord Marrowgar", diff_id=4, group_size=25,
+        heroic_spell=None, extra_player_count=20,
+    )
+    p = CombatLogParser()
+    result = p._aggregate_segment(seg, {}, debug=True)
+    assert isinstance(result, tuple), f"Expected tuple, got {type(result)}"
+    enc, dbg = result
+    assert enc is not None
+    assert isinstance(dbg, DebugInfo)
+    assert dbg.boss_name == "Lord Marrowgar"
+    assert dbg.difficulty_method in ("encounter_start", "heuristic")
+    assert isinstance(dbg.heroic_markers_found, list)
+    assert isinstance(dbg.outcome_evidence, str)
+    assert isinstance(dbg.skipped_event_count, int)
+
+
+def test_debug_info_none_when_not_requested():
+    """_aggregate_segment returns ParsedEncounter (not tuple) when debug=False."""
+    seg = _make_encounter_start_segment(
+        "Lord Marrowgar", diff_id=4, group_size=25,
+    )
+    p = CombatLogParser()
+    result = p._aggregate_segment(seg, {})
+    # Normal call: should return a ParsedEncounter, not a tuple
+    assert not isinstance(result, tuple), (
+        f"Expected ParsedEncounter, got tuple: {result}"
     )

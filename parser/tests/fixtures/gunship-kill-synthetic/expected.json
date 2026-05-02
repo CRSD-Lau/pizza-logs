@@ -1,0 +1,19 @@
+{
+  "encounter_count": 1,
+  "encounters": [
+    {
+      "boss_name": "Gunship Battle",
+      "difficulty": "25N",
+      "outcome": "KILL",
+      "group_size": 25,
+      "duration_seconds_min": 23,
+      "duration_seconds_max": 26,
+      "total_damage_min": 135000,
+      "total_damage_max": 141000,
+      "total_healing_min": 0,
+      "total_healing_max": 0,
+      "participant_count_min": 2,
+      "participant_count_max": 2
+    }
+  ]
+}
