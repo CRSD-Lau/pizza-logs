@@ -1,5 +1,5 @@
-import { isWarmaneErrorJson } from "../validate";
-import { fetchWarmaneJson } from "./browser";
+import { isHtmlChallengePage, isWarmaneErrorJson } from "../validate";
+import { fetchWithTimeout } from "../fetch-util";
 
 const GUILD = "Pizza+Warriors";
 const REALM = "Lordaeron";
@@ -57,8 +57,17 @@ export function normalizeRosterJson(data: unknown): RosterMember[] | null {
 
 export async function fetchGuildRoster(): Promise<RosterMember[] | null> {
   const url = `https://armory.warmane.com/api/guild/${GUILD}/${REALM}/summary`;
-  const data = await fetchWarmaneJson(url);
-  if (!data) return null;
+  let data: unknown;
+  try {
+    const res = await fetchWithTimeout(url, {
+      headers: { Accept: "application/json", "User-Agent": "Mozilla/5.0" },
+    });
+    const text = await res.text();
+    if (isHtmlChallengePage(text)) return null;
+    data = JSON.parse(text);
+  } catch {
+    return null;
+  }
   if (isWarmaneErrorJson(data)) return null;
   return normalizeRosterJson(data);
 }

@@ -1,6 +1,6 @@
-import { isWarmaneErrorJson, isValidGearPayload } from "../validate";
+import { isHtmlChallengePage, isWarmaneErrorJson, isValidGearPayload } from "../validate";
 import { fetchWowheadItem } from "./wowhead";
-import { fetchWarmaneJson } from "./browser";
+import { fetchWithTimeout } from "../fetch-util";
 
 const WOWHEAD_DELAY_MS = 1_500;
 
@@ -60,8 +60,17 @@ export async function fetchCharacterGear(
   const apiUrl = `https://armory.warmane.com/api/character/${encodeURIComponent(characterName)}/${encodeURIComponent(realm)}/summary`;
   const sourceUrl = `https://armory.warmane.com/character/${encodeURIComponent(characterName)}/${encodeURIComponent(realm)}/summary`;
 
-  const data = await fetchWarmaneJson(apiUrl);
-  if (!data) return null;
+  let data: unknown;
+  try {
+    const res = await fetchWithTimeout(apiUrl, {
+      headers: { Accept: "application/json", "User-Agent": "Mozilla/5.0" },
+    });
+    const text = await res.text();
+    if (isHtmlChallengePage(text)) return null;
+    data = JSON.parse(text);
+  } catch {
+    return null;
+  }
   if (isWarmaneErrorJson(data)) return null;
   if (!isValidGearPayload(data)) return null;
 

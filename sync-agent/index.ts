@@ -3,7 +3,6 @@ import { log } from "./logger";
 import { runRosterJob } from "./jobs/roster";
 import { runGearJob } from "./jobs/gear";
 import { fetchWithTimeout } from "./fetch-util";
-import { closeBrowser } from "./warmane/browser";
 
 type ClaimedJob = { id: string; type: "ROSTER" | "GEAR" };
 
@@ -123,14 +122,12 @@ setTimeout(async () => {
   if (rosterJob) await runJob(rosterJob);
 }, 15_000);
 
-process.on("SIGINT", async () => {
+process.on("SIGINT", () => {
   log.info("Bridge stopping…");
-  await closeBrowser();
   process.exit(0);
 });
 
-process.on("SIGTERM", async () => {
-  await closeBrowser();
+process.on("SIGTERM", () => {
   process.exit(0);
 });
 
