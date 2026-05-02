@@ -47,3 +47,8 @@ parser/diag_*.py
 
 # claude worktrees
 .claude/worktrees/
+
+# sync agent
+.env.sync-agent
+.sync-agent-logs/
+.sync-agent-dist/
