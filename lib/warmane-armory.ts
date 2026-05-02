@@ -392,11 +392,37 @@ async function readCachedGear(characterName: string, realm: string): Promise<Arm
   return { ...cached.gear, items: normalizeArmoryGearSlots(cached.gear.items) };
 }
 
-export async function writeCachedGear(gear: ArmoryCharacterGear): Promise<ArmoryCharacterGear> {
+export async function writeCachedGear(
+  gear: ArmoryCharacterGear,
+  opts?: { sourceAgent?: string }
+): Promise<ArmoryCharacterGear> {
+  // Skip Wowhead enrichment if items are already fully enriched (e.g. posted by bridge)
+  const needsEnrichment = gearNeedsWowheadEnrichment(gear);
   const enrichedGear: ArmoryCharacterGear = {
     ...gear,
-    items: normalizeArmoryGearSlots(await enrichGearWithWowhead(gear.items)),
+    items: needsEnrichment
+      ? normalizeArmoryGearSlots(await enrichGearWithWowhead(gear.items))
+      : normalizeArmoryGearSlots(gear.items),
   };
+
+  // Snapshot preservation: don't overwrite a healthy cache with a degraded fetch
+  const existing = await db.armoryGearCache.findUnique({
+    where: {
+      characterKey_realm: {
+        characterKey: getCharacterKey(enrichedGear.characterName),
+        realm: enrichedGear.realm,
+      },
+    },
+    select: { gear: true },
+  });
+
+  if (existing && isArmoryCharacterGear(existing.gear)) {
+    const existingCount = existing.gear.items.length;
+    if (existingCount >= 10 && enrichedGear.items.length < Math.floor(existingCount * 0.5)) {
+      // New snapshot has fewer than half the items of the existing one — skip write
+      return enrichedGear;
+    }
+  }
 
   await db.armoryGearCache.upsert({
     where: {
@@ -413,6 +439,8 @@ export async function writeCachedGear(gear: ArmoryCharacterGear): Promise<Armory
       gear: enrichedGear,
       fetchedAt: new Date(enrichedGear.fetchedAt),
       lastAttemptAt: new Date(),
+      lastSuccessAt: new Date(),
+      ...(opts?.sourceAgent ? { sourceAgent: opts.sourceAgent } : {}),
     },
     update: {
       characterName: enrichedGear.characterName,
@@ -421,6 +449,8 @@ export async function writeCachedGear(gear: ArmoryCharacterGear): Promise<Armory
       fetchedAt: new Date(enrichedGear.fetchedAt),
       lastAttemptAt: new Date(),
       lastError: null,
+      lastSuccessAt: new Date(),
+      ...(opts?.sourceAgent ? { sourceAgent: opts.sourceAgent } : {}),
     },
   });
 
