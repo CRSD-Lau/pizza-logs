@@ -8,6 +8,7 @@ import { ClearDatabaseButton } from "./ClearDatabaseButton";
 import { DeleteUploadButton } from "./DeleteUploadButton";
 import { GearImportBookmarklet } from "./GearImportBookmarklet";
 import { GuildRosterSyncPanel } from "./GuildRosterSyncPanel";
+import { SyncHealthPanel } from "@/components/admin/SyncHealthPanel";
 
 export const metadata: Metadata = { title: "Admin / Diagnostics" };
 export const dynamic = "force-dynamic";
@@ -103,7 +104,16 @@ export default async function AdminPage() {
         </div>
       </section>
 
-      {/* 3. Guild Roster */}
+      {/* 3. Warmane Auto-Sync */}
+      <section>
+        <SectionHeader
+          title="Warmane Auto-Sync"
+          sub="Trigger and monitor roster and gear syncs from your desktop bridge"
+        />
+        <SyncHealthPanel />
+      </section>
+
+      {/* 4. Guild Roster — read-only stats */}
       <section>
         <SectionHeader title="Guild Roster" sub="Browser-assisted import for PizzaWarriors" />
         <GuildRosterSyncPanel
