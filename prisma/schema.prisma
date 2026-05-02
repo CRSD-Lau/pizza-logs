@@ -154,6 +154,8 @@ model ArmoryGearCache {
   fetchedAt     DateTime
   lastAttemptAt DateTime @default(now())
   lastError     String?
+  lastSuccessAt DateTime?
+  sourceAgent   String?
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
@@ -278,4 +280,36 @@ model WeeklySummary {
 
   @@unique([weekStart, realmId, guildId])
   @@map("weekly_summaries")
+}
+
+// ─────────────────────────────────────────────
+//  SYNC JOBS  (desktop bridge job queue)
+// ─────────────────────────────────────────────
+
+enum SyncJobType {
+  ROSTER
+  GEAR
+}
+
+enum SyncJobStatus {
+  PENDING
+  IN_PROGRESS
+  DONE
+  FAILED
+  CANCELLED
+}
+
+model SyncJob {
+  id          String        @id @default(cuid())
+  type        SyncJobType
+  status      SyncJobStatus @default(PENDING)
+  triggeredAt DateTime      @default(now())
+  startedAt   DateTime?
+  completedAt DateTime?
+  agentId     String?
+  error       String?
+  result      Json?
+
+  @@index([status, triggeredAt])
+  @@map("sync_jobs")
 }
