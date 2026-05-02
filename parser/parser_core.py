@@ -737,12 +737,11 @@ class CombatLogParser:
 
         # Heuristic boss detection if no ENCOUNTER_START
         _debug_difficulty_method = "encounter_start" if boss_name else "heuristic"
-        _debug_difficulty_raw = difficulty
         if not boss_name:
             boss_name, boss_id = self._infer_boss(segment)
             group_size, difficulty = self._infer_difficulty(segment)
             outcome = self._infer_outcome(segment, boss_name)
-            _debug_difficulty_raw = difficulty
+        _debug_difficulty_raw = difficulty  # capture after both paths
 
         # Heroic upgrade: run even when ENCOUNTER_START was present, because Warmane
         # (and many WotLK private servers) emit difficultyID=4 (25N) for heroic runs.
@@ -1075,8 +1074,8 @@ class CombatLogParser:
                 event_count=len(segment),
                 skipped_event_count=0,
                 pet_remaps=_debug_pet_remaps,
-                actor_count=len(actors) if 'actors' in dir() else 0,
-                boss_guid_count=len(boss_guids) if 'boss_guids' in dir() else 0,
+                actor_count=len(actors),
+                boss_guid_count=len(boss_guids),
                 parser_warnings=list(self.warnings),
             )
             return enc, dbg
