@@ -23,7 +23,8 @@ from bosses import BossDef, lookup_boss, lookup_boss_by_id, ALL_BOSS_NAMES
 # ── Constants ─────────────────────────────────────────────────────
 
 # Spell names that only appear in heroic difficulty encounters.
-# Used to upgrade "25N"/"10N" to "25H"/"10H" when ENCOUNTER_START is absent.
+# Used to upgrade "25N"/"10N" to "25H"/"10H" — runs regardless of whether
+# ENCOUNTER_START is present, because Warmane emits difficultyID=4 (25N) for heroic runs.
 HEROIC_SPELL_MARKERS: frozenset[str] = frozenset({
     # Lord Marrowgar (ICC) — multi-target cleave only present in heroic
     "bone slice",
