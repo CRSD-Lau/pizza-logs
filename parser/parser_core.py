@@ -691,8 +691,13 @@ class CombatLogParser:
             boss_name, boss_id = self._infer_boss(segment)
             group_size, difficulty = self._infer_difficulty(segment)
             outcome = self._infer_outcome(segment, boss_name)
-            if self._detect_heroic(segment):
-                difficulty = difficulty.replace("N", "H")
+
+        # Heroic upgrade: run even when ENCOUNTER_START was present, because Warmane
+        # (and many WotLK private servers) emit difficultyID=4 (25N) for heroic runs.
+        # HEROIC_SPELL_MARKERS contains spells that only appear in heroic difficulty.
+        # If the difficulty was correctly set to H via difficultyID, the replace() is a no-op.
+        if difficulty in ("10N", "25N") and self._detect_heroic(segment):
+            difficulty = difficulty.replace("N", "H")
 
         if not boss_name:
             return None  # Cannot identify boss — skip

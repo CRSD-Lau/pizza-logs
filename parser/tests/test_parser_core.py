@@ -1895,3 +1895,99 @@ def test_normalize_session_difficulty_upgrades_25n_sindragosa_to_25h():
         f"Sindragosa 25N in a 25H session must be upgraded to '25H', "
         f"got '{sindragosa_25n.difficulty}'"
     )
+
+
+# ── Heroic detection with ENCOUNTER_START present ────────────────────────────
+
+def _make_encounter_start_segment(
+    boss_name: str,
+    diff_id: int,
+    group_size: int,
+    heroic_spell: str | None = None,
+    extra_player_count: int = 0,
+) -> list[tuple[str, list[str], float]]:
+    """Build a minimal segment with ENCOUNTER_START/END and optional heroic spell."""
+    ts_base = 46800.0
+    seg = [
+        (
+            "4/19 13:00:00.000",
+            [ENCOUNTER_START, "1234", f'"{boss_name}"', str(diff_id), str(group_size)],
+            ts_base,
+        ),
+    ]
+    if heroic_spell:
+        seg.append((
+            "4/19 13:00:01.000",
+            _spell_damage_parts(
+                PLAYER_GUID, "Phyre",
+                NPC_GUID, boss_name,
+                50_000, spell=heroic_spell,
+            ),
+            ts_base + 1,
+        ))
+    for i in range(extra_player_count):
+        guid = f"0x0600000000{i:08x}"
+        seg.append((
+            "4/19 13:00:02.000",
+            _spell_damage_parts(guid, f"Player{i}", NPC_GUID, boss_name, 1000),
+            ts_base + 2,
+        ))
+    seg.append((
+        "4/19 13:00:30.000",
+        _unit_died_parts(boss_name),
+        ts_base + 30,
+    ))
+    seg.append((
+        "4/19 13:00:30.100",
+        [ENCOUNTER_END, "1234", f'"{boss_name}"', str(diff_id), str(group_size), "1"],
+        ts_base + 30.1,
+    ))
+    return seg
+
+
+def test_heroic_detected_with_encounter_start_25h():
+    """ENCOUNTER_START difficultyID=4 (25N) + Bone Slice → difficulty must be 25H."""
+    seg = _make_encounter_start_segment(
+        "Lord Marrowgar", diff_id=4, group_size=25,
+        heroic_spell="Bone Slice", extra_player_count=20,
+    )
+    p = CombatLogParser()
+    enc = p._aggregate_segment(seg, {})
+    assert enc is not None
+    assert enc.difficulty == "25H", f"Expected 25H, got {enc.difficulty}"
+
+
+def test_heroic_detected_with_encounter_start_10h():
+    """ENCOUNTER_START difficultyID=4 (25N) + Bone Slice + ≤12 players → 10H."""
+    seg = _make_encounter_start_segment(
+        "Lord Marrowgar", diff_id=3, group_size=10,
+        heroic_spell="Bone Slice", extra_player_count=8,
+    )
+    p = CombatLogParser()
+    enc = p._aggregate_segment(seg, {})
+    assert enc is not None
+    assert enc.difficulty == "10H", f"Expected 10H, got {enc.difficulty}"
+
+
+def test_no_heroic_upgrade_without_markers():
+    """ENCOUNTER_START difficultyID=4 with no heroic spells → stays 25N."""
+    seg = _make_encounter_start_segment(
+        "Lord Marrowgar", diff_id=4, group_size=25,
+        heroic_spell=None, extra_player_count=20,
+    )
+    p = CombatLogParser()
+    enc = p._aggregate_segment(seg, {})
+    assert enc is not None
+    assert enc.difficulty == "25N", f"Expected 25N, got {enc.difficulty}"
+
+
+def test_heroic_correct_diff_id_unchanged():
+    """ENCOUNTER_START difficultyID=6 (25H) already → stays 25H without needing markers."""
+    seg = _make_encounter_start_segment(
+        "Lord Marrowgar", diff_id=6, group_size=25,
+        heroic_spell=None, extra_player_count=20,
+    )
+    p = CombatLogParser()
+    enc = p._aggregate_segment(seg, {})
+    assert enc is not None
+    assert enc.difficulty == "25H", f"Expected 25H, got {enc.difficulty}"
