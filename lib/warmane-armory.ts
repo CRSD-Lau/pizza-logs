@@ -183,7 +183,9 @@ function normalizeEquipment(items: unknown): ArmoryGearItem[] {
       if (!name) return null;
 
       const itemId = asString(item.item);
-      const directIcon = asString(item.iconUrl) ?? asString(item.icon);
+      const iconSlug = asString(item.icon);
+      const directIcon = asString(item.iconUrl)
+        ?? (iconSlug ? `https://wow.zamimg.com/images/wow/icons/large/${iconSlug}.jpg` : undefined);
       const iconUrl = directIcon?.startsWith("http") ? directIcon : undefined;
 
       return {

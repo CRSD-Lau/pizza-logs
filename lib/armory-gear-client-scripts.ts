@@ -317,9 +317,9 @@ export function buildUserscript(): string {
     const enrichItemsWithWowhead = async function enrichItemsWithWowhead(equipment: any[]): Promise<any[]> {
       const out: any[] = [];
       for (const item of equipment) {
-        if (!item || !item.id) { out.push(item); continue; }
+        if (!item || !item.item) { out.push(item); continue; }
         try {
-          const text = await gmFetch(`https://www.wowhead.com/wotlk/tooltip/item/${item.id}`);
+          const text = await gmFetch(`https://www.wowhead.com/wotlk/tooltip/item/${item.item}`);
           const json = JSON.parse(text);
           const jsonequip = (json.jsonequip && typeof json.jsonequip === "object") ? json.jsonequip : {};
           const slotbak: number | undefined = typeof jsonequip.slotbak === "number" ? jsonequip.slotbak : undefined;
@@ -441,7 +441,7 @@ export function buildUserscript(): string {
     "// ==UserScript==",
     "// @name         Pizza Logs Warmane Gear Auto Sync",
     "// @namespace    https://pizza-logs-production.up.railway.app",
-    "// @version      1.3.0",
+    "// @version      1.4.0",
     "// @description  Automatically sync Pizza Logs gear cache from Warmane Armory pages.",
     "// @match        https://armory.warmane.com/character/*",
     "// @match        http://armory.warmane.com/character/*",
