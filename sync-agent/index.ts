@@ -3,6 +3,7 @@ import { log } from "./logger";
 import { runRosterJob } from "./jobs/roster";
 import { runGearJob } from "./jobs/gear";
 import { fetchWithTimeout } from "./fetch-util";
+import { closeBrowser } from "./warmane/browser";
 
 type ClaimedJob = { id: string; type: "ROSTER" | "GEAR" };
 
@@ -121,6 +122,17 @@ setTimeout(async () => {
   const rosterJob = await triggerJob("ROSTER");
   if (rosterJob) await runJob(rosterJob);
 }, 15_000);
+
+process.on("SIGINT", async () => {
+  log.info("Bridge stopping…");
+  await closeBrowser();
+  process.exit(0);
+});
+
+process.on("SIGTERM", async () => {
+  await closeBrowser();
+  process.exit(0);
+});
 
 // Poll for manual trigger jobs every pollIntervalMs
 setInterval(pollLoop, config.pollIntervalMs);
