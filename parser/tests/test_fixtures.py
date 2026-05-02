@@ -9,7 +9,6 @@ Run:
     pytest tests/test_fixtures.py -v
 """
 import io
-import json
 import sys
 import os
 import pytest
@@ -149,3 +148,4 @@ def test_malformed_lines_do_not_crash():
     with io.StringIO(malformed) as fh:
         encs = CombatLogParser().parse_file(fh)
     assert isinstance(encs, list)
+    assert encs == [], f"Expected no encounters from malformed input, got {encs}"
