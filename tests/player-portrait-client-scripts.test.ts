@@ -1,0 +1,233 @@
+import assert from "node:assert/strict";
+import vm from "node:vm";
+import {
+  buildPlayerPortraitUserscript,
+  PORTRAIT_USERSCRIPT_PATH,
+  PORTRAIT_USERSCRIPT_URL,
+} from "../lib/player-portrait-client-scripts";
+
+const userscript = buildPlayerPortraitUserscript();
+
+assert.equal(PORTRAIT_USERSCRIPT_PATH, "/api/player-portraits/userscript.user.js");
+assert.equal(PORTRAIT_USERSCRIPT_URL, "https://pizza-logs-production.up.railway.app/api/player-portraits/userscript.user.js");
+assert.match(userscript, /\/\/ ==UserScript==/);
+assert.match(userscript, /\/\/ @name\s+Pizza Logs Warmane Portraits/);
+assert.match(userscript, /\/\/ @match\s+https:\/\/pizza-logs-production\.up\.railway\.app\/\*/);
+assert.match(userscript, /\/\/ @match\s+http:\/\/localhost:3000\/\*/);
+assert.match(userscript, /\/\/ @match\s+http:\/\/127\.0\.0\.1:3000\/\*/);
+assert.match(userscript, /\/\/ @grant\s+GM_xmlhttpRequest/);
+assert.match(userscript, /data-pizza-avatar/);
+assert.match(userscript, /findPortraitUrl/);
+assert.match(userscript, /pizzaLogsWarmanePortraitCache/);
+
+async function verifyUserscriptReplacesInitialsWithFetchedPortrait() {
+  const avatar = {
+    dataset: {
+      pizzaAvatar: "character",
+      characterName: "Lichkingspet",
+      characterRealm: "Lordaeron",
+      characterClass: "Death Knight",
+      initials: "LI",
+    } as Record<string, string>,
+    innerHTML: "LI",
+    textContent: "LI",
+    appendChild(child: { tagName: string; src: string }) {
+      this.child = child;
+    },
+    querySelector: () => null,
+    setAttribute(name: string, value: string) {
+      this.attributes[name] = value;
+    },
+    attributes: {} as Record<string, string>,
+    child: null as null | { tagName: string; src: string },
+  };
+
+  const storage = new Map<string, string>();
+  const timers: Promise<void>[] = [];
+
+  const context = {
+    console: { info() {}, warn() {}, error() {} },
+    URL,
+    location: {
+      hostname: "pizza-logs-production.up.railway.app",
+      pathname: "/players/Lichkingspet",
+    },
+    setTimeout: (callback: () => void) => {
+      const promise = Promise.resolve().then(callback);
+      timers.push(promise);
+      return 1;
+    },
+    localStorage: {
+      getItem: (key: string) => storage.get(key) ?? null,
+      setItem: (key: string, value: string) => storage.set(key, value),
+      removeItem: (key: string) => storage.delete(key),
+    },
+    document: {
+      readyState: "complete",
+      addEventListener() {},
+      querySelectorAll: (selector: string) => {
+        if (selector === "[data-pizza-avatar='character']") return [avatar];
+        if (selector === "h1") return [];
+        if (selector === "a[href*='/players/']") return [];
+        throw new Error(`Unexpected selector ${selector}`);
+      },
+      createElement: (tagName: string) => ({
+        tagName,
+        dataset: {},
+        style: { cssText: "" },
+        set alt(value: string) { this.altText = value; },
+        set src(value: string) { this.srcValue = value; },
+        get src() { return this.srcValue; },
+        altText: "",
+        srcValue: "",
+      }),
+    },
+    DOMParser: class {
+      parseFromString() {
+        return {
+          querySelector: () => null,
+          querySelectorAll: () => [{
+            getAttribute: (name: string) => name === "src" ? "/images/characters/lichkingspet.jpg" : "character-portrait",
+            matches: (selector: string) => selector.includes("portrait") || selector.includes("character"),
+          }],
+        };
+      }
+    },
+    GM_xmlhttpRequest: ({ onload }: { onload: (response: { status: number; responseText: string; finalUrl: string }) => void }) => {
+      onload({
+        status: 200,
+        responseText: '<img class="character-portrait" src="/images/characters/lichkingspet.jpg">',
+        finalUrl: "https://armory.warmane.com/character/Lichkingspet/Lordaeron/summary",
+      });
+    },
+  };
+
+  vm.runInNewContext(userscript, context);
+  await Promise.all(timers);
+  for (let i = 0; i < 5; i++) {
+    await Promise.resolve();
+  }
+
+  assert.equal(
+    avatar.child?.src,
+    "https://armory.warmane.com/images/characters/lichkingspet.jpg",
+  );
+  assert.equal(avatar.dataset.pizzaAvatarState, "portrait");
+}
+
+async function verifyUserscriptFindsLegacyPlayerHeader() {
+  const avatar = {
+    dataset: {} as Record<string, string>,
+    innerHTML: "LI",
+    textContent: "LI",
+    children: [],
+    parentElement: null,
+    appendChild(child: { src: string }) {
+      this.child = child;
+    },
+    querySelector: () => null,
+    setAttribute(name: string, value: string) {
+      this.attributes[name] = value;
+    },
+    getAttribute(name: string) {
+      return this.attributes[name] ?? null;
+    },
+    attributes: { class: "w-14 h-14 rounded-sm" } as Record<string, string>,
+    child: null as null | { src: string },
+  };
+  const title: { textContent: string; parentElement: unknown } = {
+    textContent: "Lichkingspet",
+    parentElement: null,
+  };
+  const info = { textContent: "Lichkingspet Death Knight Human Level 80 Lordaeron PizzaWarriors Lich" };
+  const headingWrap: { textContent: string; parentElement: unknown; children: unknown[] } = {
+    textContent: info.textContent,
+    parentElement: null,
+    children: [title, info],
+  };
+  const header = { textContent: info.textContent, children: [avatar, headingWrap] };
+  title.parentElement = headingWrap;
+  headingWrap.parentElement = header;
+
+  const storage = new Map<string, string>();
+  const timers: Promise<void>[] = [];
+
+  const context = {
+    console: { info() {}, warn() {}, error() {} },
+    URL,
+    location: {
+      hostname: "pizza-logs-production.up.railway.app",
+      pathname: "/players/Lichkingspet",
+    },
+    setTimeout: (callback: () => void) => {
+      const promise = Promise.resolve().then(callback);
+      timers.push(promise);
+      return 1;
+    },
+    localStorage: {
+      getItem: (key: string) => storage.get(key) ?? null,
+      setItem: (key: string, value: string) => storage.set(key, value),
+      removeItem: (key: string) => storage.delete(key),
+    },
+    document: {
+      readyState: "complete",
+      addEventListener() {},
+      querySelectorAll: (selector: string) => {
+        if (selector === "[data-pizza-avatar='character']") return [];
+        if (selector === "h1") return [title];
+        if (selector === "a[href*='/players/']") return [];
+        throw new Error(`Unexpected selector ${selector}`);
+      },
+      createElement: (tagName: string) => ({
+        tagName,
+        dataset: {},
+        style: { cssText: "" },
+        set alt(value: string) { this.altText = value; },
+        set src(value: string) { this.srcValue = value; },
+        get src() { return this.srcValue; },
+        altText: "",
+        srcValue: "",
+      }),
+    },
+    DOMParser: class {
+      parseFromString() {
+        return {
+          querySelector: () => null,
+          querySelectorAll: () => [{
+            getAttribute: (name: string) => name === "src" ? "/images/characters/lichkingspet.jpg" : "character-portrait",
+          }],
+        };
+      }
+    },
+    GM_xmlhttpRequest: ({ onload }: { onload: (response: { status: number; responseText: string }) => void }) => {
+      onload({
+        status: 200,
+        responseText: '<img class="character-portrait" src="/images/characters/lichkingspet.jpg">',
+      });
+    },
+  };
+
+  vm.runInNewContext(userscript, context);
+  await Promise.all(timers);
+  for (let i = 0; i < 5; i++) {
+    await Promise.resolve();
+  }
+
+  assert.equal(avatar.dataset.characterName, "Lichkingspet");
+  assert.equal(avatar.dataset.characterRealm, "Lordaeron");
+  assert.equal(avatar.dataset.characterClass, "Death Knight");
+  assert.equal(
+    avatar.child?.src,
+    "https://armory.warmane.com/images/characters/lichkingspet.jpg",
+  );
+}
+
+Promise.all([
+  verifyUserscriptReplacesInitialsWithFetchedPortrait(),
+  verifyUserscriptFindsLegacyPlayerHeader(),
+])
+  .then(() => console.log("player-portrait-client-scripts tests passed"))
+  .catch((error) => {
+    console.error(error);
+    process.exit(1);
+  });

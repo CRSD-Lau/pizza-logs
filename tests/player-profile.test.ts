@@ -22,6 +22,7 @@ assert.deepEqual(rosterOnlyProfile, {
   raceName: "Night Elf",
   level: 80,
   rankName: "First of Equals",
+  portraitUrl: null,
   isRosterOnly: true,
   milestones: [],
 });

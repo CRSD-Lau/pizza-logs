@@ -6,10 +6,12 @@ import { db } from "@/lib/db";
 import { StatCard } from "@/components/ui/StatCard";
 import { AccordionSection } from "@/components/ui/AccordionSection";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { PlayerAvatar } from "@/components/players/PlayerAvatar";
 import { PlayerGearSection, PlayerGearSectionSkeleton } from "@/components/players/PlayerGearSection";
 import { getWarmaneCharacterGear } from "@/lib/warmane-armory";
 import { DEFAULT_GUILD_NAME, DEFAULT_GUILD_REALM } from "@/lib/warmane-guild-roster";
 import { resolvePlayerProfile } from "@/lib/player-profile";
+import { getClassIconUrl } from "@/lib/warmane-portrait";
 import { formatDps } from "@/lib/utils";
 import { getClassColor } from "@/lib/constants/classes";
 import { cn } from "@/lib/utils";
@@ -101,12 +103,17 @@ export default async function PlayerPage({ params }: Props) {
     <div className="pt-10 space-y-10">
       {/* Header */}
       <div className="flex items-center gap-4">
-        <div
-          className="w-14 h-14 rounded-sm flex items-center justify-center text-lg font-bold"
-          style={{ background: `${color}22`, color, border: `1px solid ${color}44` }}
-        >
-          {profile.name.substring(0, 2).toUpperCase()}
-        </div>
+        <PlayerAvatar
+          name={profile.name}
+          realmName={profile.realmName}
+          characterClass={profile.className}
+          raceName={profile.raceName}
+          guildName={profile.guildName}
+          color={color}
+          portraitUrl={profile.portraitUrl}
+          fallbackIconUrl={getClassIconUrl(profile.className)}
+          size="lg"
+        />
         <div>
           <h1
             className="heading-cinzel text-2xl font-bold text-glow-gold"

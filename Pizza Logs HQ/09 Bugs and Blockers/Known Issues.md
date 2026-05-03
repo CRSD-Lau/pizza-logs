@@ -9,6 +9,7 @@
 | Blocker | Impact | Status |
 |---|---|---|
 | Warmane Armory returned Cloudflare/403 to direct server requests during gear and guild-roster feature work | Gear section shows unavailable state until a character has a cached snapshot; roster sync may fail from server/Railway, but `/guild-roster` still reads previously synced DB rows | Design written for laptop-primary Warmane sync agent so Railway no longer needs to fetch Warmane live. Existing hosted userscripts remain the temporary fallback. |
+| Warmane character portraits may be canvas/model-only | The portrait userscript can replace initials only when Warmane exposes a static image URL in HTML, meta tags, background CSS, or script data. If the armory only renders a Wowhead/WebGL model, Pizza Logs must fall back to class icons/initials unless a browser-side capture flow is added. | Browser-side POC added locally in `/api/player-portraits/userscript.user.js`; needs normal-browser validation on a real Warmane page after deploy/local install. |
 | Warmane API omits rich item details | Native gear cards need a second source for item stats and tooltip text | AzerothCore `item_template` backs item details; icon slugs still come from Warmane/Tampermonkey and are backfilled into `wow_items.iconName` when available |
 | Manual Warmane roster/gear sync is operationally fragile | App data can become stale or incomplete if the admin forgets to run userscripts or if a partial source response is imported | Planned fix: local automated sync agent plus stricter snapshot validation that preserves last known good roster/gear data |
 
@@ -111,3 +112,4 @@
 | DPS residual gap <1% vs Skada | Parser matches all Skada damage events. Sub-1% from orphaned pets (no SPELL_SUMMON before log start) |
 | Progress bar fake before file received | File write to parser happens before SSE can start; first event is at 28% |
 | Warmane gear enchants/gems depend on source availability | Warmane summary API equipment currently exposes item name/id/transmog in documented examples. AzerothCore fills static item metadata, but character-specific enchants and gems only display if Warmane includes them. |
+| Warmane portraits are not in AzerothCore item metadata | The project imports AzerothCore `item_template` into `wow_items`, which can describe gear but does not include rendered character headshots. A real generated headshot would need character customization/equipment data plus DBC/model rendering or an external renderer. |

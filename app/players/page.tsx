@@ -2,8 +2,10 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { db } from "@/lib/db";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { PlayerAvatar } from "@/components/players/PlayerAvatar";
 import { WOW_CLASSES } from "@/lib/constants/classes";
 import { getClassColor } from "@/lib/constants/classes";
+import { getClassIconUrl } from "@/lib/warmane-portrait";
 import { formatDps } from "@/lib/utils";
 import { cn } from "@/lib/utils";
 
@@ -232,12 +234,15 @@ export default async function PlayersPage({ searchParams }: Props) {
                 className="bg-bg-panel border border-gold-dim rounded px-4 py-3 hover:border-gold/50 transition-colors group flex items-center gap-3"
               >
                 {/* Avatar */}
-                <div
-                  className="w-10 h-10 rounded-sm flex-shrink-0 flex items-center justify-center text-sm font-bold"
-                  style={{ background: `${color}22`, color, border: `1px solid ${color}44` }}
-                >
-                  {p.name.substring(0, 2).toUpperCase()}
-                </div>
+                <PlayerAvatar
+                  name={p.name}
+                  realmName={p.realm?.name}
+                  characterClass={p.class}
+                  color={color}
+                  portraitUrl={null}
+                  fallbackIconUrl={getClassIconUrl(p.class)}
+                  size="sm"
+                />
 
                 {/* Info */}
                 <div className="min-w-0 flex-1">
