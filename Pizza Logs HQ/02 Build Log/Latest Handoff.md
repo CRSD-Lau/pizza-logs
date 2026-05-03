@@ -4,7 +4,8 @@
 2026-05-03
 
 ## Git
-**Branch:** `main` merge gate for `codex/pizza-logs-modernization`
+**Branch:** `main`
+**Latest pushed commit:** `3b98665`
 
 ---
 
@@ -59,6 +60,12 @@ Preserved the main-branch queue fix while merging modernization:
 - The route still caps the final returned queue to `MAX_PLAYERS`.
 - The regression keeps Maxximusboom visible even after many fresh cached players.
 
+### Documentation sync after push
+
+- Updated vault docs that still described pre-push work as incomplete.
+- Moved admin auth, footer text, reset cleanup, and Gear Sync icon backfill into shipped/resolved docs.
+- Updated Backlog, Feature Status, Technical Debt, Security Checklist, Known Issues, Now, and this handoff to reflect `origin/main` state.
+
 ---
 
 ## Verification
@@ -81,13 +88,17 @@ Preserved the main-branch queue fix while merging modernization:
   - Production build: **passed with exit code 0**; Windows emitted a standalone trace warning because this worktree's `node_modules` is a junction to the other worktree. Railway's Linux build will install normal dependencies and should not hit that junction warning.
   - `git diff --cached --check`: **passed**
   - Staged secret scan found only placeholders/docs/local compose values.
+- Push/deploy handoff:
+  - `main` was pushed to `origin/main` at `3b98665`.
+  - Live site returned HTTP 200 after push.
+  - Railway CLI is not installed locally, so Railway deploy logs were not inspected from this machine.
 
 ---
 
 ## Current State
 
 - `codex/pizza-logs-modernization` is committed at `2360f64`.
-- Merge into `main` is resolved in the existing main worktree and ready to commit.
+- `main` was pushed to `origin/main` at `3b98665`; this docs-only sync updates the vault after that push.
 - Parser behavior is preserved; parser fixture suite passes.
 - Railway deployment risk is low if production `ADMIN_SECRET` is configured and `ADMIN_COOKIE_SECURE` is not set to `false`.
 - Existing Prisma migrations include historical migration `20260502120000_add_wow_items_remove_sync_jobs`, which drops `sync_jobs` if present; no new schema migration was added in this session.
@@ -96,4 +107,4 @@ Preserved the main-branch queue fix while merging modernization:
 
 ## Exact Next Step
 
-Commit the main merge, push `origin main`, then verify Railway deploy logs and production admin configuration.
+Manual production checks remain: confirm Railway Web Service has `ADMIN_SECRET`, inspect Railway deploy logs from a machine with Railway CLI/dashboard access, install or update Warmane Gear Sync `1.7.0`, run it once, then verify Maxximusboom and Lausudo gear icons.

@@ -8,13 +8,12 @@
 
 | # | Feature | Why | Effort |
 |---|---|---|---|
-| 1 | Footer text fix | Wrong info, 5 min fix | XS |
-| 2 | Admin auth (secret middleware) | Security | S |
-| 3 | Absorbs tracking | Parser: `SPELL_ABSORBED` events | L |
-| 4 | Damage mitigation stats | Parser: `SPELL_MISSED` subtypes (ABSORB, BLOCK, PARRY, DODGE) | L |
-| 5 | Consumable tracking | Buff applications from known consumable spell IDs | XL |
-| 6 | Gunship + Saurfang fix | `High Overlord Saurfang` alias overlap — investigate log events | M |
-| 7 | Marrowgar DPS over-count | ~9.45k vs uwu-logs 9.3k — root cause not found | M |
+| 1 | Absorbs tracking | Parser: Skada `Absorbs.lua` tracks `actor.absorb` separately from healing | L |
+| 2 | Damage mitigation stats | Parser: `SPELL_MISSED` subtypes (ABSORB, BLOCK, PARRY, DODGE) | L |
+| 3 | Consumable tracking | Buff applications from known consumable spell IDs | XL |
+| 4 | Gunship + Saurfang follow-up audit | Verify latest Skada-aligned Gunship/Saurfang behavior against fresh Warmane logs | M |
+| 5 | Marrowgar DPS over-count | ~9.45k vs uwu-logs 9.3k - root cause not found | M |
+| 6 | Local automated Warmane sync agent | Replace manual userscript runs for roster/gear refreshes | L |
 
 ---
 
@@ -23,7 +22,7 @@
 | Feature | Notes |
 |---|---|
 | Discord milestone bot | Post #1 records to Discord channel |
-| Fastest kill records | Per boss, per difficulty — shortest duration kills |
+| Fastest kill records | Per boss, per difficulty - shortest duration kills |
 | Attendance tracking | Who was in each raid, % attendance over time |
 | Hall of Fame | All-time #1s in a dedicated page |
 | Public guild pages | Share leaderboards without login |
@@ -35,15 +34,22 @@
 
 ---
 
-## Shipped ✅ (moved here to keep backlog clean)
+## Shipped
 
-See [[Feature Status]] for full shipped feature list.
+See [[Feature Status]] for the full shipped feature list.
+
+Recently shipped and removed from this backlog:
+- Footer text now correctly says parsing is handled server-side on Railway.
+- Admin auth is live via `ADMIN_SECRET`, `middleware.ts`, server-side login action, and `HttpOnly` cookie.
+- Admin cleanup actions are built into `/admin` and re-check admin auth.
+- Gear Sync `1.7.0` is shipped for queued DOM icon backfill.
 
 ---
 
 ## Related
-- [[Technical Debt]] — known shortcuts that will need fixing
-- [[Feature Status]] — what's already built
+
+- [[Technical Debt]] - known shortcuts that will need fixing
+- [[Feature Status]] - what's already built
 
 ---
 
@@ -52,12 +58,14 @@ See [[Feature Status]] for full shipped feature list.
 | Feature | Reason |
 |---|---|
 | Heroic detection | Impossible without ENCOUNTER_START on Warmane |
-| Gunship Battle detection | Impossible |
+| Gunship Battle detection | Impossible as a separate encounter marker on Warmane |
 | Sprint / agile tooling | One person, no need |
+
 ### AI Control Center
-- [[Codex Resume Prompt]] — paste this to start a session
-- [[Prompt Library]] — reusable prompts for common ops
-- [[Repeated Fixes & Gotchas]] — don't solve the same bug twice
-- [[Codex Gotchas]] — things to remind Codex every session
-- [[AI Operating System]]  
+
+- [[Codex Resume Prompt]] - paste this to start a session
+- [[Prompt Library]] - reusable prompts for common ops
+- [[Repeated Fixes & Gotchas]] - don't solve the same bug twice
+- [[Codex Gotchas]] - things to remind Codex every session
+- [[AI Operating System]]
 - [[Codex Skills Index]]

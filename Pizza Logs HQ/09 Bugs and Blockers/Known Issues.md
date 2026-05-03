@@ -18,16 +18,16 @@
 
 | Bug | Fix | Commit |
 |---|---|---|
-| Roster Sync userscript appeared on Warmane character pages where Gear Sync was expected | Gear userscript now matches/runs only on `/character/*`; roster userscript now matches/runs only on `/guild/*`; both bumped to v1.0.4 with runtime path guards | pending |
-| Warmane Gear Sync userscript panel hidden after installing roster userscript | Roster userscript panel now docks above the Gear Sync panel instead of sharing `bottom:16px`; roster userscript bumped to v1.0.3 | pending |
-| Warriors with two two-handed weapons double-counted both weapon GearScores | `INVTYPE_2HWEAPON` normalization now assigns the first 2H to `Main Hand` and the second 2H to `Off Hand`, allowing the existing Titan Grip half-score modifier to apply | pending |
-| Guild roster Rank/Professions blank after sync | Warmane HTML roster can use guild-summary member links; parser now handles those links and `Image:` text, and roster sync/userscript prefer HTML first | pending |
-| Roster-only members had no Pizza Logs player profile or gear queue entry | `/players/<name>` now resolves roster rows and the Warmane gear queue includes roster-only guild members | pending |
-| Relics/ranged/wands displayed as Off Hand/trinkets and two-hander + relic characters got half GearScore | Slot labels are repaired from cached/static item metadata, the ranged/relic slot displays as `Ranged/Relic`, gear layout groups by slot name instead of array index, and Titan Grip half-score only applies to real weapon pairs | pending |
-| Player gear slots showed names but no icon/item level/GearScore after import | Runtime item metadata now comes from AzerothCore `item_template`; icon-only gaps are queued for Warmane userscript backfill | pending |
-| Native gear tooltip clipped inside player profile Gear wrapper | Moved gear item tooltip rendering into a client-side `document.body` portal with fixed viewport positioning, viewport edge clamping, and top-level overlay z-index | pending |
-| Public UI exposed upload analytics and raw filenames | Moved upload history/detail into `/admin/uploads`, removed public nav/home/weekly upload telemetry, and redirected `/uploads` into admin | pending |
-| Mobile layout issues on raids/leaderboards | Rebuilt mobile nav, stacked raid-session cards, and made leaderboard rows fit small screens without overflow | pending |
+| Roster Sync userscript appeared on Warmane character pages where Gear Sync was expected | Gear userscript now matches/runs only on `/character/*`; roster userscript now matches/runs only on `/guild/*`; both bumped to v1.0.4 with runtime path guards | 1844c36 |
+| Warmane Gear Sync userscript panel hidden after installing roster userscript | Roster userscript panel now docks above the Gear Sync panel instead of sharing `bottom:16px`; roster userscript bumped to v1.0.3 | 50d3d04 |
+| Warriors with two two-handed weapons double-counted both weapon GearScores | `INVTYPE_2HWEAPON` normalization now assigns the first 2H to `Main Hand` and the second 2H to `Off Hand`, allowing the existing Titan Grip half-score modifier to apply | bd6dd3b |
+| Guild roster Rank/Professions blank after sync | Warmane HTML roster can use guild-summary member links; parser now handles those links and `Image:` text, and roster sync/userscript prefer HTML first | ac5f754 |
+| Roster-only members had no Pizza Logs player profile or gear queue entry | `/players/<name>` now resolves roster rows and the Warmane gear queue includes roster-only guild members | ac5f754 |
+| Relics/ranged/wands displayed as Off Hand/trinkets and two-hander + relic characters got half GearScore | Slot labels are repaired from cached/static item metadata, the ranged/relic slot displays as `Ranged/Relic`, gear layout groups by slot name instead of array index, and Titan Grip half-score only applies to real weapon pairs | c33113b / bd6dd3b |
+| Player gear slots showed names but no icon/item level/GearScore after import | Runtime item metadata now comes from AzerothCore `item_template`; icon-only gaps are queued for Warmane userscript backfill | 20786b4 / 3b98665 |
+| Native gear tooltip clipped inside player profile Gear wrapper | Moved gear item tooltip rendering into a client-side `document.body` portal with fixed viewport positioning, viewport edge clamping, and top-level overlay z-index | 5fe9eca |
+| Public UI exposed upload analytics and raw filenames | Moved upload history/detail into `/admin/uploads`, removed public nav/home/weekly upload telemetry, and redirected `/uploads` into admin | a3289d6 |
+| Mobile layout issues on raids/leaderboards | Rebuilt mobile nav, stacked raid-session cards, and made leaderboard rows fit small screens without overflow | a3289d6 |
 | HPS = 0 on all encounters | SPELL_HEAL length check was `< 15`, fixed to `< 11`; crit was `parts[14]`, fixed to `parts[13]` | c630c12 |
 | Valithria both WIPEs | Added "Green Dragon Combat Trigger" death detection | c630c12 |
 | False positive Sindragosa 10N | Added `total_damage == 0 and duration < 60` filter | c630c12 |
@@ -66,7 +66,7 @@
 
 **Fix:** Missing `iconUrl` now marks cached gear as needing enrichment. Imported gear backfills `wow_items.iconName` from valid Zamimg URLs, preserving AzerothCore metadata. Hosted Warmane Gear Sync userscript `1.7.0` fetches each queued player's Warmane summary HTML, scrapes item links/images, and merges DOM-derived icon URLs into that player's API payload before posting.
 
-**Operational note:** Deploy the fix, install/update Gear Sync `1.7.0`, then run Warmane Gear Sync once from any Warmane character page so production can populate missing icon slugs for queued players.
+**Operational note:** The fix is pushed in `origin/main` at `3b98665`. Install/update Gear Sync `1.7.0`, then run Warmane Gear Sync once from any Warmane character page so production can populate missing icon slugs for queued players.
 
 ### Follow-up: Maxximusboom not appearing in missing queue
 
@@ -75,6 +75,8 @@
 **Root cause:** The missing-gear endpoint queried only the first 100 players and first 100 roster rows before filtering for missing gear. Players outside that pre-filter window could be broken but never queued.
 
 **Fix:** Remove pre-filter `take: 100` from player/roster candidate queries and keep the existing post-filter batch limit. The sync still returns at most 100 missing players per run, but it now computes that batch from the full candidate set.
+
+**Status:** Pushed to `origin/main` at `3b98665`. Production still needs one Warmane Gear Sync run to backfill icon slugs for queued players.
 
 ## Fixed (2026-05-02)
 
