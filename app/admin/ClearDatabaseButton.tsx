@@ -38,7 +38,7 @@ export function ClearDatabaseButton() {
       <div className="flex items-center gap-3">
         <span className="text-sm text-warning max-w-md">
           This will delete uploaded logs, parsed raids, encounters, combat events, and upload analytics.
-          Cached Warmane gear, player profiles, and guild roster data will be retained.
+          Cached Warmane gear, player profiles, guild roster, and item template data will be retained.
         </span>
         <button
           onClick={handleConfirm}
