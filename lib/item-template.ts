@@ -205,10 +205,12 @@ export async function enrichGearWithLocalTemplate(
 
     return {
       ...item,
-      name:      row.name      ?? item.name,
-      quality:   row.quality   ?? item.quality,
-      itemLevel: row.itemLevel ?? item.itemLevel,
+      // Warmane cache is authoritative for item identity — AzerothCore fills gaps only
+      name:      item.name      ?? row.name,
+      quality:   item.quality   ?? row.quality,
+      itemLevel: item.itemLevel ?? row.itemLevel,
       iconUrl,
+      // AzerothCore is the reliable source for equipLoc (Warmane/Wowhead may be absent)
       equipLoc:  (row.equipLoc as GearScoreEquipLoc | null) ?? item.equipLoc,
       details:   buildItemDetailsFromTemplate({
         armor: row.armor, dmgMin: row.dmgMin, dmgMax: row.dmgMax,
