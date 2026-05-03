@@ -17,11 +17,12 @@ declare const GM_setValue: (key: string, value: unknown) => void;
 
 export function buildPlayerPortraitUserscript(): string {
   const script = function pizzaLogsWarmanePortraits() {
-    const cacheKey = "pizzaLogsWarmanePortraitCache";
+    const cacheKey = "pizzaLogsWarmanePortraitCacheV2";
     const targetKey = "pizzaLogsWarmanePortraitTarget";
     const disabledKey = "pizzaLogsWarmanePortraitsDisabled";
     const cacheTtlMs = 7 * 24 * 60 * 60 * 1000;
     const targetTtlMs = 5 * 60 * 1000;
+    const minCanvasDataUrlLength = 6000;
     const warmaneOrigin = "https://armory.warmane.com";
     const portraitHints = /(avatar|character|model|portrait|profile|render|thumbnail)/i;
     const nonPortraitUrl = /(?:\/icons\/|\/item(?:[/?=]|$)|cavernoftime|achievement_|ability_|classicon_|inv_|spell_|trade_)/i;
@@ -256,6 +257,35 @@ export function buildPlayerPortraitUserscript(): string {
       return warmaneIdentityFromUrl(document.referrer || "");
     };
 
+    const canvasHasVisibleContent = function canvasHasVisibleContent(canvas: HTMLCanvasElement) {
+      try {
+        const context = canvas.getContext?.("2d");
+        if (!context) return null;
+
+        const width = Math.min(canvas.width, 96);
+        const height = Math.min(canvas.height, 96);
+        if (width <= 0 || height <= 0) return false;
+
+        const pixels = context.getImageData(0, 0, width, height).data;
+        let opaquePixels = 0;
+        let brightPixels = 0;
+        const totalPixels = width * height;
+
+        for (let index = 0; index < pixels.length; index += 4) {
+          const alpha = pixels[index + 3];
+          if (alpha < 24) continue;
+
+          opaquePixels += 1;
+          const maxChannel = Math.max(pixels[index], pixels[index + 1], pixels[index + 2]);
+          if (maxChannel > 35) brightPixels += 1;
+        }
+
+        return opaquePixels > totalPixels * 0.05 && brightPixels > totalPixels * 0.015;
+      } catch {
+        return null;
+      }
+    };
+
     const captureRenderedCanvas = function captureRenderedCanvas() {
       const canvases = (Array.from(document.querySelectorAll("canvas")) as HTMLCanvasElement[])
         .filter(canvas => canvas.width >= 64 && canvas.height >= 64)
@@ -264,7 +294,9 @@ export function buildPlayerPortraitUserscript(): string {
       for (const canvas of canvases) {
         try {
           const dataUrl = canvas.toDataURL("image/png");
-          if (dataUrl && dataUrl.length > 1000) return dataUrl;
+          if (!dataUrl || dataUrl.length < minCanvasDataUrlLength) continue;
+          if (canvasHasVisibleContent(canvas) === false) continue;
+          return dataUrl;
         } catch {
           // Warmane may render with cross-origin textures, which taints the canvas.
         }
@@ -520,7 +552,7 @@ export function buildPlayerPortraitUserscript(): string {
     "// ==UserScript==",
     "// @name         Pizza Logs Warmane Portraits",
     "// @namespace    https://pizza-logs-production.up.railway.app",
-    "// @version      0.3.0",
+    "// @version      0.4.0",
     "// @description  Replaces Pizza Logs character initials with Warmane Armory portraits or cached rendered character faces when available.",
     "// @match        https://pizza-logs-production.up.railway.app/*",
     "// @match        http://localhost:3000/*",

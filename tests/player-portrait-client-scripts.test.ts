@@ -7,6 +7,7 @@ import {
 } from "../lib/player-portrait-client-scripts";
 
 const userscript = buildPlayerPortraitUserscript();
+const fakePortraitDataUrl = (fill = "a") => "data:image/png;base64," + fill.repeat(9000);
 
 assert.equal(PORTRAIT_USERSCRIPT_PATH, "/api/player-portraits/userscript.user.js");
 assert.equal(PORTRAIT_USERSCRIPT_URL, "https://pizza-logs-production.up.railway.app/api/player-portraits/userscript.user.js");
@@ -261,7 +262,7 @@ async function verifyUserscriptCachesWarmaneCanvasForPizzaLogsPages() {
           return [{
             width: 512,
             height: 512,
-            toDataURL: () => "data:image/png;base64," + "a".repeat(1200),
+            toDataURL: () => fakePortraitDataUrl("a"),
           }];
         }
         return [];
@@ -397,7 +398,7 @@ async function verifyUserscriptCachesWowheadFrameCanvasUsingWarmaneReferrer() {
           return [{
             width: 512,
             height: 512,
-            toDataURL: () => "data:image/png;base64," + "b".repeat(1400),
+            toDataURL: () => fakePortraitDataUrl("b"),
           }];
         }
         return [];
@@ -576,7 +577,7 @@ async function verifyUserscriptCachesModelViewerCanvasUsingRecentWarmaneTargetWh
           return [{
             width: 512,
             height: 512,
-            toDataURL: () => "data:image/png;base64," + "c".repeat(1400),
+            toDataURL: () => fakePortraitDataUrl("c"),
           }];
         }
         return [];
@@ -598,8 +599,73 @@ async function verifyUserscriptCachesModelViewerCanvasUsingRecentWarmaneTargetWh
     await Promise.resolve();
   }
 
-  const cache = JSON.parse(gmStorage.get("pizzaLogsWarmanePortraitCache") ?? "{}");
+  const cache = JSON.parse(gmStorage.get("pizzaLogsWarmanePortraitCacheV2") ?? "{}");
   assert.match(cache["lordaeron:lausudo"]?.url ?? "", /^data:image\/png;base64,/);
+}
+
+async function verifyUserscriptRejectsBlankModelViewerCanvas() {
+  const gmStorage = new Map<string, string>();
+  const timers: Promise<void>[] = [];
+  const blankPixels = new Uint8ClampedArray(96 * 96 * 4);
+
+  const modelViewerContext = {
+    console: { info() {}, warn() {}, error() {} },
+    URL,
+    location: {
+      hostname: "wow.zamimg.com",
+      pathname: "/modelviewer/live/viewer.html",
+      href: "https://wow.zamimg.com/modelviewer/live/viewer.html?model=humanmale",
+    },
+    setTimeout: (callback: () => void) => {
+      const promise = Promise.resolve().then(callback);
+      timers.push(promise);
+      return 1;
+    },
+    localStorage: {
+      getItem: (key: string) => gmStorage.get(`local:${key}`) ?? null,
+      setItem: (key: string, value: string) => gmStorage.set(`local:${key}`, value),
+      removeItem: (key: string) => gmStorage.delete(`local:${key}`),
+    },
+    GM_getValue: (key: string, fallback: string) => gmStorage.get(key) ?? fallback,
+    GM_setValue: (key: string, value: string) => gmStorage.set(key, value),
+    document: {
+      readyState: "complete",
+      referrer: "https://armory.warmane.com/character/Lausudo/Lordaeron/profile",
+      addEventListener() {},
+      documentElement: { outerHTML: "<html></html>" },
+      querySelectorAll: (selector: string) => {
+        if (selector === "canvas") {
+          return [{
+            width: 512,
+            height: 512,
+            toDataURL: () => fakePortraitDataUrl("0"),
+            getContext: () => ({
+              drawImage() {},
+              getImageData: () => ({ data: blankPixels }),
+            }),
+          }];
+        }
+        return [];
+      },
+    },
+    DOMParser: class {
+      parseFromString() {
+        return {
+          querySelector: () => null,
+          querySelectorAll: () => [],
+        };
+      }
+    },
+  };
+
+  vm.runInNewContext(userscript, modelViewerContext);
+  await Promise.all(timers);
+  for (let i = 0; i < 5; i++) {
+    await Promise.resolve();
+  }
+
+  const cache = JSON.parse(gmStorage.get("pizzaLogsWarmanePortraitCacheV2") ?? "{}");
+  assert.equal(cache["lordaeron:lausudo"], undefined);
 }
 
 Promise.all([
@@ -608,6 +674,7 @@ Promise.all([
   verifyUserscriptCachesWarmaneCanvasForPizzaLogsPages(),
   verifyUserscriptCachesWowheadFrameCanvasUsingWarmaneReferrer(),
   verifyUserscriptCachesModelViewerCanvasUsingRecentWarmaneTargetWhenReferrerIsBlank(),
+  verifyUserscriptRejectsBlankModelViewerCanvas(),
 ])
   .then(() => console.log("player-portrait-client-scripts tests passed"))
   .catch((error) => {

@@ -36,6 +36,14 @@
   - uses the Warmane page `document.referrer` when available,
   - also writes a short-lived Warmane target handoff through Tampermonkey storage so frame capture still works if the browser strips the referrer path.
 - Added regression tests for modelviewer frame capture and referrer-less frame capture.
+- User then reported the avatar was black once, and after reload fell back to class icons.
+- Root-cause confirmation: the userscript accepted a blank/black modelviewer canvas as a valid portrait because it only checked data URL length.
+- Updated Portrait Userscript to `0.4.0`:
+  - rejects very small canvas exports,
+  - samples readable canvas pixels and rejects visibly blank/black canvases,
+  - keeps retrying instead of caching blank captures,
+  - uses a new `pizzaLogsWarmanePortraitCacheV2` storage key so stale black/null captures from earlier versions are ignored.
+- Added a regression test that proves a blank modelviewer canvas is not cached.
 
 ### Warmane character portrait userscript POC
 
@@ -132,6 +140,12 @@ Preserved the main-branch queue fix while merging modernization:
   - Focused ESLint: bundled Node running `node_modules/eslint/bin/eslint.js lib/player-portrait-client-scripts.ts tests/player-portrait-client-scripts.test.ts --max-warnings=0` -> passed.
   - `git diff --check` -> passed.
   - Clean temp-copy production build outside OneDrive: passed with exit code 0. It emitted the expected Windows-only standalone trace warning because the temp copy used a junction to this checkout's `node_modules`; Railway installs normal dependencies and should not hit that junction warning.
+  - Follow-up `0.4.0` blank-canvas fix:
+    - `tests/player-portrait-client-scripts.test.ts` -> passed, including blank modelviewer canvas rejection.
+    - TypeScript: bundled Node running `node_modules/typescript/bin/tsc --noEmit` -> passed.
+    - Focused ESLint: bundled Node running `node_modules/eslint/bin/eslint.js lib/player-portrait-client-scripts.ts tests/player-portrait-client-scripts.test.ts --max-warnings=0` -> passed.
+    - `git diff --check` -> passed.
+    - Clean temp-copy production build outside OneDrive: passed with exit code 0. It emitted the expected Windows-only standalone trace warning because the temp copy used a junction to this checkout's `node_modules`; Railway installs normal dependencies and should not hit that junction warning.
   - Direct local `curl`/`Invoke-WebRequest` to Warmane character summary and API returned HTTP 403 Cloudflare challenge headers, confirming the server/backend path is unreliable for this quick pass.
   - Headless Playwright through local Edge also remained on the Cloudflare "Just a moment..." verification page.
   - Web-rendered Warmane profile pages confirmed the public URL pattern `/character/<name>/<realm>/summary` and profile text, but did not expose a clearly verifiable static portrait in the extracted HTML.
@@ -191,7 +205,7 @@ Preserved the main-branch queue fix while merging modernization:
 
 - Character avatars now have a clean component and browser-script hook across player profiles, player lists, the guild roster table, session roster chips, and session player deep-dive headers.
 - Without the portrait userscript, the app shows a class icon when available and falls back to initials on broken/missing images.
-- The portrait userscript is still the fastest proof of concept path. Exact Warmane-rendered faces now have a browser-side cache attempt: open the Warmane character page once, and Portrait Userscript `0.3.0` will cache a static portrait URL, Warmane-page canvas, or Wowhead/Zamimg modelviewer frame canvas if Warmane and the browser allow it. If every render canvas is tainted or unavailable, Pizza Logs falls back to class icons/initials.
+- The portrait userscript is still the fastest proof of concept path. Exact Warmane-rendered faces now have a browser-side cache attempt: open the Warmane character page once, and Portrait Userscript `0.4.0` will cache a static portrait URL, Warmane-page canvas, or Wowhead/Zamimg modelviewer frame canvas if Warmane and the browser allow it. It rejects blank/black canvases and ignores stale captures from earlier cache versions. If every render canvas is tainted or unavailable, Pizza Logs falls back to class icons/initials.
 - `app/icon.svg` is now the app metadata icon generated from the existing navigation logo SVG.
 - `public/favicon.ico` now covers the legacy root favicon request that Chrome reported as 404 in production.
 - Favicon assets were pushed to `origin/main` in `527c883`, and production returned HTTP 200 for both `/favicon.ico` and `/icon.svg` after the Railway deploy.
@@ -207,4 +221,4 @@ Preserved the main-branch queue fix while merging modernization:
 
 Manual production checks remain: confirm Railway Web Service has `ADMIN_SECRET`, inspect Railway deploy logs from a machine with Railway CLI/dashboard access, install or update Warmane Gear Sync `1.7.0`, run it once, then verify Maxximusboom and Lausudo gear icons.
 
-For portraits: install/update Portrait Userscript `0.3.0` from `/admin`, open the Warmane profile for a target character once, wait for any modelviewer frame to load, then test `/players/<name>`, `/guild-roster`, a raid session roster, and that session's player deep-dive page. If the face still does not appear, inspect whether the modelviewer frame canvas is readable or cross-origin tainted.
+For portraits: install/update Portrait Userscript `0.4.0` from `/admin`, open the Warmane profile for a target character once, wait for any modelviewer frame to load, then test `/players/<name>`, `/guild-roster`, a raid session roster, and that session's player deep-dive page. If the face still does not appear, inspect whether the modelviewer frame canvas is readable, cross-origin tainted, or never reaches a non-black render state.
