@@ -1,5 +1,7 @@
 import Link from "next/link";
+import { PlayerAvatar } from "../players/PlayerAvatar";
 import { getClassColor } from "../../lib/constants/classes";
+import { getClassIconUrl } from "../../lib/warmane-portrait";
 
 export type GuildRosterTableMember = {
   id: string;
@@ -84,12 +86,17 @@ export function GuildRosterTable({ members }: { members: GuildRosterTableMember[
               <tr key={member.id} className="border-t border-gold-dim/70 hover:bg-bg-card/60 transition-colors">
                 <td className="px-4 py-3">
                   <div className="flex items-center gap-3">
-                    <div
-                      className="flex h-9 w-9 shrink-0 items-center justify-center rounded-sm text-xs font-bold"
-                      style={{ background: `${classColor}22`, color: classColor, border: `1px solid ${classColor}44` }}
-                    >
-                      {member.characterName.slice(0, 2).toUpperCase()}
-                    </div>
+                    <PlayerAvatar
+                      name={member.characterName}
+                      realmName={member.realm}
+                      characterClass={member.className}
+                      raceName={member.raceName}
+                      guildName={member.guildName}
+                      color={classColor}
+                      portraitUrl={null}
+                      fallbackIconUrl={getClassIconUrl(member.className)}
+                      size="xs"
+                    />
                     <Link
                       href={`/players/${encodeURIComponent(member.characterName)}`}
                       className="font-semibold hover:text-gold-light transition-colors"

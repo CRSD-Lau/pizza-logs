@@ -43,5 +43,10 @@ assert.match(markup, /5,875/);
 assert.match(markup, /Engineering 450/);
 assert.match(markup, /Jewelcrafting 450/);
 assert.match(markup, /\/players\/Azyva/);
+assert.match(markup, /data-pizza-avatar="character"/);
+assert.match(markup, /data-character-name="Azyva"/);
+assert.match(markup, /data-character-realm="Lordaeron"/);
+assert.match(markup, /data-character-race="Night Elf"/);
+assert.match(markup, /classicon_druid/);
 
 console.log("guild-roster-table-render tests passed");

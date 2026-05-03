@@ -44,8 +44,9 @@ export function GearImportBookmarklet() {
           <h3 className="heading-cinzel text-sm text-gold tracking-wide">Character Portraits</h3>
           <p className="text-sm text-text-secondary mt-1">
             Install this Pizza Logs userscript to replace player initials with Warmane Armory
-            portraits when Warmane exposes a static image. It runs on Pizza Logs pages and
-            falls back to class icons or initials when no portrait is found.
+            portraits when Warmane exposes a static image. For exact rendered in-game faces,
+            open a Warmane character page once after installing so the script can cache the
+            rendered portrait if the page allows it. It falls back to class icons or initials.
           </p>
         </div>
         <div className="space-y-2">

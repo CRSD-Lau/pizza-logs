@@ -12,6 +12,8 @@ declare const GM_xmlhttpRequest: (details: {
   onerror: () => void;
   ontimeout: () => void;
 }) => void;
+declare const GM_getValue: <T = unknown>(key: string, defaultValue?: T) => T;
+declare const GM_setValue: (key: string, value: unknown) => void;
 
 export function buildPlayerPortraitUserscript(): string {
   const script = function pizzaLogsWarmanePortraits() {
@@ -48,9 +50,26 @@ export function buildPlayerPortraitUserscript(): string {
     ];
     const knownRealms = ["Lordaeron", "Icecrown", "Blackrock", "Frostmourne", "Frostwolf", "Outland", "Onyxia"];
 
-    if (localStorage.getItem(disabledKey) === "1") return;
+    const isDisabled = function isDisabled() {
+      try {
+        return localStorage.getItem(disabledKey) === "1";
+      } catch {
+        return false;
+      }
+    };
+
+    if (isDisabled()) return;
 
     const readCache = function readCache() {
+      try {
+        if (typeof GM_getValue === "function") {
+          const stored = GM_getValue<string>(cacheKey, "");
+          if (stored) return JSON.parse(stored);
+        }
+      } catch {
+        // Tampermonkey storage is best-effort; fall back to page localStorage.
+      }
+
       try {
         return JSON.parse(localStorage.getItem(cacheKey) || "{}");
       } catch {
@@ -59,11 +78,25 @@ export function buildPlayerPortraitUserscript(): string {
     };
 
     const writeCache = function writeCache(cache: Record<string, { url: string | null; fetchedAt: number }>) {
+      const serialized = JSON.stringify(cache);
       try {
-        localStorage.setItem(cacheKey, JSON.stringify(cache));
+        if (typeof GM_setValue === "function") GM_setValue(cacheKey, serialized);
+      } catch {
+        // Ignore GM storage failures and still try localStorage below.
+      }
+
+      try {
+        localStorage.setItem(cacheKey, serialized);
       } catch {
         // LocalStorage can be full or unavailable; the script still works without caching.
       }
+    };
+
+    const cachePortrait = function cachePortrait(name: string, realm: string, url: string | null) {
+      const cache = readCache();
+      const key = `${realm.toLowerCase()}:${name.toLowerCase()}`;
+      cache[key] = { url, fetchedAt: Date.now() };
+      writeCache(cache);
     };
 
     const normalizeUrl = function normalizeUrl(value: string | null | undefined, baseUrl: string) {
@@ -150,6 +183,49 @@ export function buildPlayerPortraitUserscript(): string {
 
     const buildWarmaneUrl = function buildWarmaneUrl(name: string, realm: string) {
       return `${warmaneOrigin}/character/${encodeURIComponent(name)}/${encodeURIComponent(realm || "Lordaeron")}/summary`;
+    };
+
+    const warmanePageIdentity = function warmanePageIdentity() {
+      const match = location.pathname.match(/^\/character\/([^/]+)\/([^/]+)(?:\/(?:summary|profile))?\/?$/i);
+      if (!match) return null;
+      return {
+        name: decodeURIComponent(match[1]),
+        realm: decodeURIComponent(match[2] || "Lordaeron"),
+      };
+    };
+
+    const captureRenderedCanvas = function captureRenderedCanvas() {
+      const canvases = (Array.from(document.querySelectorAll("canvas")) as HTMLCanvasElement[])
+        .filter(canvas => canvas.width >= 64 && canvas.height >= 64)
+        .sort((a, b) => (b.width * b.height) - (a.width * a.height));
+
+      for (const canvas of canvases) {
+        try {
+          const dataUrl = canvas.toDataURL("image/png");
+          if (dataUrl && dataUrl.length > 1000) return dataUrl;
+        } catch {
+          // Warmane may render with cross-origin textures, which taints the canvas.
+        }
+      }
+
+      return null;
+    };
+
+    const captureWarmanePagePortrait = function captureWarmanePagePortrait(attempt = 0) {
+      const identity = warmanePageIdentity();
+      if (!identity) return;
+
+      const html = document.documentElement?.outerHTML || "";
+      const staticPortrait = findPortraitUrl(html, location.href);
+      const portraitUrl = staticPortrait || captureRenderedCanvas();
+      if (portraitUrl) {
+        cachePortrait(identity.name, identity.realm, portraitUrl);
+        return;
+      }
+
+      if (attempt < 8) {
+        setTimeout(() => captureWarmanePagePortrait(attempt + 1), 750);
+      }
     };
 
     const classIconUrl = function classIconUrl(className: string | undefined) {
@@ -323,6 +399,23 @@ export function buildPlayerPortraitUserscript(): string {
       });
     };
 
+    const runWarmaneCapture = function runWarmaneCapture() {
+      captureWarmanePagePortrait();
+    };
+
+    const isWarmaneCharacterPage = function isWarmaneCharacterPage() {
+      return location.hostname === "armory.warmane.com" && Boolean(warmanePageIdentity());
+    };
+
+    if (isWarmaneCharacterPage()) {
+      if (document.readyState === "loading") {
+        document.addEventListener("DOMContentLoaded", runWarmaneCapture, { once: true });
+      } else {
+        runWarmaneCapture();
+      }
+      return;
+    }
+
     if (document.readyState === "loading") {
       document.addEventListener("DOMContentLoaded", run, { once: true });
     } else {
@@ -336,11 +429,13 @@ export function buildPlayerPortraitUserscript(): string {
     "// ==UserScript==",
     "// @name         Pizza Logs Warmane Portraits",
     "// @namespace    https://pizza-logs-production.up.railway.app",
-    "// @version      0.1.0",
-    "// @description  Replaces Pizza Logs character initials with Warmane Armory portraits when Warmane exposes a usable image.",
+    "// @version      0.2.0",
+    "// @description  Replaces Pizza Logs character initials with Warmane Armory portraits or cached rendered character faces when available.",
     "// @match        https://pizza-logs-production.up.railway.app/*",
     "// @match        http://localhost:3000/*",
     "// @match        http://127.0.0.1:3000/*",
+    "// @match        https://armory.warmane.com/character/*",
+    "// @match        http://armory.warmane.com/character/*",
     "// Update the @match lines above if your Pizza Logs URL or local port changes.",
     `// @downloadURL   ${PORTRAIT_USERSCRIPT_URL}`,
     `// @updateURL     ${PORTRAIT_USERSCRIPT_URL}`,
@@ -349,6 +444,8 @@ export function buildPlayerPortraitUserscript(): string {
     "// @connect      wow.zamimg.com",
     "// @run-at       document-idle",
     "// @grant        GM_xmlhttpRequest",
+    "// @grant        GM_getValue",
+    "// @grant        GM_setValue",
     "// ==/UserScript==",
     "",
     `(${script.toString()})();`,

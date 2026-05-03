@@ -3,8 +3,11 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { db } from "@/lib/db";
 import { MobBreakdown, type MobEntry } from "@/components/meter/MobBreakdown";
+import { PlayerAvatar } from "@/components/players/PlayerAvatar";
 import { AccordionSection } from "@/components/ui/AccordionSection";
 import { StatCard } from "@/components/ui/StatCard";
+import { getClassColor } from "@/lib/constants/classes";
+import { getClassIconUrl } from "@/lib/warmane-portrait";
 import { cn, formatDuration, formatNumber } from "@/lib/utils";
 
 interface Props {
@@ -67,6 +70,23 @@ export default async function SessionDetailPage({ params }: Props) {
       if (!playerSet.has(p.player.name)) playerSet.set(p.player.name, p.player.class ?? null);
     }
   }
+  const realmName = upload.realm?.name ?? "Lordaeron";
+  const guildName = upload.guild?.name ?? null;
+  const rosterMembers = playerSet.size > 0
+    ? await db.guildRosterMember.findMany({
+      where: {
+        normalizedCharacterName: { in: Array.from(playerSet.keys()).map(playerName => playerName.toLowerCase()) },
+        realm: realmName,
+      },
+      select: {
+        normalizedCharacterName: true,
+        guildName: true,
+        className: true,
+        raceName: true,
+      },
+    })
+    : [];
+  const rosterMemberMap = new Map(rosterMembers.map(member => [member.normalizedCharacterName, member]));
 
   const mobMap = new Map<string, {
     totalDamage: number;
@@ -248,16 +268,33 @@ export default async function SessionDetailPage({ params }: Props) {
       {playerSet.size > 0 && (
         <AccordionSection title="Raid Roster" count={playerSet.size} defaultOpen>
           <div className="bg-bg-panel border border-gold-dim rounded p-4 flex flex-wrap gap-2">
-            {Array.from(playerSet.entries()).map(([name, cls]) => (
-              <Link
-                key={name}
-                href={`/raids/${id}/sessions/${sessionIndex}/players/${encodeURIComponent(name)}`}
-                className="text-xs px-2 py-1 rounded border border-gold-dim bg-bg-card hover:border-gold transition-colors"
-              >
-                <span className="text-text-primary font-medium">{name}</span>
-                {cls && <span className="text-text-dim ml-1.5">{cls}</span>}
-              </Link>
-            ))}
+            {Array.from(playerSet.entries()).map(([name, cls]) => {
+              const rosterMember = rosterMemberMap.get(name.toLowerCase());
+              const characterClass = cls ?? rosterMember?.className ?? null;
+              const classColor = getClassColor(characterClass ?? name);
+
+              return (
+                <Link
+                  key={name}
+                  href={`/raids/${id}/sessions/${sessionIndex}/players/${encodeURIComponent(name)}`}
+                  className="inline-flex items-center gap-2 rounded border border-gold-dim bg-bg-card px-2 py-1 text-xs hover:border-gold transition-colors"
+                >
+                  <PlayerAvatar
+                    name={name}
+                    realmName={realmName}
+                    characterClass={characterClass}
+                    raceName={rosterMember?.raceName}
+                    guildName={rosterMember?.guildName ?? guildName}
+                    color={classColor}
+                    portraitUrl={null}
+                    fallbackIconUrl={getClassIconUrl(characterClass)}
+                    size="xs"
+                  />
+                  <span className="text-text-primary font-medium">{name}</span>
+                  {characterClass && <span className="text-text-dim">{characterClass}</span>}
+                </Link>
+              );
+            })}
           </div>
         </AccordionSection>
       )}

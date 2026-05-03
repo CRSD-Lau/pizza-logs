@@ -15,10 +15,14 @@ assert.match(userscript, /\/\/ @name\s+Pizza Logs Warmane Portraits/);
 assert.match(userscript, /\/\/ @match\s+https:\/\/pizza-logs-production\.up\.railway\.app\/\*/);
 assert.match(userscript, /\/\/ @match\s+http:\/\/localhost:3000\/\*/);
 assert.match(userscript, /\/\/ @match\s+http:\/\/127\.0\.0\.1:3000\/\*/);
+assert.match(userscript, /\/\/ @match\s+https:\/\/armory\.warmane\.com\/character\/\*/);
 assert.match(userscript, /\/\/ @grant\s+GM_xmlhttpRequest/);
+assert.match(userscript, /\/\/ @grant\s+GM_getValue/);
+assert.match(userscript, /\/\/ @grant\s+GM_setValue/);
 assert.match(userscript, /data-pizza-avatar/);
 assert.match(userscript, /findPortraitUrl/);
 assert.match(userscript, /pizzaLogsWarmanePortraitCache/);
+assert.match(userscript, /toDataURL/);
 
 async function verifyUserscriptReplacesInitialsWithFetchedPortrait() {
   const avatar = {
@@ -222,9 +226,145 @@ async function verifyUserscriptFindsLegacyPlayerHeader() {
   );
 }
 
+async function verifyUserscriptCachesWarmaneCanvasForPizzaLogsPages() {
+  const gmStorage = new Map<string, string>();
+  const timers: Promise<void>[] = [];
+
+  const warmaneContext = {
+    console: { info() {}, warn() {}, error() {} },
+    URL,
+    location: {
+      hostname: "armory.warmane.com",
+      pathname: "/character/Maximusboom/Lordaeron/summary",
+      href: "https://armory.warmane.com/character/Maximusboom/Lordaeron/summary",
+    },
+    setTimeout: (callback: () => void) => {
+      const promise = Promise.resolve().then(callback);
+      timers.push(promise);
+      return 1;
+    },
+    localStorage: {
+      getItem: (key: string) => gmStorage.get(`local:${key}`) ?? null,
+      setItem: (key: string, value: string) => gmStorage.set(`local:${key}`, value),
+      removeItem: (key: string) => gmStorage.delete(`local:${key}`),
+    },
+    GM_getValue: (key: string, fallback: string) => gmStorage.get(key) ?? fallback,
+    GM_setValue: (key: string, value: string) => gmStorage.set(key, value),
+    document: {
+      readyState: "complete",
+      addEventListener() {},
+      documentElement: { outerHTML: "<html></html>" },
+      querySelectorAll: (selector: string) => {
+        if (selector === "canvas") {
+          return [{
+            width: 512,
+            height: 512,
+            toDataURL: () => "data:image/png;base64," + "a".repeat(1200),
+          }];
+        }
+        return [];
+      },
+    },
+    DOMParser: class {
+      parseFromString() {
+        return {
+          querySelector: () => null,
+          querySelectorAll: () => [],
+        };
+      }
+    },
+  };
+
+  vm.runInNewContext(userscript, warmaneContext);
+  await Promise.all(timers);
+  for (let i = 0; i < 5; i++) {
+    await Promise.resolve();
+  }
+
+  const avatar = {
+    dataset: {
+      pizzaAvatar: "character",
+      characterName: "Maximusboom",
+      characterRealm: "Lordaeron",
+      characterClass: "Druid",
+      initials: "MA",
+    } as Record<string, string>,
+    innerHTML: "MA",
+    textContent: "MA",
+    appendChild(child: { tagName: string; src: string }) {
+      this.child = child;
+    },
+    querySelector: () => null,
+    setAttribute() {},
+    child: null as null | { tagName: string; src: string },
+  };
+
+  const pizzaContext = {
+    console: { info() {}, warn() {}, error() {} },
+    URL,
+    location: {
+      hostname: "pizza-logs-production.up.railway.app",
+      pathname: "/players/Maximusboom",
+    },
+    setTimeout: (callback: () => void) => {
+      const promise = Promise.resolve().then(callback);
+      timers.push(promise);
+      return 1;
+    },
+    localStorage: {
+      getItem: (key: string) => gmStorage.get(`local:${key}`) ?? null,
+      setItem: (key: string, value: string) => gmStorage.set(`local:${key}`, value),
+      removeItem: (key: string) => gmStorage.delete(`local:${key}`),
+    },
+    GM_getValue: (key: string, fallback: string) => gmStorage.get(key) ?? fallback,
+    GM_setValue: (key: string, value: string) => gmStorage.set(key, value),
+    document: {
+      readyState: "complete",
+      addEventListener() {},
+      querySelectorAll: (selector: string) => {
+        if (selector === "[data-pizza-avatar='character']") return [avatar];
+        if (selector === "h1") return [];
+        if (selector === "a[href*='/players/']") return [];
+        throw new Error(`Unexpected selector ${selector}`);
+      },
+      createElement: (tagName: string) => ({
+        tagName,
+        dataset: {},
+        style: { cssText: "" },
+        set alt(value: string) { this.altText = value; },
+        set src(value: string) { this.srcValue = value; },
+        get src() { return this.srcValue; },
+        altText: "",
+        srcValue: "",
+      }),
+    },
+    DOMParser: class {
+      parseFromString() {
+        return {
+          querySelector: () => null,
+          querySelectorAll: () => [],
+        };
+      }
+    },
+    GM_xmlhttpRequest: () => {
+      throw new Error("Should use cached Warmane canvas before fetching");
+    },
+  };
+
+  vm.runInNewContext(userscript, pizzaContext);
+  await Promise.all(timers);
+  for (let i = 0; i < 5; i++) {
+    await Promise.resolve();
+  }
+
+  assert.match(avatar.child?.src ?? "", /^data:image\/png;base64,/);
+  assert.equal(avatar.dataset.pizzaAvatarState, "portrait");
+}
+
 Promise.all([
   verifyUserscriptReplacesInitialsWithFetchedPortrait(),
   verifyUserscriptFindsLegacyPlayerHeader(),
+  verifyUserscriptCachesWarmaneCanvasForPizzaLogsPages(),
 ])
   .then(() => console.log("player-portrait-client-scripts tests passed"))
   .catch((error) => {

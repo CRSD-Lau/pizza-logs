@@ -11,6 +11,21 @@
 
 ## What Was Done This Session
 
+### Warmane rendered character face capture expanded
+
+- Extended `PlayerAvatar` to support compact table/chip sizing.
+- Replaced guild roster initials with `PlayerAvatar`, including name, realm, class, race, guild, and class-icon fallback metadata.
+- Replaced the session player deep-dive initials header with `PlayerAvatar`.
+- Added avatars to the session Raid Roster chips so the player deep-dive entry points can also be upgraded by the portrait userscript.
+- Enhanced the portrait userscript to `0.2.0`:
+  - runs on Pizza Logs pages and Warmane character pages,
+  - shares cache through Tampermonkey `GM_getValue` / `GM_setValue`,
+  - tries static Warmane portrait URLs first,
+  - then tries to cache the rendered Warmane character canvas as a data URL when browser security allows it,
+  - keeps class-icon and initials fallback behavior.
+- Updated `/admin` copy to explain that exact rendered faces require opening a Warmane character page once after installing the portrait userscript.
+- No Prisma migration was added.
+
 ### Warmane character portrait userscript POC
 
 - Replaced duplicated player initials markup with `components/players/PlayerAvatar.tsx`.
@@ -92,6 +107,14 @@ Preserved the main-branch queue fix while merging modernization:
 ## Verification
 
 - Character portrait POC:
+  - `tests/guild-roster-table-render.test.ts` -> passed with bundled Node, `ts-node/register`, and manual `tsconfig-paths` alias registration.
+  - `tests/session-avatar-source.test.ts` -> passed.
+  - `tests/player-portrait-client-scripts.test.ts` -> passed, including Warmane-page rendered canvas cache and Pizza Logs cache reuse.
+  - `tests/gear-import-bookmarklet.test.ts` -> passed.
+  - TypeScript: bundled Node running `node_modules/typescript/bin/tsc --noEmit` -> passed.
+  - Lint: bundled Node running `node_modules/eslint/bin/eslint.js . --max-warnings=0` -> passed.
+  - `git diff --check` -> passed.
+  - Clean temp-copy production build outside OneDrive: passed with exit code 0. It emitted the expected Windows-only standalone trace warning because the temp copy used a junction to this checkout's `node_modules`; Railway installs normal dependencies and should not hit that junction warning.
   - Direct local `curl`/`Invoke-WebRequest` to Warmane character summary and API returned HTTP 403 Cloudflare challenge headers, confirming the server/backend path is unreliable for this quick pass.
   - Headless Playwright through local Edge also remained on the Cloudflare "Just a moment..." verification page.
   - Web-rendered Warmane profile pages confirmed the public URL pattern `/character/<name>/<realm>/summary` and profile text, but did not expose a clearly verifiable static portrait in the extracted HTML.
@@ -149,8 +172,9 @@ Preserved the main-branch queue fix while merging modernization:
 
 ## Current State
 
-- Character avatars now have a clean component and browser-script hook. Without the portrait userscript, the app shows a class icon when available and falls back to initials on broken/missing images.
-- The portrait userscript is the fastest proof of concept path, but actual Warmane headshots depend on Warmane exposing a static image URL in HTML/meta/script data. If Warmane only renders a live Wowhead/WebGL model/canvas, this userscript will fall back instead of fabricating a portrait.
+- Character avatars now have a clean component and browser-script hook across player profiles, player lists, the guild roster table, session roster chips, and session player deep-dive headers.
+- Without the portrait userscript, the app shows a class icon when available and falls back to initials on broken/missing images.
+- The portrait userscript is still the fastest proof of concept path. Exact Warmane-rendered faces now have a browser-side cache attempt: open the Warmane character page once, and the userscript will cache a static portrait URL or rendered canvas if Warmane and the browser allow it. If the render canvas is tainted or unavailable, Pizza Logs falls back to class icons/initials.
 - `app/icon.svg` is now the app metadata icon generated from the existing navigation logo SVG.
 - `public/favicon.ico` now covers the legacy root favicon request that Chrome reported as 404 in production.
 - Favicon assets were pushed to `origin/main` in `527c883`, and production returned HTTP 200 for both `/favicon.ico` and `/icon.svg` after the Railway deploy.
@@ -166,4 +190,4 @@ Preserved the main-branch queue fix while merging modernization:
 
 Manual production checks remain: confirm Railway Web Service has `ADMIN_SECRET`, inspect Railway deploy logs from a machine with Railway CLI/dashboard access, install or update Warmane Gear Sync `1.7.0`, run it once, then verify Maxximusboom and Lausudo gear icons.
 
-For portraits: install the generated userscript from `/api/player-portraits/userscript.user.js` after deploy or from local dev, then test `/players/Lichkingspet`. If no portrait appears, inspect the Warmane page in a normal browser session for a static portrait/meta/background URL versus a canvas-only Wowhead model.
+For portraits: install/update Portrait Userscript `0.2.0` from `/admin`, open the Warmane profile for a target character once, then test `/players/<name>`, `/guild-roster`, a raid session roster, and that session's player deep-dive page. If the face still does not appear, Warmane likely blocks canvas export or does not expose a usable static portrait for that page.

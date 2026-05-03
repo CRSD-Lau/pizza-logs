@@ -3,10 +3,12 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { db } from "@/lib/db";
 import { AccordionSection } from "@/components/ui/AccordionSection";
+import { PlayerAvatar } from "@/components/players/PlayerAvatar";
 import { SessionLineChart } from "@/components/charts/SessionLineChart";
 import type { ChartPoint, PlayerLine } from "@/components/charts/SessionLineChart";
 import { StatCard } from "@/components/ui/StatCard";
 import { getClassColor } from "@/lib/constants/classes";
+import { getClassIconUrl } from "@/lib/warmane-portrait";
 import { cn, formatDps, formatDuration } from "@/lib/utils";
 
 interface Props {
@@ -46,6 +48,25 @@ export default async function SessionPlayerPage({ params }: Props) {
 
   const playerClass = firstParticipation.player.class ?? null;
   const classColor = getClassColor(playerClass ?? name);
+  const upload = await db.upload.findUnique({
+    where: { id },
+    select: {
+      realm: { select: { name: true } },
+      guild: { select: { name: true } },
+    },
+  });
+  const realmName = upload?.realm?.name ?? "Lordaeron";
+  const rosterMember = await db.guildRosterMember.findFirst({
+    where: {
+      normalizedCharacterName: name.toLowerCase(),
+      realm: realmName,
+    },
+    select: {
+      raceName: true,
+      guildName: true,
+      className: true,
+    },
+  });
 
   const myStats = encounters
     .map((enc) => {
@@ -132,12 +153,17 @@ export default async function SessionPlayerPage({ params }: Props) {
       </div>
 
       <div className="flex items-center gap-4">
-        <div
-          className="w-14 h-14 rounded-sm flex items-center justify-center text-lg font-bold"
-          style={{ background: `${classColor}22`, color: classColor, border: `1px solid ${classColor}44` }}
-        >
-          {name.substring(0, 2).toUpperCase()}
-        </div>
+        <PlayerAvatar
+          name={name}
+          realmName={realmName}
+          characterClass={playerClass ?? rosterMember?.className}
+          raceName={rosterMember?.raceName}
+          guildName={rosterMember?.guildName ?? upload?.guild?.name}
+          color={classColor}
+          portraitUrl={null}
+          fallbackIconUrl={getClassIconUrl(playerClass ?? rosterMember?.className)}
+          size="lg"
+        />
         <div>
           <h1 className="heading-cinzel text-2xl font-bold" style={{ color: classColor }}>
             {name}

@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 
-type PlayerAvatarSize = "sm" | "lg";
+type PlayerAvatarSize = "xs" | "sm" | "lg";
 
 type PlayerAvatarProps = {
   name: string;
@@ -19,6 +19,7 @@ type PlayerAvatarProps = {
 };
 
 const SIZE_CLASSES: Record<PlayerAvatarSize, string> = {
+  xs: "w-9 h-9 text-xs",
   sm: "w-10 h-10 text-sm",
   lg: "w-14 h-14 text-lg",
 };
