@@ -22,6 +22,7 @@
   - `/api/player-portraits/userscript.user.js`
 - The portrait userscript runs on production and local Pizza Logs URLs, uses `GM_xmlhttpRequest` against Warmane, caches results in `localStorage` for 7 days, and can be disabled with `localStorage.pizzaLogsWarmanePortraitsDisabled = "1"`.
 - The userscript handles both the new avatar data attributes and the currently deployed player header/list markup by inferring the character from `/players/<name>`, nearby `h1`, and initials boxes.
+- Follow-up fix added the portrait userscript install link to `/admin` in the existing Warmane Gear Cache userscript card, alongside the gear sync userscript link.
 - No Prisma migration was added. Portraits are a browser-side proof of concept for now.
 
 ### Favicon aligned with the in-app logo mark
@@ -98,6 +99,7 @@ Preserved the main-branch queue fix while merging modernization:
   - Focused tests:
     - `tests/warmane-portrait.test.ts` -> passed
     - `tests/player-portrait-client-scripts.test.ts` -> passed
+    - `tests/gear-import-bookmarklet.test.ts` -> passed
     - `tests/player-profile.test.ts` -> passed
     - `tests/armory-gear-client-scripts.test.ts` -> passed
   - TypeScript: bundled Node running `node_modules/typescript/bin/tsc --noEmit` -> passed

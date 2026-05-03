@@ -19,6 +19,7 @@
 
 | Bug | Fix | Commit |
 |---|---|---|
+| Portrait userscript install link missing from `/admin` after portrait POC deploy | Added a Character Portraits section to the existing Warmane Gear Cache userscript card with install/update link and hosted URL | follow-up commit |
 | Browser console logged `/favicon.ico` 404 on production player pages | Generated `public/favicon.ico` from the existing navigation logo SVG and kept `app/icon.svg` for Next metadata icons | 527c883 |
 | Roster Sync userscript appeared on Warmane character pages where Gear Sync was expected | Gear userscript now matches/runs only on `/character/*`; roster userscript now matches/runs only on `/guild/*`; both bumped to v1.0.4 with runtime path guards | 1844c36 |
 | Warmane Gear Sync userscript panel hidden after installing roster userscript | Roster userscript panel now docks above the Gear Sync panel instead of sharing `bottom:16px`; roster userscript bumped to v1.0.3 | 50d3d04 |

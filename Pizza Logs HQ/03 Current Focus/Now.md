@@ -6,7 +6,7 @@
 
 **Favicon update is live on production.** `app/icon.svg` now uses the same SVG mark as the navigation logo, and `public/favicon.ico` fixes the legacy `/favicon.ico` 404 reported from production. After deploy, production returned HTTP 200 for both `/favicon.ico` and `/icon.svg`.
 
-**Character portrait proof of concept is implemented locally, not deployed yet.** Player initials now render through `PlayerAvatar`, the profile shape has `portraitUrl`, and `/api/player-portraits/userscript.user.js` serves a Tampermonkey script that tries Warmane portraits with localStorage caching and falls back to class icons/initials. Direct local Warmane fetches and headless browser checks hit Cloudflare, so this remains a browser-assisted proof of concept.
+**Character portrait proof of concept is deployed on `origin/main`, with the admin install link committed locally.** Player initials now render through `PlayerAvatar`, the profile shape has `portraitUrl`, and `/api/player-portraits/userscript.user.js` serves a Tampermonkey script that tries Warmane portraits with localStorage caching and falls back to class icons/initials. Direct local Warmane fetches and headless browser checks hit Cloudflare, so this remains a browser-assisted proof of concept.
 
 ---
 
@@ -19,7 +19,7 @@
 | Install/update Gear Sync `1.7.0` | VERIFY | Open `/admin` and install/update hosted Warmane Gear Sync userscript |
 | Run Warmane Gear Sync once | VERIFY | Script fetches queued players' Warmane pages and writes missing `iconName` values |
 | Verify Maxximusboom and Lausudo icons | VERIFY | Check Maxximusboom Lasherweave items and Lausudo item IDs `50024`, `49964`, `49985` |
-| Test Warmane portrait userscript | VERIFY | Install `/api/player-portraits/userscript.user.js`, open `/players/Lichkingspet`, and confirm whether Warmane exposes a static portrait URL or only a canvas/model |
+| Test Warmane portrait userscript | VERIFY | Install from `/admin` -> Warmane Gear Cache -> Character Portraits, open `/players/Lichkingspet`, and confirm whether Warmane exposes a static portrait URL or only a canvas/model |
 | Stats / Analytics page | FEATURE | Brainstorm first, then design, then build |
 | Verify Skada numbers in-game | VERIFY | Neil to do manually |
 | Absorbs (PW:S) | FEATURE | Combined column. Do after verification. |

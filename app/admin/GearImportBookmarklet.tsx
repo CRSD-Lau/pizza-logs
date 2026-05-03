@@ -1,8 +1,9 @@
-import { USERSCRIPT_URL } from "@/lib/armory-gear-client-scripts";
+import { USERSCRIPT_URL } from "../../lib/armory-gear-client-scripts";
+import { PORTRAIT_USERSCRIPT_URL } from "../../lib/player-portrait-client-scripts";
 
 export function GearImportBookmarklet() {
   return (
-    <div className="rounded border border-gold-dim bg-bg-card p-4 space-y-3">
+    <div className="rounded border border-gold-dim bg-bg-card p-4 space-y-5">
       <div>
         <h3 className="heading-cinzel text-sm text-gold tracking-wide">Browser Gear Import</h3>
         <p className="text-sm text-text-secondary mt-1">
@@ -14,7 +15,7 @@ export function GearImportBookmarklet() {
       </div>
       <ol className="list-decimal space-y-1 pl-5 text-sm text-text-secondary">
         <li>Install Tampermonkey or another userscript manager.</li>
-        <li>Open the hosted install URL below and accept the install/update prompt.</li>
+        <li>Open the hosted gear install URL below and accept the install/update prompt.</li>
         <li>Open any Warmane Armory character page and click Sync now once to save the admin secret.</li>
         <li>After that, visiting Warmane Armory will auto-sync at most once per hour.</li>
       </ol>
@@ -25,10 +26,10 @@ export function GearImportBookmarklet() {
           rel="noreferrer"
           className="inline-flex rounded border border-gold-dim px-4 py-2 text-sm text-gold transition-colors hover:border-gold hover:text-gold-light"
         >
-          Install / Update Userscript
+          Install / Update Gear Userscript
         </a>
         <label className="block text-xs font-bold uppercase tracking-widest text-text-dim">
-          Hosted install URL
+          Gear hosted install URL
         </label>
         <textarea
           readOnly
@@ -36,6 +37,36 @@ export function GearImportBookmarklet() {
           value={USERSCRIPT_URL}
           className="w-full rounded border border-gold-dim bg-bg-deep p-3 font-mono text-xs text-text-secondary"
         />
+      </div>
+
+      <div className="border-t border-gold-dim pt-4 space-y-3">
+        <div>
+          <h3 className="heading-cinzel text-sm text-gold tracking-wide">Character Portraits</h3>
+          <p className="text-sm text-text-secondary mt-1">
+            Install this Pizza Logs userscript to replace player initials with Warmane Armory
+            portraits when Warmane exposes a static image. It runs on Pizza Logs pages and
+            falls back to class icons or initials when no portrait is found.
+          </p>
+        </div>
+        <div className="space-y-2">
+          <a
+            href={PORTRAIT_USERSCRIPT_URL}
+            target="_blank"
+            rel="noreferrer"
+            className="inline-flex rounded border border-gold-dim px-4 py-2 text-sm text-gold transition-colors hover:border-gold hover:text-gold-light"
+          >
+            Install / Update Portrait Userscript
+          </a>
+          <label className="block text-xs font-bold uppercase tracking-widest text-text-dim">
+            Portrait hosted install URL
+          </label>
+          <textarea
+            readOnly
+            rows={2}
+            value={PORTRAIT_USERSCRIPT_URL}
+            className="w-full rounded border border-gold-dim bg-bg-deep p-3 font-mono text-xs text-text-secondary"
+          />
+        </div>
       </div>
     </div>
   );
