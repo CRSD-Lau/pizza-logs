@@ -131,6 +131,58 @@ function verifyAdmin(secret: unknown): boolean {
   return typeof secret === "string" && secret === configured;
 }
 
+export async function GET(req: NextRequest): Promise<NextResponse> {
+  const secret = req.nextUrl.searchParams.get("secret");
+  if (!verifyAdmin(secret)) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const db = new PrismaClient();
+  try {
+    // Check specific item IDs if provided, else show summary
+    const ids = req.nextUrl.searchParams.get("ids")?.split(",").map(s => s.trim()).filter(Boolean) ?? [];
+    const playerName = req.nextUrl.searchParams.get("player");
+
+    if (playerName) {
+      // Look up cached gear for a player and show enrichment status
+      const cache = await db.armoryGearCache.findFirst({
+        where: { characterKey: playerName.toLowerCase() },
+      });
+      const gear = cache?.gear as { items?: Array<{ itemId?: unknown; name?: string; details?: string[] }> } | null;
+      const items = gear?.items ?? [];
+      const itemIds = items.map(i => String(i.itemId ?? "")).filter(Boolean);
+      const rows = itemIds.length ? await db.wowItem.findMany({
+        where: { itemId: { in: itemIds } },
+        select: { itemId: true, name: true, itemLevel: true, armor: true, stats: true, importedAt: true },
+      }) : [];
+      const rowMap = new Map(rows.map(r => [r.itemId, r]));
+      return NextResponse.json({
+        player: playerName,
+        cachedItemCount: items.length,
+        items: items.map(i => {
+          const id = String(i.itemId ?? "");
+          const row = rowMap.get(id);
+          return { itemId: id, name: i.name, detailsLen: i.details?.length ?? 0, inDb: !!row, hasArmor: !!row?.armor, hasStats: !!row?.stats, importedAt: row?.importedAt };
+        }),
+      });
+    }
+
+    if (ids.length) {
+      const rows = await db.wowItem.findMany({
+        where: { itemId: { in: ids } },
+        select: { itemId: true, name: true, itemLevel: true, quality: true, armor: true, stats: true, bonding: true, requiredLevel: true, importedAt: true },
+      });
+      return NextResponse.json({ found: rows, missing: ids.filter(id => !rows.find(r => r.itemId === id)) });
+    }
+
+    const total = await db.wowItem.count();
+    const imported = await db.wowItem.count({ where: { importedAt: { not: null } } });
+    const withStats = await db.wowItem.count({ where: { stats: { not: Prisma.JsonNull } } });
+    const withArmor = await db.wowItem.count({ where: { armor: { gt: 0 } } });
+    return NextResponse.json({ total, imported, withStats, withArmor });
+  } finally {
+    await db.$disconnect();
+  }
+}
+
 export async function POST(req: NextRequest): Promise<NextResponse> {
   const body = await req.json().catch(() => ({}));
   if (!verifyAdmin(body?.secret)) {
