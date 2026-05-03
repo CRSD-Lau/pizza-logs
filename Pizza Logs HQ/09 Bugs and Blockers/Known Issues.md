@@ -23,8 +23,8 @@
 | Warriors with two two-handed weapons double-counted both weapon GearScores | `INVTYPE_2HWEAPON` normalization now assigns the first 2H to `Main Hand` and the second 2H to `Off Hand`, allowing the existing Titan Grip half-score modifier to apply | pending |
 | Guild roster Rank/Professions blank after sync | Warmane HTML roster can use guild-summary member links; parser now handles those links and `Image:` text, and roster sync/userscript prefer HTML first | pending |
 | Roster-only members had no Pizza Logs player profile or gear queue entry | `/players/<name>` now resolves roster rows and the Warmane gear queue includes roster-only guild members | pending |
-| Relics/ranged/wands displayed as Off Hand/trinkets and two-hander + relic characters got half GearScore | Slot labels are repaired from Wowhead `equipLoc`, the ranged/relic slot displays as `Ranged/Relic`, gear layout groups by slot name instead of array index, and Titan Grip half-score only applies to real weapon pairs | pending |
-| Player gear slots showed names but no icon/item level/GearScore after import | Wowhead item fetches now retry transient failures, enrichment concurrency is capped, and fresh partial cache rows are re-enriched before player pages return them | pending |
+| Relics/ranged/wands displayed as Off Hand/trinkets and two-hander + relic characters got half GearScore | Slot labels are repaired from cached/static item metadata, the ranged/relic slot displays as `Ranged/Relic`, gear layout groups by slot name instead of array index, and Titan Grip half-score only applies to real weapon pairs | pending |
+| Player gear slots showed names but no icon/item level/GearScore after import | Runtime item metadata now comes from AzerothCore `item_template`; icon-only gaps are queued for Warmane userscript backfill | pending |
 | Native gear tooltip clipped inside player profile Gear wrapper | Moved gear item tooltip rendering into a client-side `document.body` portal with fixed viewport positioning, viewport edge clamping, and top-level overlay z-index | pending |
 | Public UI exposed upload analytics and raw filenames | Moved upload history/detail into `/admin/uploads`, removed public nav/home/weekly upload telemetry, and redirected `/uploads` into admin | pending |
 | Mobile layout issues on raids/leaderboards | Rebuilt mobile nav, stacked raid-session cards, and made leaderboard rows fit small screens without overflow | pending |
@@ -52,7 +52,7 @@
 
 **Problem:** Gear enrichment (item name, ilvl, quality, stats) depended on runtime Wowhead API calls, which fail due to Cloudflare blocking on Railway.
 
-**Fix:** `lib/wowhead-items.ts` deprecated. Replaced by `lib/item-template.ts` backed by AzerothCore `item_template.sql` imported into `wow_items` table. Import script: `npm run db:import-items`.
+**Fix:** `lib/item-template.ts` and the AzerothCore `item_template.sql` importer now back `wow_items`. The deprecated runtime module and tests were removed in the Codex modernization cleanup. Import script: `npm run db:import-items`.
 
 **Icon source:** zamimg CDN (`wow.zamimg.com`) — static, not a Wowhead API call. Icon slugs come from Warmane's API response.
 
@@ -67,6 +67,14 @@
 **Fix:** Missing `iconUrl` now marks cached gear as needing enrichment. Imported gear backfills `wow_items.iconName` from valid Zamimg URLs, preserving AzerothCore metadata. Hosted Warmane Gear Sync userscript `1.7.0` fetches each queued player's Warmane summary HTML, scrapes item links/images, and merges DOM-derived icon URLs into that player's API payload before posting.
 
 **Operational note:** Deploy the fix, install/update Gear Sync `1.7.0`, then run Warmane Gear Sync once from any Warmane character page so production can populate missing icon slugs for queued players.
+
+### Follow-up: Maxximusboom not appearing in missing queue
+
+**Problem:** Maxximusboom still showed icon gaps after other audited players were fixed, but `/api/admin/armory-gear/missing` did not return him.
+
+**Root cause:** The missing-gear endpoint queried only the first 100 players and first 100 roster rows before filtering for missing gear. Players outside that pre-filter window could be broken but never queued.
+
+**Fix:** Remove pre-filter `take: 100` from player/roster candidate queries and keep the existing post-filter batch limit. The sync still returns at most 100 missing players per run, but it now computes that batch from the full candidate set.
 
 ## Fixed (2026-05-02)
 
@@ -99,4 +107,4 @@
 | HPS gap ~21-28% vs Skada | Parser matches Skada heal events exactly. Gap is Power Word: Shield absorbs - Skada tracks these separately in Absorbs.lua (not yet implemented) |
 | DPS residual gap <1% vs Skada | Parser matches all Skada damage events. Sub-1% from orphaned pets (no SPELL_SUMMON before log start) |
 | Progress bar fake before file received | File write to parser happens before SSE can start; first event is at 28% |
-| Warmane gear enchants/gems depend on source availability | Warmane summary API equipment currently exposes item name/id/transmog in documented examples. Wowhead fills static item metadata, but character-specific enchants and gems only display if Warmane includes them. |
+| Warmane gear enchants/gems depend on source availability | Warmane summary API equipment currently exposes item name/id/transmog in documented examples. AzerothCore fills static item metadata, but character-specific enchants and gems only display if Warmane includes them. |

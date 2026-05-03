@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { DEFAULT_GUILD_NAME, DEFAULT_GUILD_REALM } from "@/lib/warmane-guild-roster";
 import { getMissingArmoryGearPlayers } from "@/lib/armory-gear-queue";
+import { verifyAdminSecretValue } from "@/lib/admin-auth";
 
 const MAX_PLAYERS = 100;
 
@@ -20,9 +21,7 @@ function corsHeaders(origin: string | null): HeadersInit {
 }
 
 function verifyAdmin(secret: unknown): boolean {
-  const configured = process.env.ADMIN_SECRET;
-  if (!configured) return true;
-  return typeof secret === "string" && secret === configured;
+  return verifyAdminSecretValue(secret);
 }
 
 export async function OPTIONS(req: NextRequest): Promise<NextResponse> {
@@ -54,7 +53,6 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 
   const players = await db.player.findMany({
     orderBy: { name: "asc" },
-    take: MAX_PLAYERS,
     include: {
       realm: { select: { name: true } },
     },
@@ -68,7 +66,6 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       { rankOrder: "asc" },
       { characterName: "asc" },
     ],
-    take: MAX_PLAYERS,
     select: {
       characterName: true,
       normalizedCharacterName: true,
