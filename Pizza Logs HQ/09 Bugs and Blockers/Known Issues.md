@@ -64,9 +64,9 @@
 
 **Root cause:** AzerothCore `item_template` has no icon slug. Icons only come from Warmane/Tampermonkey (`icon`/`iconUrl`) or previously seeded `wow_items.iconName`. The gear queue considered cached gear complete when `itemId`, `itemLevel`, and `equipLoc` existed, so icon-only gaps were not re-synced. Follow-up finding: Warmane API can omit icon fields for the same item IDs every time, while the browser page DOM still has item link images.
 
-**Fix:** Missing `iconUrl` now marks cached gear as needing enrichment. Imported gear backfills `wow_items.iconName` from valid Zamimg URLs, preserving AzerothCore metadata. Hosted Warmane Gear Sync userscript `1.6.0` also scrapes current page item links/images and merges DOM-derived icon URLs into API payloads before posting.
+**Fix:** Missing `iconUrl` now marks cached gear as needing enrichment. Imported gear backfills `wow_items.iconName` from valid Zamimg URLs, preserving AzerothCore metadata. Hosted Warmane Gear Sync userscript `1.7.0` fetches each queued player's Warmane summary HTML, scrapes item links/images, and merges DOM-derived icon URLs into that player's API payload before posting.
 
-**Operational note:** Deploy the fix, install/update Gear Sync `1.6.0`, then run Warmane Gear Sync again so production can populate missing icon slugs.
+**Operational note:** Deploy the fix, install/update Gear Sync `1.7.0`, then run Warmane Gear Sync once from any Warmane character page so production can populate missing icon slugs for queued players.
 
 ## Fixed (2026-05-02)
 

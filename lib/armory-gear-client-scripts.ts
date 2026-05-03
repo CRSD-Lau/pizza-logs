@@ -54,9 +54,9 @@ export function buildBookmarklet(): string {
       return match?.[1] ?? match?.[2] ?? match?.[3] ?? null;
     };
 
-    const readPageItemIcons = function readPageItemIcons() {
+    const readPageItemIcons = function readPageItemIcons(root: Document = document) {
       const byId: Record<string, string> = {};
-      document.querySelectorAll("a[href*='/item/'], a[href*='item=']").forEach((link) => {
+      root.querySelectorAll("a[href*='/item/'], a[href*='item=']").forEach((link) => {
         const anchor = link as HTMLAnchorElement;
         const itemId = itemIdFromHref(anchor.href);
         if (!itemId || byId[itemId]) return;
@@ -67,8 +67,25 @@ export function buildBookmarklet(): string {
       return byId;
     };
 
-    const mergePageIconsIntoWarmaneData = function mergePageIconsIntoWarmaneData(data: Record<string, unknown>) {
-      const iconsByItemId = readPageItemIcons();
+    const fetchPlayerPageItemIcons = async function fetchPlayerPageItemIcons(player: { characterName: string; realm: string }) {
+      try {
+        const response = await fetch(`/character/${encodeURIComponent(player.characterName)}/${encodeURIComponent(player.realm)}/summary`, {
+          headers: { Accept: "text/html,*/*" },
+        });
+        if (!response.ok) return {};
+        const html = await response.text();
+        const doc = new DOMParser().parseFromString(html, "text/html");
+        return readPageItemIcons(doc);
+      } catch {
+        return {};
+      }
+    };
+
+    const mergePageIconsIntoWarmaneData = function mergePageIconsIntoWarmaneData(
+      data: Record<string, unknown>,
+      extraIconsByItemId: Record<string, string> = {},
+    ) {
+      const iconsByItemId = { ...readPageItemIcons(), ...extraIconsByItemId };
       const patchItems = function patchItems(items: unknown) {
         if (!Array.isArray(items)) return items;
         return items.map((raw) => {
@@ -100,7 +117,8 @@ export function buildBookmarklet(): string {
           });
           const warmaneData = await response.json();
           if (!response.ok || warmaneData.error) throw new Error(warmaneData.error || `Warmane HTTP ${response.status}`);
-          const enrichedWarmaneData = mergePageIconsIntoWarmaneData(warmaneData);
+          const pageIcons = await fetchPlayerPageItemIcons(player);
+          const enrichedWarmaneData = mergePageIconsIntoWarmaneData(warmaneData, pageIcons);
 
           await postJson(`${pizzaLogsOrigin}/api/admin/armory-gear/import`, {
             secret,
@@ -201,9 +219,9 @@ export function buildSingleBookmarklet(): string {
       return match?.[1] ?? match?.[2] ?? match?.[3] ?? null;
     };
 
-    const readPageItemIcons = function readPageItemIcons() {
+    const readPageItemIcons = function readPageItemIcons(root: Document = document) {
       const byId: Record<string, string> = {};
-      document.querySelectorAll("a[href*='/item/'], a[href*='item=']").forEach((link) => {
+      root.querySelectorAll("a[href*='/item/'], a[href*='item=']").forEach((link) => {
         const anchor = link as HTMLAnchorElement;
         const itemId = itemIdFromHref(anchor.href);
         if (!itemId || byId[itemId]) return;
@@ -431,9 +449,9 @@ export function buildUserscript(): string {
       return match?.[1] ?? match?.[2] ?? match?.[3] ?? null;
     };
 
-    const readPageItemIcons = function readPageItemIcons() {
+    const readPageItemIcons = function readPageItemIcons(root: Document = document) {
       const byId: Record<string, string> = {};
-      document.querySelectorAll("a[href*='/item/'], a[href*='item=']").forEach((link) => {
+      root.querySelectorAll("a[href*='/item/'], a[href*='item=']").forEach((link) => {
         const anchor = link as HTMLAnchorElement;
         const itemId = itemIdFromHref(anchor.href);
         if (!itemId || byId[itemId]) return;
@@ -444,8 +462,25 @@ export function buildUserscript(): string {
       return byId;
     };
 
-    const mergePageIconsIntoWarmaneData = function mergePageIconsIntoWarmaneData(data: Record<string, unknown>) {
-      const iconsByItemId = readPageItemIcons();
+    const fetchPlayerPageItemIcons = async function fetchPlayerPageItemIcons(player: { characterName: string; realm: string }) {
+      try {
+        const response = await fetch(`/character/${encodeURIComponent(player.characterName)}/${encodeURIComponent(player.realm)}/summary`, {
+          headers: { Accept: "text/html,*/*" },
+        });
+        if (!response.ok) return {};
+        const html = await response.text();
+        const doc = new DOMParser().parseFromString(html, "text/html");
+        return readPageItemIcons(doc);
+      } catch {
+        return {};
+      }
+    };
+
+    const mergePageIconsIntoWarmaneData = function mergePageIconsIntoWarmaneData(
+      data: Record<string, unknown>,
+      extraIconsByItemId: Record<string, string> = {},
+    ) {
+      const iconsByItemId = { ...readPageItemIcons(), ...extraIconsByItemId };
       const patchItems = function patchItems(items: unknown) {
         if (!Array.isArray(items)) return items;
         return items.map((raw) => {
@@ -477,7 +512,8 @@ export function buildUserscript(): string {
           });
           const warmaneData = await response.json();
           if (!response.ok || warmaneData.error) throw new Error(warmaneData.error || `Warmane HTTP ${response.status}`);
-          const enrichedWarmaneData = mergePageIconsIntoWarmaneData(warmaneData);
+          const pageIcons = await fetchPlayerPageItemIcons(player);
+          const enrichedWarmaneData = mergePageIconsIntoWarmaneData(warmaneData, pageIcons);
 
           await postJson(`${pizzaLogsOrigin}/api/admin/armory-gear/import`, {
             secret,
@@ -562,7 +598,7 @@ export function buildUserscript(): string {
     "// ==UserScript==",
     "// @name         Pizza Logs Warmane Gear Auto Sync",
     "// @namespace    https://pizza-logs-production.up.railway.app",
-    "// @version      1.6.0",
+    "// @version      1.7.0",
     "// @description  Automatically sync Pizza Logs gear cache from Warmane Armory pages.",
     "// @match        https://armory.warmane.com/character/*",
     "// @match        http://armory.warmane.com/character/*",

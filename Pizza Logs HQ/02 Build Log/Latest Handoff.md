@@ -24,13 +24,15 @@
 - `lib/armory-gear-client-scripts.ts`
   - Hosted userscript/bookmarklets now scrape current Warmane page item links/images as a fallback.
   - API equipment entries missing `icon`/`iconUrl` are patched by matching DOM item links by item ID.
-  - Userscript bumped to `1.6.0` so Tampermonkey can update.
+  - Follow-up: bulk sync now fetches each queued player's Warmane summary HTML and scrapes that player's page icons before posting, so Neil does not need to visit each player one by one.
+  - Userscript bumped to `1.7.0` so Tampermonkey can update.
 - `tests/armory-gear-queue.test.ts`
   - Regression coverage: fully enriched-but-iconless cached gear goes back into the Warmane sync queue.
 - `tests/warmane-armory-import.test.ts`
   - Regression coverage: Zamimg icon URLs produce reusable `wow_items.iconName` backfill rows.
 - `tests/armory-gear-client-scripts.test.ts`
   - Regression coverage: generated userscript merges a DOM-derived icon URL into a Warmane API payload before posting to Pizza Logs.
+  - Regression coverage: generated userscript fetches queued players' HTML pages and uses those page-specific icons during bulk sync.
 
 ---
 
@@ -60,4 +62,4 @@ Full ad hoc test sweep still has unrelated pre-existing test drift:
 
 ## Exact Next Step
 
-Deploy this fix, update/install Warmane Gear Sync userscript `1.6.0` from `/admin`, then re-run sync from the Warmane Lausudo page. After it imports Lausudo again, verify `wow_items.iconName` for `50024`, `49964`, and `49985`, then reload `/players/Lausudo` and confirm those cards show icons.
+Deploy this fix, update/install Warmane Gear Sync userscript `1.7.0` from `/admin`, then run Warmane Gear Sync once from any Warmane character page. The script should fetch queued players' pages, merge page-specific icons, and populate missing `wow_items.iconName` values without visiting each player manually.
