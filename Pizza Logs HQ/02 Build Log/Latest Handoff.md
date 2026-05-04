@@ -12,6 +12,45 @@
 
 ## What Was Done This Session
 
+### Responsive cinematic intro asset ladder
+
+- Added three new generated intro renditions while keeping the accepted 1440p desktop and 1080p portrait mobile passes:
+  - desktop fallback WebM/MP4/poster: `1920x1080`, `60fps`, `5.2s`, `312` rendered frames,
+  - desktop 4K WebM/MP4/poster: `3840x2160`, `60fps`, `5.2s`, `312` rendered frames,
+  - mobile 4K portrait WebM/MP4/poster: `2160x3840`, `60fps`, `5.2s`, `312` rendered frames.
+- New public assets:
+  - `public/intro/pizza-logs-cinematic-intro-1080p.webm`
+  - `public/intro/pizza-logs-cinematic-intro-1080p.mp4`
+  - `public/intro/pizza-logs-cinematic-poster-1080p.jpg`
+  - `public/intro/pizza-logs-cinematic-intro-4k.webm`
+  - `public/intro/pizza-logs-cinematic-intro-4k.mp4`
+  - `public/intro/pizza-logs-cinematic-poster-4k.jpg`
+  - `public/intro/pizza-logs-cinematic-intro-mobile-4k.webm`
+  - `public/intro/pizza-logs-cinematic-intro-mobile-4k.mp4`
+  - `public/intro/pizza-logs-cinematic-poster-mobile-4k.jpg`
+- Existing asset names remain stable:
+  - `pizza-logs-cinematic-intro.webm/mp4` stays the `2560x1440` desktop pass,
+  - `pizza-logs-cinematic-intro-mobile.webm/mp4` stays the `1080x1920` mobile pass.
+- Updated `FrozenLogbookIntro` to render an ordered responsive source ladder:
+  - high-density mobile gets the 4K portrait source,
+  - normal mobile gets the 1080p portrait source,
+  - large/high-density desktop gets the 4K landscape source,
+  - QHD/high-density desktop gets the existing 1440p landscape source,
+  - plain desktop falls back to 1080p landscape.
+- Poster selection now follows the same media-query ladder for reduced-motion mode and video poster display.
+- Temporary render driver and review output remain under ignored `tmp-mobile-check/hd_cinematic_intro/`; no temp frames/logs were promoted.
+- No parser behavior, Prisma schema, DB queries, upload logic, admin gates, or Railway config were changed.
+- Validation completed before push:
+  - `tests/frozen-intro-source.test.ts` -> passed,
+  - video/poster metadata inspection -> every public intro video is `60fps`, `5.2s`, and at its intended dimensions,
+  - TypeScript -> passed,
+  - ESLint -> passed,
+  - parser suite -> `123 passed`,
+  - `git diff --check` -> passed,
+  - production build -> passed,
+  - local built app served the new public intro assets with HTTP 200,
+  - headless Edge confirmed the hydrated intro overlay includes the full responsive `<source>` ladder on desktop and high-density mobile.
+
 ### Cinematic intro quality and mobile polish
 
 - Re-rendered the cinematic intro as a sharper web asset set:
@@ -592,8 +631,8 @@ Preserved the main-branch queue fix while merging modernization:
 
 ## Current State
 
-- HD cinematic intro integration is live on production at `0ad6231`. The old CSS-only particle/title intro has been replaced by generated cinematic video assets in `public/intro/`, now including the higher-resolution desktop pass and portrait mobile pass.
-- Intro behavior: `FrozenLogbookIntro` now plays the HD cinematic on hard page load, uses WebM with MP4 fallback, selects portrait mobile WebM/MP4 sources at `(max-width: 640px)`, lasts up to `5200ms`, exits on video end, keeps `Skip`, and avoids replaying on every internal route change. Reduced-motion users get the matching desktop/mobile poster and a short `350ms` timeout.
+- HD cinematic intro integration now has a responsive public asset ladder: `1920x1080`, `2560x1440`, and `3840x2160` desktop landscape plus `1080x1920` and `2160x3840` mobile portrait, all at `60fps` and `5.2s`.
+- Intro behavior: `FrozenLogbookIntro` now plays the HD cinematic on hard page load, uses WebM with MP4 fallback, selects mobile/desktop resolutions through ordered `<source media>` entries, lasts up to `5200ms`, exits on video end, keeps `Skip`, and avoids replaying on every internal route change. Reduced-motion users get the matching poster through the same media-query ladder and a short `350ms` timeout.
 - `/bosses` now has a mobile-native boss card layout with the same shared reveal animation style used on the other table/card pages. The desktop table grid is preserved for medium-and-up screens.
 - Raid session encounter displays now preserve parsed/session timestamp order when `startedAt` values are available. The existing ICC progression order remains the fallback for boss displays that do not have encounter timestamps, such as leaderboard boss-board ordering.
 - Gear card item-level and visible per-item `GS` display now distinguish raw item score from character contribution, and hunter one-hand weapons now count at normal item score in the total. This fixes Notlich-style hunter dual Scourgeborne Waraxe cards showing `168` instead of `531` each and removes the hunter weighting that kept Notlich's total below the in-game value.
@@ -617,7 +656,7 @@ Preserved the main-branch queue fix while merging modernization:
 
 ## Exact Next Step
 
-For cinematic intro: production is deployed and headless-verified with the higher-resolution desktop/mobile asset pass. Hard-refresh production in a normal browser to judge playback smoothness/taste and try the Skip button manually.
+For cinematic intro: after this responsive asset ladder deploy, hard-refresh production in normal desktop, 1440p/4K, and phone-sized browsers to judge playback smoothness/taste and try the Skip button manually.
 
 For `/bosses`: production markup and mobile screenshot are verified. A human phone-sized browser pass is still useful to confirm the boss cards animate in without horizontal overflow in a normal browser.
 
