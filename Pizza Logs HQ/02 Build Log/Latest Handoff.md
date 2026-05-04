@@ -11,6 +11,16 @@
 
 ## What Was Done This Session
 
+### Desktop branch/worktree cleanup
+
+- Confirmed `C:\Users\neil_\OneDrive\Desktop\PizzaLogs` is the active project checkout.
+- Identified `C:\Users\neil_\OneDrive\Desktop\PizzaLogs-main-queue-fix` as an old Git worktree for `main`, with no uncommitted/untracked source changes and no unique commits ahead of `origin/main`.
+- Removed the orphaned worktree folder and stale `.git/worktrees/PizzaLogs-main-queue-fix` metadata after Git partially deregistered it but Windows ACL deny rules blocked normal deletion.
+- Switched the active checkout from `codex/pizza-logs-modernization` to `main`.
+- Deleted local merged branches so only local `main` remains.
+- Deleted remote `origin/codex/pizza-logs-modernization` after verifying it pointed at the same commit as `origin/main`.
+- Preserved and committed Obsidian vault UI-state files because the vault is part of Neil's AI brain workflow.
+
 ### GearScore per-item display repair
 
 - Fixed player gear cards showing hunter melee weapon contribution scores as the visible per-item `GS`.

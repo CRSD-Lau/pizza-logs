@@ -13,12 +13,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "02 Build Log/Latest Handoff.md",
+                "file": "11 AI Knowledge/Codex Skills and Plugins.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "Latest Handoff"
+              "title": "Codex Skills and Plugins"
             }
           }
         ]
@@ -78,7 +78,7 @@
       }
     ],
     "direction": "horizontal",
-    "width": 563.5
+    "width": 200
   },
   "right": {
     "id": "1c92486926bdbe31",
@@ -171,12 +171,32 @@
             "state": {
               "type": "juggl_nodes",
               "state": {},
+              "icon": "lucide-ghost",
+              "title": "juggl_nodes"
+            }
+          },
+          {
+            "id": "f984705e46483e0c",
+            "type": "leaf",
+            "state": {
+              "type": "juggl_style",
+              "state": {},
+              "icon": "lucide-ghost",
+              "title": "juggl_style"
+            }
+          },
+          {
+            "id": "091f440d028c8cab",
+            "type": "leaf",
+            "state": {
+              "type": "juggl_nodes",
+              "state": {},
               "icon": "ag-node-list",
               "title": "Juggl nodes"
             }
           },
           {
-            "id": "f984705e46483e0c",
+            "id": "1fe5b2114d6aaf85",
             "type": "leaf",
             "state": {
               "type": "juggl_style",
@@ -206,11 +226,11 @@
   },
   "active": "f0c23184d3b3de78",
   "lastOpenFiles": [
+    "02 Build Log/Latest Handoff.md",
     "03 Current Focus/Now.md",
     "01 Home/Dashboard.md",
     "00 Inbox/Capture.md",
     "05 Features/Backlog.md",
-    "02 Build Log/Latest Handoff.md",
     "04 Architecture/Parser Deep Dive.md",
     "2026-04-24.md",
     "08 AI Control Center/Codex Skills Index.md",

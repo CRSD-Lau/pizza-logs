@@ -2,6 +2,8 @@
 
 ## Status
 
+**Desktop checkout is back to public `main` only.** `C:\Users\neil_\OneDrive\Desktop\PizzaLogs` is on `main` tracking `origin/main`. The old `PizzaLogs-main-queue-fix` worktree folder and stale Git metadata are removed, the local modernization/Claude branches are deleted, and the remote `codex/pizza-logs-modernization` branch was deleted after confirming it matched `main`.
+
 **Hunter weapon GearScore display/total is fixed.** Player gear cards now display raw per-item GearScore values through `displayItemScores`. Hunter-only melee/ranged GearScoreLite weighting was also removed from the total calculation because Notlich's in-game total (`6237`) follows the raw hunter weapon scores rather than counting heroic Scourgeborne Waraxes as `168` each. Titan Grip handling remains intact.
 
 **AzerothCore ranged/relic inventory mapping is repaired.** `InventoryType` 25/26/28 now map to thrown/ranged-right/relic correctly, and migration `20260504120000_repair_wow_item_ranged_relic_equip_locs` repairs older `wow_items` rows affected by the previous shifted mapping.
