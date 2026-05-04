@@ -9,10 +9,12 @@ import {
 
 const root = process.cwd();
 const globals = readFileSync(path.join(root, "app", "globals.css"), "utf8");
+const tailwindConfig = readFileSync(path.join(root, "tailwind.config.ts"), "utf8");
 
 assert.match(globals, /animation: revealItem 420ms ease-out both/);
 assert.match(globals, /var\(--reveal-index, 0\) \* 70ms/);
 assert.match(globals, /translateY\(14px\)/);
+assert.match(tailwindConfig, /safelist:\s*\[[\s\S]*"reveal-item"[\s\S]*"boss-reveal-item"[\s\S]*\]/);
 
 const revealStyle = getRevealStyle(7);
 assert.equal(revealStyle["--reveal-index"], 7);

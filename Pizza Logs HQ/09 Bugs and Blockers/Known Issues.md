@@ -19,6 +19,7 @@
 
 | Bug | Fix | Commit |
 |---|---|---|
+| Shared reveal animations did not run in production because Tailwind purged dynamic helper classes | Added a Tailwind safelist for `reveal-item` and `boss-reveal-item`, plus source coverage in `tests/ui-animation.test.ts` | this commit |
 | Player Recent Encounters and weekly Boss Kills This Week did not use ICC kill order | Added `buildPlayerRecentEncounters` and `buildWeeklyBossKills`; player recent encounters, `/weekly`, and `/api/weekly` now use the shared ICC progression order | this commit |
 | Player profile Per-Boss Summary sorted bosses by best DPS instead of ICC kill order | Added `buildPlayerPerBossSummary` and wired `/players/<name>` to the shared ICC boss-order helper used by raid sessions and leaderboards | this commit |
 | Hunter one-hand melee weapon gear cards and summary total used hunter-specific GearScoreLite weapon weighting | Added `displayItemScores` for raw per-item card display and removed hunter-only melee/ranged weighting from the total calculation so dual heroic Scourgeborne Waraxes count as `531` each; Titan Grip handling remains intact | this commit |
