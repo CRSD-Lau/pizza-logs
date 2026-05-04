@@ -19,6 +19,8 @@
 
 | Bug | Fix | Commit |
 |---|---|---|
+| Hunter one-hand melee weapon gear cards and summary total used hunter-specific GearScoreLite weapon weighting | Added `displayItemScores` for raw per-item card display and removed hunter-only melee/ranged weighting from the total calculation so dual heroic Scourgeborne Waraxes count as `531` each; Titan Grip handling remains intact | this commit |
+| AzerothCore thrown/ranged-right/relic item metadata imported with shifted equip locations | Corrected `InventoryType` mapping for 25/26/28 and added migration `20260504120000_repair_wow_item_ranged_relic_equip_locs` to repair existing `wow_items` rows | this commit |
 | Raid session and leaderboard boss lists could display ICC bosses alphabetically instead of in kill order | Added shared ICC progression-order helpers in `lib/constants/bosses.ts`; `/leaderboards` and raid session displays now sort known ICC bosses from Lord Marrowgar through The Lich King, with normalization for common non-canonical labels | this commit |
 | Main public pages crashed under the Next dev overlay when local Postgres was offline | `/`, `/players`, `/raids`, `/leaderboards`, `/bosses`, and `/weekly` now catch database connection failures, keep the shared header/search rendered, and show a Database unavailable warning | this commit |
 | `/admin` crashed under the Next dev overlay when local Postgres was offline | Admin dashboard DB reads now fail gracefully with a Database unavailable warning while keeping the shared header/search rendered | this commit |

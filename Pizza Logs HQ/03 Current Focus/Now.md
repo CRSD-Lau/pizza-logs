@@ -2,6 +2,10 @@
 
 ## Status
 
+**Hunter weapon GearScore display/total is fixed.** Player gear cards now display raw per-item GearScore values through `displayItemScores`. Hunter-only melee/ranged GearScoreLite weighting was also removed from the total calculation because Notlich's in-game total (`6237`) follows the raw hunter weapon scores rather than counting heroic Scourgeborne Waraxes as `168` each. Titan Grip handling remains intact.
+
+**AzerothCore ranged/relic inventory mapping is repaired.** `InventoryType` 25/26/28 now map to thrown/ranged-right/relic correctly, and migration `20260504120000_repair_wow_item_ranged_relic_equip_locs` repairs older `wow_items` rows affected by the previous shifted mapping.
+
 **Codex modernization is live on `origin/main`, and the vault docs have been synced after the push.** The repo is Codex-first, tracked Claude-specific artifacts were removed, stale Wowhead runtime code was deleted, admin auth is safer in production, compose admin remains usable with local-only overrides, and the Maxximusboom missing-gear queue fix from main was preserved.
 
 **ICC boss ordering is fixed in code for raid-session displays and leaderboards.** `lib/constants/bosses.ts` now owns the canonical Icecrown Citadel progression order plus normalization for common labels like Gunship variants, `Lich King`, and Blood-Queen Lana'thel variants. `/leaderboards` uses that shared sorter instead of alphabetical boss-name order, and raid session encounter displays use it while preserving duplicate pull order.
@@ -26,6 +30,7 @@
 
 | Task | Type | Notes |
 |------|------|-------|
+| Verify Notlich gear cards | VERIFY | After deploy, `/players/Notlich` should show both heroic Scourgeborne Waraxes as `GS 531` |
 | Verify production admin config | DEPLOY | Confirm Railway Web Service has `ADMIN_SECRET`; do not set `ADMIN_COOKIE_SECURE=false` in Railway |
 | Verify Railway deploy logs | DEPLOY | Use Railway dashboard/CLI; local Railway CLI is not installed |
 | Install/update Gear Sync `1.7.0` | VERIFY | Open `/admin` and install/update hosted Warmane Gear Sync userscript |

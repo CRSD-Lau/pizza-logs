@@ -45,16 +45,16 @@ function GearGrid({ gear, stale = false, playerClass }: { gear: ArmoryCharacterG
 
       <div className="grid gap-2 lg:grid-cols-[1fr_1fr]">
         <div className="grid gap-2">
-          {leftSlots.map(item => <GearItemCard key={`${item.slot}-${item.name}`} item={item} gearScore={gearScore?.itemScores[item.slot]} />)}
+          {leftSlots.map(item => <GearItemCard key={`${item.slot}-${item.name}`} item={item} gearScore={gearScore?.displayItemScores[item.slot]} />)}
         </div>
         <div className="grid gap-2">
-          {rightSlots.map(item => <GearItemCard key={`${item.slot}-${item.name}`} item={item} gearScore={gearScore?.itemScores[item.slot]} />)}
+          {rightSlots.map(item => <GearItemCard key={`${item.slot}-${item.name}`} item={item} gearScore={gearScore?.displayItemScores[item.slot]} />)}
         </div>
       </div>
 
       {weaponSlots.length > 0 && (
         <div className={cn("grid gap-2", weaponSlots.length > 1 && "sm:grid-cols-2 lg:grid-cols-3")}>
-          {weaponSlots.map(item => <GearItemCard key={`${item.slot}-${item.name}`} item={item} gearScore={gearScore?.itemScores[item.slot]} />)}
+          {weaponSlots.map(item => <GearItemCard key={`${item.slot}-${item.name}`} item={item} gearScore={gearScore?.displayItemScores[item.slot]} />)}
         </div>
       )}
 

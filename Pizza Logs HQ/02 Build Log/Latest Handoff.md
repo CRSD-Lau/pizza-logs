@@ -11,6 +11,20 @@
 
 ## What Was Done This Session
 
+### GearScore per-item display repair
+
+- Fixed player gear cards showing hunter melee weapon contribution scores as the visible per-item `GS`.
+- Root cause: `GearItemCard` was fed `calculateGearScore().itemScores`, which is the class-adjusted contribution used for the total GearScoreLite calculation. For hunters, one-hand melee weapons are multiplied by `0.3164`, so heroic Scourgeborne Waraxe displayed as `168` instead of its raw item GearScore `531`.
+- Added `displayItemScores` to `GearScoreSummary` for raw per-item display values while preserving `itemScores` as contribution values for the total score.
+- Updated `PlayerGearSection` so visible item-card `GS` values use `displayItemScores`.
+- Follow-up production check showed Notlich's summary total was still below the in-game `6237` because the hunter-specific melee/ranged weighting still applied to the total. Removed the hunter-only weapon modifiers from the total calculation so hunter one-hand weapons count at their normal item score; Titan Grip handling remains intact.
+- Added a regression covering hunter dual heroic Scourgeborne Waraxes: item cards and total contribution should count `531` for Main Hand and `531` for Off Hand.
+- Fixed the AzerothCore `InventoryType` mapping for thrown, ranged-right, and relic items:
+  - `25 -> INVTYPE_THROWN`
+  - `26 -> INVTYPE_RANGEDRIGHT`
+  - `28 -> INVTYPE_RELIC`
+- Added a data repair migration to update previously imported `wow_items` rows for guns/crossbows, thrown weapons, and relics that were imported with the shifted equip locations.
+
 ### ICC boss display ordering
 
 - Added a single ICC progression-order source in `lib/constants/bosses.ts`:
@@ -217,6 +231,16 @@ Preserved the main-branch queue fix while merging modernization:
 
 ## Verification
 
+- GearScore display repair:
+  - `tests/gearscore-lite.test.ts` -> passed, including hunter dual heroic Scourgeborne Waraxe card and contribution scores of `531`/`531`
+  - `tests/item-template.test.ts` -> passed, including corrected `InventoryType` 25/26/28 mapping
+  - Full TypeScript test sweep through PowerShell loop over `tests/*.test.ts` -> passed
+  - TypeScript: bundled Node running `node_modules/typescript/bin/tsc --noEmit` -> passed
+  - Full ESLint: bundled Node running `node_modules/eslint/bin/eslint.js . --max-warnings=0` -> passed
+  - Prisma validate with local `DATABASE_URL` -> passed
+  - `git diff --check` -> passed
+  - Production build: bundled Node running `node_modules/next/dist/bin/next build` -> passed
+  - Local fresh DB is not migration-baselined, so `prisma migrate deploy` refused with P3005 as expected; the repair SQL was verified directly with `psql`, updating guns/crossbows to `INVTYPE_RANGEDRIGHT`, thrown weapons to `INVTYPE_THROWN`, and relics to `INVTYPE_RELIC`
 - ICC boss ordering:
   - `tests/boss-order.test.ts` -> passed after first failing on missing exports.
   - TypeScript: bundled Node running `node_modules/typescript/bin/tsc --noEmit` -> passed.
@@ -339,6 +363,8 @@ Preserved the main-branch queue fix while merging modernization:
 
 ## Current State
 
+- Gear card item-level and visible per-item `GS` display now distinguish raw item score from character contribution, and hunter one-hand weapons now count at normal item score in the total. This fixes Notlich-style hunter dual Scourgeborne Waraxe cards showing `168` instead of `531` each and removes the hunter weighting that kept Notlich's total below the in-game value.
+- Existing `wow_items` rows affected by the old ranged/relic map are repaired by migration `20260504120000_repair_wow_item_ranged_relic_equip_locs`.
 - Global player search is implemented on `codex/pizza-logs-modernization`. The header now has a compact autocomplete on large screens and a visible search row on smaller screens. The endpoint searches combat-log players plus PizzaWarriors/Lordaeron roster-only members and returns capped stable JSON for `/players/<name>` navigation.
 - `/admin` now stays renderable when the local database is offline, so the shared header/search remain visible while the page reports Database unavailable.
 - Character avatars now have a clean component and browser-script hook across player profiles, player lists, the guild roster table, session roster chips, and session player deep-dive headers.
@@ -357,6 +383,8 @@ Preserved the main-branch queue fix while merging modernization:
 ---
 
 ## Exact Next Step
+
+For GearScore: after deploy, spot-check `/players/Notlich`; both heroic Scourgeborne Waraxe cards should show `GS 531`, and the summary should be much closer to the in-game `6237` because hunter weapon weighting is no longer applied.
 
 For search: manually spot-check the header search against production-like data after deploy, especially exact-match Enter navigation and roster-only members from the guild roster.
 

@@ -19,6 +19,9 @@ assert.strictEqual(QUALITY_MAP[5], "legendary");
 assert.strictEqual(INVENTORY_TYPE_MAP[1], "INVTYPE_HEAD");
 assert.strictEqual(INVENTORY_TYPE_MAP[11], "INVTYPE_FINGER");
 assert.strictEqual(INVENTORY_TYPE_MAP[17], "INVTYPE_2HWEAPON");
+assert.strictEqual(INVENTORY_TYPE_MAP[25], "INVTYPE_THROWN");
+assert.strictEqual(INVENTORY_TYPE_MAP[26], "INVTYPE_RANGEDRIGHT");
+assert.strictEqual(INVENTORY_TYPE_MAP[28], "INVTYPE_RELIC");
 assert.ok(INVENTORY_TYPE_MAP[0] == null);
 
 // buildStatsFromTemplate

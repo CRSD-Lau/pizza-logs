@@ -38,12 +38,11 @@ export type GearScoreSummary = {
   averageItemLevel: number;
   scoredItemCount: number;
   quality: GearScoreQuality;
+  displayItemScores: Record<string, number>;
   itemScores: Record<string, number>;
 };
 
 const SCALE = 1.8618;
-const HUNTER_MELEE_MOD = 0.3164;
-const HUNTER_RANGED_MOD = 5.3224;
 
 const ITEM_TYPES: Record<GearScoreEquipLoc, { slotMod: number; scoreSlot: number }> = {
   INVTYPE_RELIC: { slotMod: 0.3164, scoreSlot: 18 },
@@ -206,18 +205,6 @@ export function getGearScoreQuality(score: number): GearScoreQuality {
   return band ?? { description: "Trash", color: "#8c8c8c" };
 }
 
-function isHunter(playerClass?: string): boolean {
-  return playerClass?.toUpperCase() === "HUNTER";
-}
-
-function isWeapon(equipLoc?: GearScoreEquipLoc): boolean {
-  return equipLoc === "INVTYPE_2HWEAPON"
-    || equipLoc === "INVTYPE_WEAPONMAINHAND"
-    || equipLoc === "INVTYPE_WEAPONOFFHAND"
-    || equipLoc === "INVTYPE_WEAPON"
-    || equipLoc === "INVTYPE_HOLDABLE";
-}
-
 function isTitanGripWeapon(equipLoc?: GearScoreEquipLoc): boolean {
   return equipLoc === "INVTYPE_2HWEAPON"
     || equipLoc === "INVTYPE_WEAPONMAINHAND"
@@ -225,23 +212,17 @@ function isTitanGripWeapon(equipLoc?: GearScoreEquipLoc): boolean {
     || equipLoc === "INVTYPE_WEAPON";
 }
 
-function isRanged(equipLoc?: GearScoreEquipLoc): boolean {
-  return equipLoc === "INVTYPE_RANGED" || equipLoc === "INVTYPE_RANGEDRIGHT";
-}
-
-function scoreCharacterItem(item: GearScoreItemInput, playerClass?: string, titanGrip = 1): number | null {
+function scoreCharacterItem(item: GearScoreItemInput, titanGrip = 1): number | null {
   const itemScore = calculateGearScoreForItem(item);
   if (!itemScore) return null;
 
   let score = itemScore.score;
-  if (isHunter(playerClass) && isWeapon(itemScore.equipLoc)) score *= HUNTER_MELEE_MOD;
-  if (isHunter(playerClass) && isRanged(itemScore.equipLoc)) score *= HUNTER_RANGED_MOD;
   if (item.slot.toLowerCase() === "main hand" || item.slot.toLowerCase() === "off hand") score *= titanGrip;
 
   return score;
 }
 
-export function calculateGearScore(items: GearScoreItemInput[], playerClass?: string): GearScoreSummary | null {
+export function calculateGearScore(items: GearScoreItemInput[], _playerClass?: string): GearScoreSummary | null {
   const mainHand = items.find(item => item.slot.toLowerCase() === "main hand");
   const offHand = items.find(item => item.slot.toLowerCase() === "off hand");
   const mainHandLoc = mainHand ? calculateGearScoreForItem(mainHand)?.equipLoc : undefined;
@@ -256,16 +237,18 @@ export function calculateGearScore(items: GearScoreItemInput[], playerClass?: st
   let score = 0;
   let itemLevelTotal = 0;
   let scoredItemCount = 0;
+  const displayItemScores: Record<string, number> = {};
   const itemScores: Record<string, number> = {};
 
   for (const item of items) {
     const itemScore = calculateGearScoreForItem(item);
-    const adjustedScore = scoreCharacterItem(item, playerClass, titanGrip);
+    const adjustedScore = scoreCharacterItem(item, titanGrip);
     if (!itemScore || adjustedScore === null) continue;
 
     score += adjustedScore;
     itemLevelTotal += itemScore.itemLevel;
     scoredItemCount++;
+    displayItemScores[item.slot] = itemScore.score;
     itemScores[item.slot] = Math.floor(adjustedScore);
   }
 
@@ -277,6 +260,7 @@ export function calculateGearScore(items: GearScoreItemInput[], playerClass?: st
     averageItemLevel: Math.floor(itemLevelTotal / scoredItemCount),
     scoredItemCount,
     quality: getGearScoreQuality(totalScore),
+    displayItemScores,
     itemScores,
   };
 }

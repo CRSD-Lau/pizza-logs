@@ -68,6 +68,13 @@ assert.deepEqual(score, {
   averageItemLevel: 281,
   scoredItemCount: 5,
   quality: getGearScoreQuality(2106),
+  displayItemScores: {
+    "Head": 531,
+    "Neck": 298,
+    "Main Hand": 1103,
+    "Off Hand": 1103,
+    "Ranged": 174,
+  },
   itemScores: {
     "Head": 531,
     "Neck": 298,
@@ -77,6 +84,21 @@ assert.deepEqual(score, {
   },
 });
 
-assert.equal(calculateGearScore(gear, "Hunter")?.score, 2104);
+assert.equal(calculateGearScore(gear, "Hunter")?.score, 2106);
+
+const hunterWaraxes = calculateGearScore([
+  { slot: "Main Hand", name: "Scourgeborne Waraxe", quality: "epic", itemLevel: 277, equipLoc: "INVTYPE_WEAPON" },
+  { slot: "Off Hand", name: "Scourgeborne Waraxe", quality: "epic", itemLevel: 277, equipLoc: "INVTYPE_WEAPON" },
+], "Hunter");
+
+assert.deepEqual(hunterWaraxes?.itemScores, {
+  "Main Hand": 531,
+  "Off Hand": 531,
+});
+assert.deepEqual(hunterWaraxes?.displayItemScores, {
+  "Main Hand": 531,
+  "Off Hand": 531,
+});
+assert.equal(hunterWaraxes?.score, 1062);
 
 console.log("gearscore-lite tests passed");

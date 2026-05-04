@@ -38,11 +38,11 @@ export const INVENTORY_TYPE_MAP: Record<number, GearScoreEquipLoc | null> = {
   22: "INVTYPE_WEAPONOFFHAND",
   23: "INVTYPE_HOLDABLE",
   24: null,
-  25: null,
-  26: "INVTYPE_THROWN",
+  25: "INVTYPE_THROWN",
+  26: "INVTYPE_RANGEDRIGHT",
   27: null,
-  28: "INVTYPE_RANGEDRIGHT",
-  29: "INVTYPE_RELIC",
+  28: "INVTYPE_RELIC",
+  29: null,
 };
 
 export const STAT_TYPE_NAMES: Record<number, string> = {
