@@ -2,7 +2,7 @@
 
 ## Status
 
-**HD cinematic intro design spec is written and awaiting review.** The strip-derived previews were rejected as too low quality for a modern website intro. The approved creative direction treats the strips as storyboards only and moves toward a pre-rendered HD cinematic: ICC/WotLK-inspired frost-armored raid boss, blizzard approach, blue-eye reveal, close-up hold, and a clean fade into the real Pizza Logs page. Spec: `docs/superpowers/specs/2026-05-04-hd-cinematic-intro-design.md`.
+**HD cinematic intro review asset is built and awaiting visual approval.** The strip-derived previews were rejected as too low quality for a modern website intro. The approved creative direction treats the strips as storyboards only and moves toward a pre-rendered HD cinematic: ICC/WotLK-inspired frost-armored raid boss, blizzard approach, blue-eye reveal, close-up hold, and a clean fade into the real Pizza Logs page. Spec: `docs/superpowers/specs/2026-05-04-hd-cinematic-intro-design.md`; plan: `docs/superpowers/plans/2026-05-04-hd-cinematic-intro-asset.md`. Review output is under ignored temp path `tmp-mobile-check/hd_cinematic_intro/rendered/intro_hd_cinematic_review.mp4` plus WebM/contact-sheet variants. No app integration has been done yet.
 
 **MVP animation pass is live on production, including the route-change intro follow-up.** The app has a CSS-only Frozen Logbook intro, subtle reveal animations for boss/player/leaderboard rows, and a shared `lib/ui-animation.ts` helper. The intro now appears on initial load and every client-side page change, lasts `3000ms` for normal motion, keeps the `Skip` button, and does not use the old one-time `localStorage` gate.
 
@@ -46,7 +46,7 @@
 
 | Task | Type | Notes |
 |------|------|-------|
-| Review HD cinematic intro spec | DESIGN | Review `docs/superpowers/specs/2026-05-04-hd-cinematic-intro-design.md`; after approval, create an implementation plan before generating production assets |
+| Review HD cinematic intro asset | DESIGN | Review `tmp-mobile-check/hd_cinematic_intro/rendered/intro_hd_cinematic_review.mp4`; if approved, plan website overlay integration and web-optimized asset placement |
 | Verify Notlich gear cards | VERIFY | After deploy, `/players/Notlich` should show both heroic Scourgeborne Waraxes as `GS 531` |
 | Verify production admin config | DEPLOY | Confirm Railway Web Service has `ADMIN_SECRET`; do not set `ADMIN_COOKIE_SECURE=false` in Railway |
 | Verify Railway deploy logs | DEPLOY | Use Railway dashboard/CLI; local Railway CLI is not installed |

@@ -26,7 +26,22 @@
 - Recommended approach: pre-rendered HD cinematic video asset for the site, rather than live Three.js, because the visual bar is lighting/compositing quality and reliable playback.
 - Added implementation-ready design spec:
   - `docs/superpowers/specs/2026-05-04-hd-cinematic-intro-design.md`
-- No production cinematic assets, website integration, parser behavior, database schema, or app code were changed in this spec pass.
+- Added implementation plan:
+  - `docs/superpowers/plans/2026-05-04-hd-cinematic-intro-asset.md`
+- Built a review-only HD cinematic proof under ignored temp output:
+  - `tmp-mobile-check/hd_cinematic_intro/key_shots/source_contact_sheet.png`
+  - `tmp-mobile-check/hd_cinematic_intro/render_hd_cinematic.py`
+  - `tmp-mobile-check/hd_cinematic_intro/rendered/intro_hd_cinematic_review.mp4`
+  - `tmp-mobile-check/hd_cinematic_intro/rendered/intro_hd_cinematic_review.webm`
+  - `tmp-mobile-check/hd_cinematic_intro/rendered/review_contact_sheet.jpg`
+- Review render uses newly generated HD key art, not the old frame strips, and does not include mock website UI.
+- Verified review render:
+  - 6 key shots sliced from generated contact sheet,
+  - 300 rendered frames,
+  - 1920x1080,
+  - 60fps,
+  - 5.0s MP4/WebM outputs.
+- No website integration, parser behavior, database schema, or app code was changed in this pass.
 
 ### MVP animation pass
 
