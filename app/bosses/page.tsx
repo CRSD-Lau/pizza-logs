@@ -2,10 +2,12 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { db } from "@/lib/db";
 import { SectionHeader } from "@/components/ui/SectionHeader";
+import { DatabaseUnavailable } from "@/components/ui/DatabaseUnavailable";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { formatDps, formatDuration } from "@/lib/utils";
 import { RAIDS } from "@/lib/constants/bosses";
 import { cn } from "@/lib/utils";
+import { isDatabaseConnectionError } from "@/lib/database-errors";
 
 export const metadata: Metadata = { title: "Boss Rankings" };
 export const dynamic = "force-dynamic";
@@ -58,7 +60,15 @@ async function getBossStats() {
 }
 
 export default async function BossesPage() {
-  const bosses = await getBossStats();
+  let databaseAvailable = true;
+  let bosses: Awaited<ReturnType<typeof getBossStats>> = [];
+
+  try {
+    bosses = await getBossStats();
+  } catch (error) {
+    if (!isDatabaseConnectionError(error)) throw error;
+    databaseAvailable = false;
+  }
   const byRaid = RAIDS.map(r => ({
     ...r,
     bosses: bosses.filter(b => b.raidSlug === r.slug),
@@ -71,11 +81,17 @@ export default async function BossesPage() {
       <div>
         <h1 className="heading-cinzel text-2xl font-bold text-gold-light text-glow-gold">Boss Rankings</h1>
         <p className="text-text-secondary text-sm mt-1">
-          All-time records across {activeBosses.length} bosses
+          {databaseAvailable
+            ? `All-time records across ${activeBosses.length} bosses`
+            : "Boss rankings are unavailable while the database is offline"}
         </p>
       </div>
 
-      {byRaid.length === 0 ? (
+      {!databaseAvailable && (
+        <DatabaseUnavailable description="Boss rankings need the Pizza Logs database. Start local Postgres to load encounters and records." />
+      )}
+
+      {databaseAvailable && (byRaid.length === 0 ? (
         <EmptyState
           title="No encounters yet"
           description="Upload a combat log to start building your leaderboards."
@@ -138,7 +154,7 @@ export default async function BossesPage() {
             </div>
           </section>
         ))
-      )}
+      ))}
     </div>
   );
 }

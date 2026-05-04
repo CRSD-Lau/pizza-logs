@@ -3,9 +3,11 @@ import Link from "next/link";
 import { SectionHeader } from "@/components/ui/SectionHeader";
 import { StatCard } from "@/components/ui/StatCard";
 import { LeaderboardBar } from "@/components/charts/LeaderboardBar";
+import { DatabaseUnavailable } from "@/components/ui/DatabaseUnavailable";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { getWeekBounds } from "@/lib/utils";
 import { db } from "@/lib/db";
+import { isDatabaseConnectionError } from "@/lib/database-errors";
 
 export const metadata: Metadata = { title: "This Week" };
 export const dynamic = "force-dynamic";
@@ -80,7 +82,25 @@ async function getWeeklyData() {
 }
 
 export default async function WeeklyPage() {
-  const data = await getWeeklyData();
+  let databaseAvailable = true;
+  let data: Awaited<ReturnType<typeof getWeeklyData>>;
+
+  try {
+    data = await getWeeklyData();
+  } catch (error) {
+    if (!isDatabaseConnectionError(error)) throw error;
+    databaseAvailable = false;
+    const { start } = getWeekBounds();
+    data = {
+      weekStart: start.toISOString(),
+      totalKills: 0,
+      totalWipes: 0,
+      bossesCleared: 0,
+      topDps: [],
+      topHps: [],
+      bossKills: [],
+    };
+  }
   const { start, end } = getWeekBounds();
 
   const weekLabel = `${start.toLocaleDateString("en-US", { month: "short", day: "numeric" })} - ${end.toLocaleDateString("en-US", { month: "short", day: "numeric" })}`;
@@ -89,9 +109,16 @@ export default async function WeeklyPage() {
     <div className="pt-10 space-y-10">
       <div>
         <h1 className="heading-cinzel text-2xl font-bold text-gold-light text-glow-gold">Weekly Summary</h1>
-        <p className="text-text-secondary text-sm mt-1">{weekLabel}</p>
+        <p className="text-text-secondary text-sm mt-1">
+          {databaseAvailable ? weekLabel : `${weekLabel} - database offline`}
+        </p>
       </div>
 
+      {!databaseAvailable && (
+        <DatabaseUnavailable description="Weekly stats need the Pizza Logs database. Start local Postgres to load this week's raids." />
+      )}
+
+      {databaseAvailable && (
       <>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           <StatCard label="Boss Kills" value={data.totalKills} highlight />
@@ -172,6 +199,7 @@ export default async function WeeklyPage() {
           />
         )}
       </>
+      )}
     </div>
   );
 }

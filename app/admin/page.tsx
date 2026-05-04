@@ -12,65 +12,103 @@ import { GuildRosterSyncPanel } from "./GuildRosterSyncPanel";
 export const metadata: Metadata = { title: "Admin / Diagnostics" };
 export const dynamic = "force-dynamic";
 
+type ParserHealth = { status?: string };
+type RecentErrorRow = { id: string; filename: string; errorMessage: string | null; createdAt: Date };
+type RecentUploadRow = {
+  id: string;
+  filename: string;
+  fileSize: number;
+  rawLineCount: number | null;
+  createdAt: Date;
+  parsedAt: Date | null;
+};
+type TopUploaderRow = { uploaderName: string | null; _count: { uploaderName: number } };
+type LatestRosterSyncRow = { lastSyncedAt: Date } | null;
+type LatestItemImportRow = { importedAt: Date | null } | null;
+
 export default async function AdminPage() {
-  const [
-    uploadsTotal,
-    encountersTotal,
-    playersTotal,
-    milestonesTotal,
-    recentErrors,
-    recentUploads,
-    topUploaders,
-    parserHealth,
-    bossCount,
-    gearCacheTotal,
-    recentGearErrors,
-    rosterCount,
-    latestRosterSync,
-    itemImportCount,
-    latestItemImport,
-  ] = await Promise.all([
-    db.upload.count(),
-    db.encounter.count(),
-    db.player.count(),
-    db.milestone.count({ where: { supersededAt: null } }),
-    db.upload.findMany({
-      where:   { status: "FAILED" },
-      orderBy: { createdAt: "desc" },
-      take:    5,
-      select:  { id: true, filename: true, errorMessage: true, createdAt: true },
-    }),
-    db.upload.findMany({
-      where:   { status: "DONE", parsedAt: { not: null } },
-      orderBy: { createdAt: "desc" },
-      take:    10,
-      select:  { id: true, filename: true, fileSize: true, rawLineCount: true, createdAt: true, parsedAt: true },
-    }),
-    db.upload.groupBy({
-      by:      ["uploaderName"],
-      where:   { uploaderName: { not: null } },
-      _count:  { uploaderName: true },
-      orderBy: { _count: { uploaderName: "desc" } },
-      take:    10,
-    }),
-    fetch(`${process.env.PARSER_SERVICE_URL ?? "http://localhost:8000"}/health`, {
-      cache: "no-store",
-    }).then(r => r.json()).catch(() => ({ status: "unreachable" })),
-    db.boss.count(),
-    db.armoryGearCache.count(),
-    db.armoryGearCache.count({ where: { lastError: { not: null } } }),
-    db.guildRosterMember.count(),
-    db.guildRosterMember.findFirst({
-      orderBy: { lastSyncedAt: "desc" },
-      select: { lastSyncedAt: true },
-    }),
-    db.wowItem.count({ where: { importedAt: { not: null } } }),
-    db.wowItem.findFirst({
-      where:   { importedAt: { not: null } },
-      orderBy: { importedAt: "desc" },
-      select:  { importedAt: true },
-    }),
-  ]);
+  const parserHealthPromise = fetch(`${process.env.PARSER_SERVICE_URL ?? "http://localhost:8000"}/health`, {
+    cache: "no-store",
+  }).then(r => r.json() as Promise<ParserHealth>).catch(() => ({ status: "unreachable" }));
+
+  let uploadsTotal = 0;
+  let encountersTotal = 0;
+  let playersTotal = 0;
+  let milestonesTotal = 0;
+  let recentErrors: RecentErrorRow[] = [];
+  let recentUploads: RecentUploadRow[] = [];
+  let topUploaders: TopUploaderRow[] = [];
+  let bossCount = 0;
+  let gearCacheTotal = 0;
+  let recentGearErrors = 0;
+  let rosterCount = 0;
+  let latestRosterSync: LatestRosterSyncRow = null;
+  let itemImportCount = 0;
+  let latestItemImport: LatestItemImportRow = null;
+  let databaseAvailable = true;
+  let databaseError: string | null = null;
+
+  try {
+    [
+      uploadsTotal,
+      encountersTotal,
+      playersTotal,
+      milestonesTotal,
+      recentErrors,
+      recentUploads,
+      topUploaders,
+      bossCount,
+      gearCacheTotal,
+      recentGearErrors,
+      rosterCount,
+      latestRosterSync,
+      itemImportCount,
+      latestItemImport,
+    ] = await Promise.all([
+      db.upload.count(),
+      db.encounter.count(),
+      db.player.count(),
+      db.milestone.count({ where: { supersededAt: null } }),
+      db.upload.findMany({
+        where:   { status: "FAILED" },
+        orderBy: { createdAt: "desc" },
+        take:    5,
+        select:  { id: true, filename: true, errorMessage: true, createdAt: true },
+      }),
+      db.upload.findMany({
+        where:   { status: "DONE", parsedAt: { not: null } },
+        orderBy: { createdAt: "desc" },
+        take:    10,
+        select:  { id: true, filename: true, fileSize: true, rawLineCount: true, createdAt: true, parsedAt: true },
+      }),
+      db.upload.groupBy({
+        by:      ["uploaderName"],
+        where:   { uploaderName: { not: null } },
+        _count:  { uploaderName: true },
+        orderBy: { _count: { uploaderName: "desc" } },
+        take:    10,
+      }),
+      db.boss.count(),
+      db.armoryGearCache.count(),
+      db.armoryGearCache.count({ where: { lastError: { not: null } } }),
+      db.guildRosterMember.count(),
+      db.guildRosterMember.findFirst({
+        orderBy: { lastSyncedAt: "desc" },
+        select: { lastSyncedAt: true },
+      }),
+      db.wowItem.count({ where: { importedAt: { not: null } } }),
+      db.wowItem.findFirst({
+        where:   { importedAt: { not: null } },
+        orderBy: { importedAt: "desc" },
+        select:  { importedAt: true },
+      }),
+    ]);
+  } catch (error) {
+    databaseAvailable = false;
+    databaseError = formatAdminDatabaseError(error);
+  }
+
+  const parserHealth = await parserHealthPromise;
 
   return (
     <div className="pt-10 space-y-10">
@@ -87,6 +125,16 @@ export default async function AdminPage() {
         <ClearDatabaseButton />
       </div>
 
+      {!databaseAvailable && (
+        <div className="bg-bg-panel border border-danger/30 rounded px-4 py-3">
+          <p className="text-sm font-semibold text-danger">Database unavailable</p>
+          <p className="mt-1 text-sm text-text-secondary">
+            Upload analytics are unavailable until the database connection is restored.
+            {databaseError && <span className="block text-xs text-text-dim mt-1">{databaseError}</span>}
+          </p>
+        </div>
+      )}
+
       {/* 1. Service Health */}
       <section>
         <SectionHeader title="Service Health" />
@@ -97,7 +145,11 @@ export default async function AdminPage() {
             status={parserHealth.status === "ok" ? "ok" : "error"}
             detail={parserHealth.status === "ok" ? "Reachable" : "Unreachable"}
           />
-          <ServiceCard name="Database" status="ok" detail={`${bossCount} bosses seeded`} />
+          <ServiceCard
+            name="Database"
+            status={databaseAvailable ? "ok" : "error"}
+            detail={databaseAvailable ? `${bossCount} bosses seeded` : "Unavailable"}
+          />
         </div>
       </section>
 
@@ -245,6 +297,11 @@ export default async function AdminPage() {
       )}
     </div>
   );
+}
+
+function formatAdminDatabaseError(error: unknown): string {
+  const message = error instanceof Error ? error.message : String(error);
+  return message.length > 220 ? `${message.slice(0, 217)}...` : message;
 }
 
 function ServiceCard({

@@ -1,13 +1,15 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { db } from "@/lib/db";
+import { DatabaseUnavailable } from "@/components/ui/DatabaseUnavailable";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { isDatabaseConnectionError } from "@/lib/database-errors";
 
 export const metadata: Metadata = { title: "Raids" };
 export const dynamic = "force-dynamic";
 
-export default async function RaidsPage() {
-  const uploads = await db.upload.findMany({
+async function getRaidUploads() {
+  return db.upload.findMany({
     where: { encounters: { some: {} } },
     orderBy: { createdAt: "desc" },
     take: 50,
@@ -27,6 +29,18 @@ export default async function RaidsPage() {
       },
     },
   });
+}
+
+export default async function RaidsPage() {
+  let databaseAvailable = true;
+  let uploads: Awaited<ReturnType<typeof getRaidUploads>> = [];
+
+  try {
+    uploads = await getRaidUploads();
+  } catch (error) {
+    if (!isDatabaseConnectionError(error)) throw error;
+    databaseAvailable = false;
+  }
 
   type SessionCard = {
     uploadId: string;
@@ -84,11 +98,17 @@ export default async function RaidsPage() {
       <div>
         <h1 className="heading-cinzel text-2xl font-bold text-gold-light text-glow-gold">Raids</h1>
         <p className="text-text-secondary text-sm mt-1">
-          {sessions.length} raid session{sessions.length !== 1 ? "s" : ""} recorded
+          {databaseAvailable
+            ? `${sessions.length} raid session${sessions.length !== 1 ? "s" : ""} recorded`
+            : "Raid sessions are unavailable while the database is offline"}
         </p>
       </div>
 
-      {sessions.length === 0 ? (
+      {!databaseAvailable && (
+        <DatabaseUnavailable description="Raid history needs the Pizza Logs database. Start local Postgres to load recorded sessions." />
+      )}
+
+      {databaseAvailable && (sessions.length === 0 ? (
         <EmptyState
           title="No raids yet"
           description="Upload a combat log to get started."
@@ -140,7 +160,7 @@ export default async function RaidsPage() {
             </div>
           ))}
         </div>
-      )}
+      ))}
     </div>
   );
 }

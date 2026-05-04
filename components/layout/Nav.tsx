@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { Menu, X } from "lucide-react";
+import { PlayerSearch } from "@/components/players/PlayerSearch";
 import { cn } from "@/lib/utils";
 
 const NAV_LINKS = [
@@ -37,7 +38,11 @@ export function Nav() {
             </div>
           </Link>
 
-          <nav className="hidden md:flex items-center gap-1">
+          <div className="hidden lg:block w-72 xl:w-80">
+            <PlayerSearch />
+          </div>
+
+          <nav className="hidden lg:flex items-center gap-1">
             {NAV_LINKS.map(({ href, label }) => {
               const active = href === "/" ? pathname === "/" : pathname.startsWith(href);
               return (
@@ -59,7 +64,7 @@ export function Nav() {
 
           <button
             type="button"
-            className="md:hidden inline-flex h-10 w-10 items-center justify-center rounded border border-gold-dim bg-bg-card text-text-secondary hover:text-gold-light hover:border-gold/50 transition-colors"
+            className="lg:hidden inline-flex h-10 w-10 items-center justify-center rounded border border-gold-dim bg-bg-card text-text-secondary hover:text-gold-light hover:border-gold/50 transition-colors"
             aria-label={mobileOpen ? "Close navigation" : "Open navigation"}
             aria-expanded={mobileOpen}
             onClick={() => setMobileOpen(open => !open)}
@@ -68,9 +73,13 @@ export function Nav() {
           </button>
         </div>
 
+        <div className="lg:hidden pb-3">
+          <PlayerSearch onNavigate={() => setMobileOpen(false)} />
+        </div>
+
         {mobileOpen && (
-          <nav className="md:hidden border-t border-gold-dim py-3">
-            <div className="grid grid-cols-2 gap-2">
+          <nav className="lg:hidden border-t border-gold-dim py-3">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
               {NAV_LINKS.map(({ href, label }) => {
                 const active = href === "/" ? pathname === "/" : pathname.startsWith(href);
                 return (

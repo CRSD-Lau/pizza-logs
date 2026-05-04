@@ -1,13 +1,15 @@
 import type { Metadata } from "next";
 import { db } from "@/lib/db";
 import { LeaderboardBar } from "@/components/charts/LeaderboardBar";
+import { DatabaseUnavailable } from "@/components/ui/DatabaseUnavailable";
 import { EmptyState } from "@/components/ui/EmptyState";
 import Link from "next/link";
+import { isDatabaseConnectionError } from "@/lib/database-errors";
 
 export const metadata: Metadata = { title: "Leaderboards" };
 export const dynamic = "force-dynamic";
 
-async function getLeaderboards() {
+async function getLeaderboardBoards() {
   const bossesWithKills = await db.boss.findMany({
     where:   { encounters: { some: { outcome: "KILL" } } },
     orderBy: { name: "asc" },
@@ -71,7 +73,15 @@ async function getLeaderboards() {
 }
 
 export default async function LeaderboardsPage() {
-  const boards = await getLeaderboards();
+  let databaseAvailable = true;
+  let boards: Awaited<ReturnType<typeof getLeaderboardBoards>> = [];
+
+  try {
+    boards = await getLeaderboardBoards();
+  } catch (error) {
+    if (!isDatabaseConnectionError(error)) throw error;
+    databaseAvailable = false;
+  }
 
   return (
     <div className="pt-10 space-y-12">
@@ -84,7 +94,11 @@ export default async function LeaderboardsPage() {
         </p>
       </div>
 
-      {boards.length === 0 ? (
+      {!databaseAvailable && (
+        <DatabaseUnavailable description="Leaderboards need the Pizza Logs database. Start local Postgres to load rankings." />
+      )}
+
+      {databaseAvailable && (boards.length === 0 ? (
         <EmptyState
           title="No leaderboard data yet"
           description="Upload a combat log to populate the leaderboards."
@@ -129,7 +143,7 @@ export default async function LeaderboardsPage() {
             </section>
           ))}
         </div>
-      )}
+      ))}
     </div>
   );
 }

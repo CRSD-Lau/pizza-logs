@@ -38,6 +38,12 @@ This downloads and imports AzerothCore's WotLK `item_template.sql` (~80k items) 
 
 ---
 
+## Player Search
+
+The global header search calls `GET /api/players/search?q=<query>`. Results are built from the `players` table for combat-log characters and the PizzaWarriors/Lordaeron `guild_roster_members` rows for roster-only characters. The endpoint returns a small capped JSON payload with profile paths and display metadata; it does not scan uploads or combat-log records.
+
+---
+
 ## Stack
 
 | Layer      | Tech                             |
@@ -66,6 +72,7 @@ This downloads and imports AzerothCore's WotLK `item_template.sql` (~80k items) 
 | `/leaderboards` | Global leaderboards |
 | `/players` | Player roster |
 | `/players/[name]` | All-time player profile |
+| `/api/players/search?q=<query>` | Header autocomplete source for combat-log and roster players |
 | `/weekly` | This week's DPS/HPS/kill summary |
 | `/admin` | Service health + DB diagnostics |
 

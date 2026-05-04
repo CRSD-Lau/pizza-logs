@@ -3,19 +3,26 @@ import { db } from "@/lib/db";
 import { UploadZoneWithRefresh } from "@/components/upload/UploadZoneWithRefresh";
 import { StatCard } from "@/components/ui/StatCard";
 import { SectionHeader } from "@/components/ui/SectionHeader";
+import { DatabaseUnavailable } from "@/components/ui/DatabaseUnavailable";
 import { getWeekBounds } from "@/lib/utils";
+import { isDatabaseConnectionError } from "@/lib/database-errors";
 
 export const dynamic = "force-dynamic";
 
 async function getHomeStats() {
   const { start } = getWeekBounds();
-  const [totalEncounters, totalKills, weekKills] = await Promise.all([
-    db.encounter.count(),
-    db.encounter.count({ where: { outcome: "KILL" } }),
-    db.encounter.count({ where: { outcome: "KILL", startedAt: { gte: start } } }),
-  ]);
+  try {
+    const [totalEncounters, totalKills, weekKills] = await Promise.all([
+      db.encounter.count(),
+      db.encounter.count({ where: { outcome: "KILL" } }),
+      db.encounter.count({ where: { outcome: "KILL", startedAt: { gte: start } } }),
+    ]);
 
-  return { totalEncounters, totalKills, weekKills };
+    return { databaseAvailable: true, totalEncounters, totalKills, weekKills };
+  } catch (error) {
+    if (!isDatabaseConnectionError(error)) throw error;
+    return { databaseAvailable: false, totalEncounters: 0, totalKills: 0, weekKills: 0 };
+  }
 }
 
 export default async function HomePage() {
@@ -39,6 +46,10 @@ export default async function HomePage() {
         <StatCard label="Kills This Week" value={stats.weekKills.toLocaleString()} />
         <StatCard label="Active Bosses" value="56" sub="WotLK content" />
       </div>
+
+      {!stats.databaseAvailable && (
+        <DatabaseUnavailable description="Live stats, uploads, and leaderboard data need the Pizza Logs database. The header and navigation remain available while Postgres is offline." />
+      )}
 
       <section>
         <SectionHeader title="Upload Combat Log" sub="Drag and drop your WoWCombatLog.txt" />

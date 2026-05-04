@@ -34,6 +34,7 @@
 | AzerothCore item template enrichment | `wow_items` is backed by imported `item_template` data; no runtime Wowhead dependency |
 | Warmane Gear Sync icon backfill | Gear Sync `1.7.0` scrapes queued player DOM icons and posts them to Pizza Logs |
 | Full-player gear queue scan | Missing-gear endpoint filters all candidates before applying the 100-player response cap |
+| Global player search | Header autocomplete searches combat-log `players` plus PizzaWarriors/Lordaeron roster-only members via `/api/players/search` |
 
 ---
 

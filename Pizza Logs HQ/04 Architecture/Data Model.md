@@ -84,6 +84,23 @@ Realm ──< Upload ──< Encounter ──< Participant >── Player
 | realmId | String? | FK |
 | Unique: | (name, realmId) | |
 
+### GuildRosterMember
+| Field | Type | Notes |
+|---|---|---|
+| characterName | String | Warmane roster character name |
+| normalizedCharacterName | String | Lowercase lookup key used by roster sync and header search |
+| guildName | String | Currently PizzaWarriors for production search |
+| realm | String | Currently Lordaeron for production search |
+| className | String? | Warmane roster class |
+| raceName | String? | Warmane roster race |
+| level | Int? | Character level |
+| rankName | String? | Guild rank |
+| gearScore | Int? | Imported or cached Warmane gear score |
+| Unique: | (normalizedCharacterName, guildName, realm) | |
+
+### Player Search Source
+`GET /api/players/search?q=<query>` reads `players` and scoped PizzaWarriors/Lordaeron `guild_roster_members` rows directly with small selects and capped results. It does not call `readGuildRosterMembers()` because that helper also loads gear cache data for full roster pages.
+
 ### Boss
 | Field | Type | Notes |
 |---|---|---|

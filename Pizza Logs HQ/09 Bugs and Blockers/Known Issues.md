@@ -19,6 +19,8 @@
 
 | Bug | Fix | Commit |
 |---|---|---|
+| Main public pages crashed under the Next dev overlay when local Postgres was offline | `/`, `/players`, `/raids`, `/leaderboards`, `/bosses`, and `/weekly` now catch database connection failures, keep the shared header/search rendered, and show a Database unavailable warning | this commit |
+| `/admin` crashed under the Next dev overlay when local Postgres was offline | Admin dashboard DB reads now fail gracefully with a Database unavailable warning while keeping the shared header/search rendered | this commit |
 | Portrait userscript could cache a black WebGL modelviewer canvas | Portrait Userscript `0.5.0` samples the source canvas through a scratch 2D canvas, rejects unreadable/blank samples, and moved to `pizzaLogsWarmanePortraitCacheV3` so stale black/null captures are ignored | this commit |
 | Player gear pages logged mixed-content warnings for Warmane CDN item icons | Imported and cached gear icon URLs are normalized from `http://` to `https://`, including old `http://cdn.warmane.com/...` cache snapshots read for display | this commit |
 | Portrait userscript install link missing from `/admin` after portrait POC deploy | Added a Character Portraits section to the existing Warmane Gear Cache userscript card with install/update link and hosted URL | follow-up commit |

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { db } from "@/lib/db";
+import { DatabaseUnavailable } from "@/components/ui/DatabaseUnavailable";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { PlayerAvatar } from "@/components/players/PlayerAvatar";
 import { WOW_CLASSES } from "@/lib/constants/classes";
@@ -8,6 +9,7 @@ import { getClassColor } from "@/lib/constants/classes";
 import { getClassIconUrl } from "@/lib/warmane-portrait";
 import { formatDps } from "@/lib/utils";
 import { cn } from "@/lib/utils";
+import { isDatabaseConnectionError } from "@/lib/database-errors";
 
 export const metadata: Metadata = { title: "Players" };
 export const dynamic = "force-dynamic";
@@ -16,21 +18,75 @@ interface Props {
   searchParams: Promise<{ class?: string }>;
 }
 
+type PlayerStatsRow = {
+  class: string | null;
+  milestones: Array<{ value: number }>;
+};
+
+type PlayerListRow = {
+  id: string;
+  name: string;
+  class: string | null;
+  realm: { name: string } | null;
+  _count: { participants: number };
+  milestones: Array<{
+    value: number;
+    metric: string;
+    rank: number;
+    difficulty: string;
+  }>;
+};
+
+type PlayersPageData = {
+  databaseAvailable: boolean;
+  allPlayersForStats: PlayerStatsRow[];
+  players: PlayerListRow[];
+  totalCount: number;
+};
+
+async function getPlayersPageData(classFilter?: string): Promise<PlayersPageData> {
+  try {
+    const [allPlayersForStats, players, totalCount] = await Promise.all([
+      db.player.findMany({
+        select: {
+          class:     true,
+          milestones: {
+            where:   { supersededAt: null, metric: "DPS" },
+            orderBy: { value: "desc" },
+            take:    1,
+            select:  { value: true },
+          },
+        },
+      }),
+      db.player.findMany({
+        where:   classFilter ? { class: classFilter } : undefined,
+        orderBy: { name: "asc" },
+        include: {
+          realm:  { select: { name: true } },
+          _count: { select: { participants: true } },
+          milestones: {
+            where:   { supersededAt: null },
+            orderBy: { value: "desc" },
+            take:    3,
+            select:  { value: true, metric: true, rank: true, difficulty: true },
+          },
+        },
+      }),
+      db.player.count(),
+    ]);
+
+    return { databaseAvailable: true, allPlayersForStats, players, totalCount };
+  } catch (error) {
+    if (!isDatabaseConnectionError(error)) throw error;
+    return { databaseAvailable: false, allPlayersForStats: [], players: [], totalCount: 0 };
+  }
+}
+
 export default async function PlayersPage({ searchParams }: Props) {
   const { class: classFilter } = await searchParams;
 
   // Class stats — always unfiltered, used for the visualization panel
-  const allPlayersForStats = await db.player.findMany({
-    select: {
-      class:     true,
-      milestones: {
-        where:   { supersededAt: null, metric: "DPS" },
-        orderBy: { value: "desc" },
-        take:    1,
-        select:  { value: true },
-      },
-    },
-  });
+  const { databaseAvailable, allPlayersForStats, players, totalCount } = await getPlayersPageData(classFilter);
 
   // Aggregate per class: player count + sum of best DPS (for avg)
   const classMap = new Map<string, { count: number; dpsTotal: number; dpsCount: number }>();
@@ -60,21 +116,6 @@ export default async function PlayersPage({ searchParams }: Props) {
 
   const maxAvgDps = classAvgDps[0]?.avg ?? 1;
 
-  const players = await db.player.findMany({
-    where:   classFilter ? { class: classFilter } : undefined,
-    orderBy: { name: "asc" },
-    include: {
-      realm:  { select: { name: true } },
-      _count: { select: { participants: true } },
-      milestones: {
-        where:   { supersededAt: null },
-        orderBy: { value: "desc" },
-        take:    3,
-        select:  { value: true, metric: true, rank: true, difficulty: true },
-      },
-    },
-  });
-
   // Derive quick stats per player
   const enriched = players.map(p => {
     const dpsMilestone = p.milestones.find(m => m.metric === "DPS");
@@ -95,22 +136,26 @@ export default async function PlayersPage({ searchParams }: Props) {
     return b._count.participants - a._count.participants;
   });
 
-  const totalCount = await db.player.count();
-
   return (
     <div className="pt-10 space-y-6">
       {/* Header */}
       <div>
         <h1 className="heading-cinzel text-2xl font-bold text-gold-light text-glow-gold">Players</h1>
         <p className="text-text-secondary text-sm mt-1">
-          {classFilter
+          {!databaseAvailable
+            ? "Player data is unavailable while the database is offline"
+            : classFilter
             ? `${players.length} ${classFilter}${players.length !== 1 ? "s" : ""} · ${totalCount} total`
             : `${totalCount} players tracked across logs and the guild roster`}
         </p>
       </div>
 
+      {!databaseAvailable && (
+        <DatabaseUnavailable description="The player list and profile search need the Pizza Logs database. Start local Postgres to load players." />
+      )}
+
       {/* Class stats */}
-      {classStats.length > 0 && (
+      {databaseAvailable && classStats.length > 0 && (
         <div className="bg-bg-panel border border-gold-dim rounded p-4 space-y-4">
           {/* Distribution bar */}
           <div>
@@ -181,6 +226,7 @@ export default async function PlayersPage({ searchParams }: Props) {
       )}
 
       {/* Class filter */}
+      {databaseAvailable && (
       <div className="flex flex-wrap gap-1.5">
         <Link
           href="/players"
@@ -215,9 +261,10 @@ export default async function PlayersPage({ searchParams }: Props) {
           );
         })}
       </div>
+      )}
 
       {/* Player grid */}
-      {enriched.length === 0 ? (
+      {databaseAvailable && (enriched.length === 0 ? (
         <EmptyState
           title="No players found"
           description={classFilter ? `No ${classFilter}s recorded yet.` : "Upload a combat log to get started."}
@@ -286,7 +333,7 @@ export default async function PlayersPage({ searchParams }: Props) {
             );
           })}
         </div>
-      )}
+      ))}
     </div>
   );
 }

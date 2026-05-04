@@ -1,7 +1,7 @@
 # Latest Handoff
 
 ## Date
-2026-05-03
+2026-05-04
 
 ## Git
 **Branch:** `codex/pizza-logs-modernization`
@@ -10,6 +10,51 @@
 ---
 
 ## What Was Done This Session
+
+### Global player search
+
+- Added a reusable `PlayerSearch` client component for the global header.
+- Mounted search in `components/layout/Nav.tsx`:
+  - large screens show a compact header search input,
+  - smaller screens show a visible search row in the header below the logo/menu row,
+  - mobile nav closes after selecting a player result.
+- Added `GET /api/players/search?q=<query>` backed by `lib/player-search.ts`.
+- Search reads only lightweight fields from:
+  - combat-log `players`,
+  - scoped PizzaWarriors/Lordaeron `guild_roster_members` for roster-only characters.
+- Search does not scan uploads, participants, combat-log rows, `readGuildRosterMembers()`, or gear cache blobs.
+- Results are merged by name+realm, exact matches rank first, partial matches are case-insensitive, and returned profile paths use `encodeURIComponent`.
+- Header search supports debounced API calls, simple client-side query caching, loading/empty/error states, clear button, Enter, Escape, arrow highlight, click outside close, and click result navigation.
+- Updated README and vault data-model/feature-status docs.
+- No Prisma migration was added.
+
+### Admin page local DB outage guard
+
+- Fixed `/admin` crashing the whole dev page when local Postgres is unavailable.
+- `app/admin/page.tsx` now catches dashboard Prisma read failures, keeps the page/header rendering, marks the Database service card as unavailable, and shows a database warning instead of triggering the Next error overlay.
+- Added regression coverage for rendering the admin diagnostics page with a mocked unavailable database.
+
+### Public page local DB outage guard
+
+- Added shared database-connection error detection and a dark UI `DatabaseUnavailable` warning component.
+- Main public routes now catch local database connection failures and still render the shared layout/header/search:
+  - `/`
+  - `/players`
+  - `/raids`
+  - `/leaderboards`
+  - `/bosses`
+  - `/weekly`
+- Offline pages hide the normal empty-data states so they do not incorrectly say there are no players, raids, leaderboards, encounters, or weekly data when the database is simply down.
+- Non-connection errors still throw normally so real application bugs are not hidden.
+
+### Local PostgreSQL setup
+
+- Installed PostgreSQL 16 locally through `winget`.
+- Created the local `pizzalogs` role and `pizzalogs` database expected by `.env.local`.
+- Ran Prisma client generation and `prisma db push`.
+- Seeded base boss/realm data and imported AzerothCore `item_template` metadata into `wow_items`.
+- Restarted the local Next dev server on `http://127.0.0.1:3000`.
+- This fresh local DB has schema/static data but no uploaded combat logs, roster imports, players, raids, or encounters yet.
 
 ### Warmane rendered character face capture expanded
 
@@ -139,6 +184,34 @@ Preserved the main-branch queue fix while merging modernization:
 
 ## Verification
 
+- Global player search:
+  - `tests/player-search.test.ts` -> passed.
+  - `tests/player-search-route.test.ts` -> passed.
+  - `tests/player-search-ui-source.test.ts` -> passed.
+  - Full TypeScript test sweep with JSX/compiler alias registration -> 21 tests passed.
+  - TypeScript: bundled Node running `node_modules/typescript/bin/tsc --noEmit` -> passed.
+  - Full ESLint: bundled Node running `node_modules/eslint/bin/eslint.js . --max-warnings=0` -> passed.
+  - `git diff --check` -> passed.
+  - In-place OneDrive production build hit the known `.next` `readlink` issue.
+  - Clean temp-copy production build outside OneDrive -> passed with exit code 0. It emitted the expected Windows-only standalone trace warning because the temp copy used a junction to this checkout's `node_modules`; Railway installs normal dependencies and should not hit that junction warning.
+- Admin page local DB outage guard:
+  - `tests/admin-page-db-unavailable.test.ts` -> passed.
+  - Local dev `/admin` with local Postgres unavailable returned HTTP 200 and rendered `Search players`, `Database unavailable`, and `Upload analytics are unavailable`.
+  - TypeScript: bundled Node running `node_modules/typescript/bin/tsc --noEmit` -> passed.
+  - Focused ESLint: bundled Node running `node_modules/eslint/bin/eslint.js app/admin/page.tsx tests/admin-page-db-unavailable.test.ts --max-warnings=0` -> passed.
+- Fresh final gates after the search/admin changes:
+  - `tests/player-search.test.ts`, `tests/player-search-route.test.ts`, `tests/player-search-ui-source.test.ts`, and `tests/admin-page-db-unavailable.test.ts` -> passed.
+  - Full TypeScript test sweep with `TS_NODE_BASEURL=.` alias registration -> 23 tests passed.
+  - TypeScript: bundled Node running `node_modules/typescript/bin/tsc --noEmit` -> passed.
+  - Full ESLint: bundled Node running `node_modules/eslint/bin/eslint.js . --max-warnings=0` -> passed.
+  - `git diff --check` -> passed.
+  - Clean temp-copy production build outside OneDrive -> passed with exit code 0.
+  - Local dev server required clearing generated `.next` after stale missing webpack chunk errors; after restart, `/admin` returned HTTP 200 with the header search and database warning while Postgres remained offline.
+  - Local smoke test with Postgres offline returned HTTP 200 and rendered `Search players` for `/`, `/players`, `/raids`, `/leaderboards`, `/bosses`, `/guild-roster`, `/weekly`, `/admin`, and `/admin/login`; the offline pages showed `Database unavailable` without false empty-data states. `/uploads` returned the expected redirect.
+- Local PostgreSQL setup:
+  - `localhost:5432` TCP check -> passed.
+  - DB counts after setup -> 53 bosses, 4 realms, 38,610 imported item rows, 0 players.
+  - Local smoke test with Postgres online returned HTTP 200 and no `Database unavailable` warning for `/`, `/players`, `/raids`, `/leaderboards`, `/bosses`, `/guild-roster`, `/weekly`, `/admin`, `/admin/login`, `/api/players/search?q=lich`, `/api/bosses`, `/api/leaderboard`, `/api/weekly`, `/api/guild-roster`, `/api/encounters`, and `/api/uploads`.
 - Character portrait POC:
   - `tests/guild-roster-table-render.test.ts` -> passed with bundled Node, `ts-node/register`, and manual `tsconfig-paths` alias registration.
   - `tests/session-avatar-source.test.ts` -> passed.
@@ -226,6 +299,8 @@ Preserved the main-branch queue fix while merging modernization:
 
 ## Current State
 
+- Global player search is implemented on `codex/pizza-logs-modernization`. The header now has a compact autocomplete on large screens and a visible search row on smaller screens. The endpoint searches combat-log players plus PizzaWarriors/Lordaeron roster-only members and returns capped stable JSON for `/players/<name>` navigation.
+- `/admin` now stays renderable when the local database is offline, so the shared header/search remain visible while the page reports Database unavailable.
 - Character avatars now have a clean component and browser-script hook across player profiles, player lists, the guild roster table, session roster chips, and session player deep-dive headers.
 - Without the portrait userscript, the app shows a class icon when available and falls back to initials on broken/missing images.
 - The portrait userscript is still the fastest proof of concept path. Exact Warmane-rendered faces now have a browser-side cache attempt: open the Warmane character page once, and Portrait Userscript `0.5.0` will cache a static portrait URL, Warmane-page canvas, or Wowhead/Zamimg modelviewer frame canvas if Warmane and the browser allow it. It rejects blank/black canvases through scratch-canvas pixel sampling and ignores stale captures from earlier cache versions. If every render canvas is tainted, unreadable, or unavailable, Pizza Logs falls back to class icons/initials.
@@ -242,6 +317,8 @@ Preserved the main-branch queue fix while merging modernization:
 ---
 
 ## Exact Next Step
+
+For search: manually spot-check the header search against production-like data after deploy, especially exact-match Enter navigation and roster-only members from the guild roster.
 
 Manual production checks remain: confirm Railway Web Service has `ADMIN_SECRET`, inspect Railway deploy logs from a machine with Railway CLI/dashboard access, install or update Warmane Gear Sync `1.7.0`, run it once, then verify Maxximusboom and Lausudo gear icons.
 

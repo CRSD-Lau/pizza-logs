@@ -10,6 +10,12 @@
 
 **Warmane CDN gear icon mixed-content warnings are fixed in code.** Imported and cached gear icon URLs are normalized to HTTPS, including old `http://cdn.warmane.com/...` snapshots when gear slots are normalized for display.
 
+**Global player search is implemented on the current branch.** The header search uses `/api/players/search?q=<query>`, merges combat-log `players` with PizzaWarriors/Lordaeron roster-only `guild_roster_members`, ranks exact matches first, and navigates to `/players/<name>`. It is debounced, cached client-side per query, and visible in the header on large and small screens.
+
+**Local database downtime no longer breaks the main pages.** If Postgres is not running at `localhost:5432`, `/admin` and the main public pages still render the shared header/search and show Database unavailable warnings instead of the Next dev error overlay. The latest smoke check returned HTTP 200 for `/`, `/players`, `/raids`, `/leaderboards`, `/bosses`, `/guild-roster`, `/weekly`, `/admin`, and `/admin/login` with local Postgres offline, without misleading empty-data messages.
+
+**Local PostgreSQL is installed and seeded on this machine.** PostgreSQL 16 is running as `postgresql-x64-16` on `localhost:5432`. The `pizzalogs` role/database exists, Prisma schema is pushed, bosses/realms are seeded, and `wow_items` has 38,610 imported AzerothCore item rows. The local DB is fresh, so players/raids/encounters remain empty until a combat log or Warmane roster is imported.
+
 ---
 
 ## Next Up
@@ -22,6 +28,8 @@
 | Run Warmane Gear Sync once | VERIFY | Script fetches queued players' Warmane pages and writes missing `iconName` values |
 | Verify Maxximusboom and Lausudo icons | VERIFY | Check Maxximusboom Lasherweave items and Lausudo item IDs `50024`, `49964`, `49985` |
 | Test Warmane portrait userscript `0.5.0` | VERIFY | Install from `/admin` -> Warmane Gear Cache -> Character Portraits, open a Warmane character profile once, wait for any modelviewer frame to load, then check `/players/<name>`, `/guild-roster`, raid session roster chips, and session player deep-dive pages |
+| Verify global player search | VERIFY | After deploy, spot-check exact-match Enter navigation, partial-match dropdowns, and roster-only character navigation from the header |
+| Import local sample data | VERIFY | Local DB is live but empty for players/raids; upload a combat log or run Warmane roster sync to populate search results |
 | Stats / Analytics page | FEATURE | Brainstorm first, then design, then build |
 | Verify Skada numbers in-game | VERIFY | Neil to do manually |
 | Absorbs (PW:S) | FEATURE | Combined column. Do after verification. |
@@ -36,6 +44,7 @@
 - GitHub: https://github.com/CRSD-Lau/Pizza-Logs
 - Admin browser import: `/admin` -> Warmane Gear Cache -> install/update hosted Warmane Gear Sync userscript, then use the Pizza Logs panel on Warmane Armory
 - Portrait POC userscript: `/api/player-portraits/userscript.user.js` (`0.5.0` rejects blank WebGL/modelviewer captures through scratch-canvas sampling and uses `pizzaLogsWarmanePortraitCacheV3`)
+- Header player search endpoint: `/api/players/search?q=<query>` (reads `players` plus scoped PizzaWarriors/Lordaeron `guild_roster_members`)
 - Gear cache table: `armory_gear_cache`
 - Guild roster table: `guild_roster_members`
 - WowItem cache table: `wow_items`
