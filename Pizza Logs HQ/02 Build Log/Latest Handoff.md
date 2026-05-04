@@ -4,13 +4,53 @@
 2026-05-04
 
 ## Git
-**Feature branch:** `codex/pizza-logs-animation-mvp`
-**Deploy target:** `origin/main`
+**Feature branch:** `codex/upload-cinematic-intro`
+**Push target:** `origin/codex/upload-cinematic-intro`
 **Latest favicon asset commit:** `527c883` on `origin/main`
 
 ---
 
 ## What Was Done This Session
+
+### Upload-page cinematic intro MVP
+
+- Replaced the global `FrozenLogbookIntro` mount in `app/layout.tsx` with an upload-page-only `UploadCinematicIntro` mounted from `app/page.tsx`.
+- The Upload nav item points at `/`, so the cinematic is scoped to the current public upload route and does not run on `/players`, `/raids`, `/leaderboards`, `/guild-roster`, `/weekly`, `/bosses`, or admin routes.
+- Added an original CSS/SVG frozen raid-boss cinematic:
+  - dark blue-white tundra/whiteout overlay,
+  - CSS snow and frost vignette,
+  - original stylized frozen warlord silhouette,
+  - eye-glow aggro beat,
+  - original rune-blade slash,
+  - crack/shard impact reveal.
+- No copyrighted models, Blizzard art, Warcraft assets, Frostmourne/Lich King silhouettes, external images, audio, video, WebGL, Three.js, framer-motion, or new dependencies were added.
+- Normal duration is `3800ms`; reduced-motion duration is `350ms`.
+- The overlay has a visible `Skip` button, Escape-key skip, and fully unmounts after skip or timeout.
+- Reduced-motion users get the short frost fade while the figure/blade/shard cinematic layers are hidden by CSS.
+- The upload form remains mounted underneath and continues hydrating/loading while the fixed overlay plays.
+- Updated `tests/frozen-intro-source.test.ts` to cover upload-only mounting, no layout-level intro, no localStorage/usePathname suppression, CSS/SVG-only assets, skip/Escape support, reduced-motion timing, and key cinematic CSS classes.
+- Browser/IAB could not run because the local Node REPL backend returned OS access denied, so manual verification used a local Chrome CDP fallback against the compiled app on `http://localhost:3007`.
+
+### Verification for upload cinematic
+
+- Red test first: updated `tests/frozen-intro-source.test.ts` failed because `components/intro/UploadCinematicIntro.tsx` did not exist.
+- Focused source test after implementation: passed.
+- TypeScript: bundled Node running `node_modules/typescript/bin/tsc --noEmit` -> passed.
+- ESLint: bundled Node running `node_modules/eslint/bin/eslint.js . --max-warnings=0` -> passed.
+- Full TypeScript test sweep: 27 `tests/*.test.ts` files passed.
+- `git diff --check` -> passed.
+- Production build: bundled Node running `node_modules/next/dist/bin/next build` -> passed.
+- Local compiled app browser/CDP checks passed:
+  - Upload route shows the cinematic and visible `Skip`.
+  - `Skip` unmounts the overlay.
+  - Character input and Choose File state still respond after skip.
+  - Refresh/revisit shows the intro again.
+  - Escape skips the intro.
+  - `/players` does not mount the intro.
+  - Returning to `/` shows the intro again.
+  - Reduced-motion uses `frozenAggroReduced`, hides the figure, and unmounts quickly.
+  - Mobile viewport keeps `Skip` visible, avoids horizontal overflow, and leaves the upload form usable.
+- No parser, Prisma schema, DB query, admin auth, upload API, or Railway config changes were made.
 
 ### MVP animation pass
 
@@ -495,8 +535,9 @@ Preserved the main-branch queue fix while merging modernization:
 
 ## Current State
 
-- MVP animation pass is implemented, pushed to `origin/main` at `8a6de54`, and verified on production after Railway deployed the new client bundle. The latest follow-up was pushed to `origin/main` at `a499de0`; it makes the intro appear on every page change and keeps reveal CSS from being purged by Tailwind.
-- Intro behavior: `FrozenLogbookIntro` appears on initial load and each client-side route change, lasts `3000ms` for normal motion, and can still be dismissed with `Skip`. Reduced-motion users get the simplified short timeout.
+- Upload-page cinematic intro is implemented on `codex/upload-cinematic-intro` and verified locally against the compiled app. It mounts only from the current Upload route (`/`), lasts `3800ms` for normal motion, can be dismissed with `Skip` or Escape, and fully unmounts after completion/skip.
+- The previous global `FrozenLogbookIntro` layout mount has been removed, so non-upload routes no longer show an intro overlay. Reduced-motion users get the simplified `350ms` frost fade instead of the full figure/blade/shatter cinematic.
+- The older MVP animation pass remains deployed on `origin/main` until this branch is merged/pushed to the target branch. Shared reveal animations are unchanged and still use `.reveal-item` / `.boss-reveal-item`.
 - Raid session encounter displays now preserve parsed/session timestamp order when `startedAt` values are available. The existing ICC progression order remains the fallback for boss displays that do not have encounter timestamps, such as leaderboard boss-board ordering.
 - Gear card item-level and visible per-item `GS` display now distinguish raw item score from character contribution, and hunter one-hand weapons now count at normal item score in the total. This fixes Notlich-style hunter dual Scourgeborne Waraxe cards showing `168` instead of `531` each and removes the hunter weighting that kept Notlich's total below the in-game value.
 - Existing `wow_items` rows affected by the old ranged/relic map are repaired by migration `20260504120000_repair_wow_item_ranged_relic_equip_locs`.

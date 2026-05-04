@@ -19,6 +19,7 @@
 
 | Bug | Fix | Commit |
 |---|---|---|
+| Frozen Logbook intro was global, but the new cinematic request needed upload-page-only playback | Removed the layout-level `FrozenLogbookIntro`, added `UploadCinematicIntro` only to the Upload route (`/`), and verified `/players` does not mount the cinematic | this commit |
 | Frozen Logbook intro was easy to miss because it only showed once per browser | Removed the normal `localStorage` gate, increased the normal duration to `3000ms`, and tied the overlay to `usePathname()` so it appears on initial load and every client-side route change | a499de0 |
 | Shared reveal animations did not run in production because Tailwind purged dynamic helper classes | Added a Tailwind safelist for `reveal-item` and `boss-reveal-item`, plus source coverage in `tests/ui-animation.test.ts` | this commit |
 | Player Recent Encounters and weekly Boss Kills This Week did not use ICC kill order | Added `buildPlayerRecentEncounters` and `buildWeeklyBossKills`; player recent encounters, `/weekly`, and `/api/weekly` now use the shared ICC progression order | this commit |

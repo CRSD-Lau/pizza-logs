@@ -2,9 +2,13 @@
 
 ## Status
 
-**MVP animation pass is live on production, including the route-change intro follow-up.** The app has a CSS-only Frozen Logbook intro, subtle reveal animations for boss/player/leaderboard rows, and a shared `lib/ui-animation.ts` helper. The intro now appears on initial load and every client-side page change, lasts `3000ms` for normal motion, keeps the `Skip` button, and does not use the old one-time `localStorage` gate.
+**Upload-page cinematic intro is implemented on `codex/upload-cinematic-intro`.** The previous global Frozen Logbook intro has been replaced with `UploadCinematicIntro`, mounted only from the current public Upload route (`/`). It uses original CSS/SVG frozen-fantasy visuals, plays for `3800ms`, has visible `Skip` and Escape-key skip, fully unmounts after skip/completion, and does not use localStorage, external media, audio, video, WebGL, Three.js, framer-motion, or new dependencies.
 
-**Animation visibility follow-up is implemented.** After user feedback that the animation only flashed once and was not obvious, the follow-up makes the intro replay on every page change, makes shared reveal timing more visible (`420ms` / `70ms` stagger), includes Guild roster rows in the reveal wiring, and safelists `reveal-item` / `boss-reveal-item` so Tailwind keeps the shared animation CSS in production builds.
+**Reduced-motion behavior is covered.** Users with `prefers-reduced-motion: reduce` get a short `350ms` frost fade while the figure, blade, cracks, shards, and snow cinematic layers are hidden. The upload page content still loads underneath the fixed overlay.
+
+**Animation verification passed locally against the compiled app.** Focused red/green source testing, TypeScript, ESLint, all 27 standalone TypeScript tests, `git diff --check`, and `next build` passed. Browser/IAB was blocked by local Node REPL access denied, so Chrome CDP verified `Skip`, Escape, refresh/revisit replay, reduced-motion mode, mobile overflow/skip visibility, non-upload route absence, and upload-control usability on `http://localhost:3007`.
+
+**Existing shared reveal animations are unchanged.** The prior reveal timing and Tailwind safelist for `reveal-item` / `boss-reveal-item` remain in place for boss/player/leaderboard rows.
 
 **Raid session boss display now preserves parsed timestamp order when available.** `orderBossDisplayEntries` sorts timestamped encounter rows by `startedAt` and falls back to the existing ICC progression helper only when timestamp/order data is unavailable. Leaderboard boss boards still use ICC progression order because they are aggregate boss boards, not a single timestamped raid session.
 
@@ -55,7 +59,8 @@
 | Verify ICC boss ordering on real uploads | VERIFY | Check `/raids/<upload>/sessions/<idx>` and `/leaderboards` with full/partial ICC data after deploy |
 | Verify player Per-Boss Summary ordering | VERIFY | Check `/players/Notlich`; summary cards should follow ICC order instead of DPS order |
 | Verify remaining ICC display ordering | VERIFY | Check `/players/<name>` Recent Encounters and `/weekly` Boss Kills This Week after deploy |
-| Spot-check animation with real raid data | VERIFY | Production intro/mobile checks passed; use populated `/raids`, `/leaderboards`, and player pages for a human visual pass on reveal timing with real data |
+| Merge/deploy upload cinematic | DEPLOY | Push/merge `codex/upload-cinematic-intro`; after deploy, verify `/` plays the upload-only cinematic and `/players` does not |
+| Spot-check animation with real raid data | VERIFY | Shared reveal animations are unchanged; use populated `/raids`, `/leaderboards`, and player pages for a human visual pass on reveal timing with real data |
 | Import local sample data | VERIFY | Local DB is live but empty for players/raids; upload a combat log or run Warmane roster sync to populate search results |
 | Stats / Analytics page | FEATURE | Brainstorm first, then design, then build |
 | Verify Skada numbers in-game | VERIFY | Neil to do manually |

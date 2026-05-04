@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { db } from "@/lib/db";
+import { UploadCinematicIntro } from "@/components/intro/UploadCinematicIntro";
 import { UploadZoneWithRefresh } from "@/components/upload/UploadZoneWithRefresh";
 import { StatCard } from "@/components/ui/StatCard";
 import { SectionHeader } from "@/components/ui/SectionHeader";
@@ -30,6 +31,8 @@ export default async function HomePage() {
 
   return (
     <div className="pt-10 space-y-12">
+      <UploadCinematicIntro />
+
       <div className="text-center space-y-3">
         <h1 className="heading-cinzel text-3xl sm:text-4xl font-bold text-gold-light text-glow-gold">
           Pizza Logs
