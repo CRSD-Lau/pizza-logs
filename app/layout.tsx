@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Cinzel, Rajdhani } from "next/font/google";
 import "./globals.css";
+import { FrozenLogbookIntro } from "@/components/intro/FrozenLogbookIntro";
 import { Nav } from "@/components/layout/Nav";
 
 const cinzel = Cinzel({
@@ -31,6 +32,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en" className={`${cinzel.variable} ${rajdhani.variable}`}>
       <body className="min-h-screen bg-bg-deep text-text-primary antialiased">
+        <FrozenLogbookIntro />
         <div className="page-glow">
           <Nav />
           <main className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-20">
