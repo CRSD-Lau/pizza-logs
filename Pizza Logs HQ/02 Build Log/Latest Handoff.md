@@ -4,13 +4,29 @@
 2026-05-04
 
 ## Git
-**Feature branch:** `codex/pizza-logs-animation-mvp`
+**Feature branch:** `codex/upload-cinematic-intro`
 **Deploy target:** `origin/main`
 **Latest favicon asset commit:** `527c883` on `origin/main`
 
 ---
 
 ## What Was Done This Session
+
+### HD cinematic intro design spec
+
+- User rejected the strip-derived previews as too low quality for a modern website intro.
+- Agreed direction: treat the frame strips as proof-of-concept storyboards only, not production footage.
+- Approved creative target:
+  - cinematic Warcraft/WotLK/ICC realism,
+  - premium modern web-product polish,
+  - frost-armored raid boss emerging through snow,
+  - blue-eye reveal,
+  - close-up hold,
+  - frost/dark fade into the real Pizza Logs page.
+- Recommended approach: pre-rendered HD cinematic video asset for the site, rather than live Three.js, because the visual bar is lighting/compositing quality and reliable playback.
+- Added implementation-ready design spec:
+  - `docs/superpowers/specs/2026-05-04-hd-cinematic-intro-design.md`
+- No production cinematic assets, website integration, parser behavior, database schema, or app code were changed in this spec pass.
 
 ### MVP animation pass
 

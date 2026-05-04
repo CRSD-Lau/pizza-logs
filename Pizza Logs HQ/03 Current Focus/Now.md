@@ -2,6 +2,8 @@
 
 ## Status
 
+**HD cinematic intro design spec is written and awaiting review.** The strip-derived previews were rejected as too low quality for a modern website intro. The approved creative direction treats the strips as storyboards only and moves toward a pre-rendered HD cinematic: ICC/WotLK-inspired frost-armored raid boss, blizzard approach, blue-eye reveal, close-up hold, and a clean fade into the real Pizza Logs page. Spec: `docs/superpowers/specs/2026-05-04-hd-cinematic-intro-design.md`.
+
 **MVP animation pass is live on production, including the route-change intro follow-up.** The app has a CSS-only Frozen Logbook intro, subtle reveal animations for boss/player/leaderboard rows, and a shared `lib/ui-animation.ts` helper. The intro now appears on initial load and every client-side page change, lasts `3000ms` for normal motion, keeps the `Skip` button, and does not use the old one-time `localStorage` gate.
 
 **Animation visibility follow-up is implemented.** After user feedback that the animation only flashed once and was not obvious, the follow-up makes the intro replay on every page change, makes shared reveal timing more visible (`420ms` / `70ms` stagger), includes Guild roster rows in the reveal wiring, and safelists `reveal-item` / `boss-reveal-item` so Tailwind keeps the shared animation CSS in production builds.
@@ -44,6 +46,7 @@
 
 | Task | Type | Notes |
 |------|------|-------|
+| Review HD cinematic intro spec | DESIGN | Review `docs/superpowers/specs/2026-05-04-hd-cinematic-intro-design.md`; after approval, create an implementation plan before generating production assets |
 | Verify Notlich gear cards | VERIFY | After deploy, `/players/Notlich` should show both heroic Scourgeborne Waraxes as `GS 531` |
 | Verify production admin config | DEPLOY | Confirm Railway Web Service has `ADMIN_SECRET`; do not set `ADMIN_COOKIE_SECURE=false` in Railway |
 | Verify Railway deploy logs | DEPLOY | Use Railway dashboard/CLI; local Railway CLI is not installed |
