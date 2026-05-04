@@ -345,6 +345,7 @@ Preserved the main-branch queue fix while merging modernization:
   - Production build: bundled Node running `node_modules/next/dist/bin/next build` -> passed.
   - Local Chrome/CDP check against built app returned `{"initialIntro":true,"routeChangeIntro":true,"pathname":"/players"}` after skipping the initial intro and clicking the `/players` nav link.
   - Parser tests: bundled Python running `python -m pytest tests/ -v` from `parser/` -> 123 passed.
+  - Production bundle check after Railway deploy confirmed the live client no longer contains `pizzaLogsFrozenIntroSeen`, does contain the intro text, does contain the route/pathname hook marker, and contains the minified `3000ms` duration marker.
 - GearScore display repair:
   - `tests/gearscore-lite.test.ts` -> passed, including hunter dual heroic Scourgeborne Waraxe card and contribution scores of `531`/`531`
   - `tests/item-template.test.ts` -> passed, including corrected `InventoryType` 25/26/28 mapping
@@ -494,7 +495,7 @@ Preserved the main-branch queue fix while merging modernization:
 
 ## Current State
 
-- MVP animation pass is implemented, pushed to `origin/main` at `8a6de54`, and verified on production after Railway deployed the new client bundle. The latest follow-up makes the intro appear on every page change and keeps reveal CSS from being purged by Tailwind.
+- MVP animation pass is implemented, pushed to `origin/main` at `8a6de54`, and verified on production after Railway deployed the new client bundle. The latest follow-up was pushed to `origin/main` at `a499de0`; it makes the intro appear on every page change and keeps reveal CSS from being purged by Tailwind.
 - Intro behavior: `FrozenLogbookIntro` appears on initial load and each client-side route change, lasts `3000ms` for normal motion, and can still be dismissed with `Skip`. Reduced-motion users get the simplified short timeout.
 - Raid session encounter displays now preserve parsed/session timestamp order when `startedAt` values are available. The existing ICC progression order remains the fallback for boss displays that do not have encounter timestamps, such as leaderboard boss-board ordering.
 - Gear card item-level and visible per-item `GS` display now distinguish raw item score from character contribution, and hunter one-hand weapons now count at normal item score in the total. This fixes Notlich-style hunter dual Scourgeborne Waraxe cards showing `168` instead of `531` each and removes the hunter weighting that kept Notlich's total below the in-game value.

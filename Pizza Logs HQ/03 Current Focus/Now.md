@@ -2,13 +2,13 @@
 
 ## Status
 
-**MVP animation pass is live on production, with a route-change intro follow-up ready to push.** The app has a CSS-only Frozen Logbook intro, subtle reveal animations for boss/player/leaderboard rows, and a shared `lib/ui-animation.ts` helper. The intro now appears on initial load and every client-side page change, lasts `3000ms` for normal motion, keeps the `Skip` button, and does not use the old one-time `localStorage` gate.
+**MVP animation pass is live on production, including the route-change intro follow-up.** The app has a CSS-only Frozen Logbook intro, subtle reveal animations for boss/player/leaderboard rows, and a shared `lib/ui-animation.ts` helper. The intro now appears on initial load and every client-side page change, lasts `3000ms` for normal motion, keeps the `Skip` button, and does not use the old one-time `localStorage` gate.
 
 **Animation visibility follow-up is implemented.** After user feedback that the animation only flashed once and was not obvious, the follow-up makes the intro replay on every page change, makes shared reveal timing more visible (`420ms` / `70ms` stagger), includes Guild roster rows in the reveal wiring, and safelists `reveal-item` / `boss-reveal-item` so Tailwind keeps the shared animation CSS in production builds.
 
 **Raid session boss display now preserves parsed timestamp order when available.** `orderBossDisplayEntries` sorts timestamped encounter rows by `startedAt` and falls back to the existing ICC progression helper only when timestamp/order data is unavailable. Leaderboard boss boards still use ICC progression order because they are aggregate boss boards, not a single timestamped raid session.
 
-**Animation verification passed locally; production verification comes after the push.** Focused red/green tests cover the intro source, reusable reveal/order helper, Guild row wiring, and Tailwind safelist. TypeScript, ESLint, `git diff --check`, `next build`, and parser tests passed. A local Chrome/CDP check against the built app returned `initialIntro: true` and `routeChangeIntro: true` after clicking from `/` to `/players`.
+**Animation verification passed locally and the live bundle was verified after Railway deploy.** Focused red/green tests cover the intro source, reusable reveal/order helper, Guild row wiring, and Tailwind safelist. TypeScript, ESLint, `git diff --check`, `next build`, and parser tests passed. A local Chrome/CDP check against the built app returned `initialIntro: true` and `routeChangeIntro: true` after clicking from `/` to `/players`. Production bundle checks confirmed the old `pizzaLogsFrozenIntroSeen` gate is gone and the route-change intro markers are present.
 
 **Desktop checkout started clean from public `main`; animation work was developed on `codex/pizza-logs-animation-mvp` before main deployment.** The old `PizzaLogs-main-queue-fix` worktree folder and stale Git metadata are removed, the local modernization/Claude branches are deleted, and the remote `codex/pizza-logs-modernization` branch was deleted after confirming it matched `main`.
 
