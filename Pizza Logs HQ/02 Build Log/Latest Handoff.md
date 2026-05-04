@@ -38,6 +38,16 @@
   - `tmp-mobile-check/hd_cinematic_intro/site_integration/local-intro-mobile-final.png`
   - `tmp-mobile-check/hd_cinematic_intro/site_integration/local-bosses-mobile-500-final.png`
 - No parser behavior, Prisma schema, DB queries, upload logic, admin gates, or Railway config were changed.
+- Deployed to `origin/main` at `0ad6231`.
+- Production verification after Railway deploy:
+  - `/intro/pizza-logs-cinematic-intro.webm` returned HTTP 200 with the expected `19,034,392` byte length,
+  - `/intro/pizza-logs-cinematic-intro-mobile.webm` returned HTTP 200 with the expected `10,020,768` byte length,
+  - `/intro/pizza-logs-cinematic-poster-mobile.jpg` returned HTTP 200 with the expected `558,062` byte length,
+  - `/bosses` server-rendered markup includes `reveal-item boss-reveal-item`, `md:hidden`, `boss summary`, and `overflow-hidden` markers,
+  - Edge headless production screenshots confirmed mobile intro media and `/bosses` mobile cards.
+- Production screenshots:
+  - `tmp-mobile-check/hd_cinematic_intro/site_integration/production-intro-mobile-final.png`
+  - `tmp-mobile-check/hd_cinematic_intro/site_integration/production-bosses-mobile-500-final.png`
 
 ### HD cinematic intro design spec
 
@@ -582,7 +592,7 @@ Preserved the main-branch queue fix while merging modernization:
 
 ## Current State
 
-- HD cinematic intro integration is live on production at `5a6ef83`, and this branch now contains a higher-resolution replacement pass ready for deploy. The old CSS-only particle/title intro has been replaced by generated cinematic video assets in `public/intro/`.
+- HD cinematic intro integration is live on production at `0ad6231`. The old CSS-only particle/title intro has been replaced by generated cinematic video assets in `public/intro/`, now including the higher-resolution desktop pass and portrait mobile pass.
 - Intro behavior: `FrozenLogbookIntro` now plays the HD cinematic on hard page load, uses WebM with MP4 fallback, selects portrait mobile WebM/MP4 sources at `(max-width: 640px)`, lasts up to `5200ms`, exits on video end, keeps `Skip`, and avoids replaying on every internal route change. Reduced-motion users get the matching desktop/mobile poster and a short `350ms` timeout.
 - `/bosses` now has a mobile-native boss card layout with the same shared reveal animation style used on the other table/card pages. The desktop table grid is preserved for medium-and-up screens.
 - Raid session encounter displays now preserve parsed/session timestamp order when `startedAt` values are available. The existing ICC progression order remains the fallback for boss displays that do not have encounter timestamps, such as leaderboard boss-board ordering.
@@ -607,9 +617,9 @@ Preserved the main-branch queue fix while merging modernization:
 
 ## Exact Next Step
 
-For cinematic intro: deploy the higher-resolution desktop/mobile asset pass, then hard-refresh production in a normal browser to judge playback smoothness/taste and try the Skip button manually.
+For cinematic intro: production is deployed and headless-verified with the higher-resolution desktop/mobile asset pass. Hard-refresh production in a normal browser to judge playback smoothness/taste and try the Skip button manually.
 
-For `/bosses`: after deploy, open `/bosses` on a phone-sized viewport with real production data and confirm the mobile boss cards animate in without horizontal overflow.
+For `/bosses`: production markup and mobile screenshot are verified. A human phone-sized browser pass is still useful to confirm the boss cards animate in without horizontal overflow in a normal browser.
 
 For GearScore: after deploy, spot-check `/players/Notlich`; both heroic Scourgeborne Waraxe cards should show `GS 531`, and the summary should be much closer to the in-game `6237` because hunter weapon weighting is no longer applied.
 
