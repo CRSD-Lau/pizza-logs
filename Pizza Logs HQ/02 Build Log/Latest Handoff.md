@@ -12,6 +12,40 @@
 
 ## What Was Done This Session
 
+### Upload cinematic movie-style follow-up
+
+- User asked for the upload intro to feel more realistic and movie-like after the fan-art pass.
+- Kept the implementation CSS/SVG-only and original; no attached/reference image, Blizzard/Warcraft assets, external media, audio, video, WebGL, Three.js, framer-motion, or new dependencies were added.
+- Added a more cinematic treatment:
+  - procedural film grain,
+  - letterbox bars,
+  - rolling volumetric fog layers,
+  - stronger cold backlight,
+  - closer painted-silhouette glow and visor flash,
+  - adjusted camera push so the figure reads as a full villain reveal before the shatter instead of a cropped block of armor.
+- Reduced-motion mode now hides the film-grain, fog, letterbox, figure, blade, shard, spire, and frost-fire layers and keeps the short frost fade.
+
+### Verification for movie-style follow-up
+
+- Red source test first: `tests/frozen-intro-source.test.ts` failed on missing `frozen-aggro-letterbox`.
+- Focused upload cinematic source test after implementation: passed.
+- TypeScript: bundled Node running `node_modules/typescript/bin/tsc --noEmit` -> passed.
+- ESLint: bundled Node running `node_modules/eslint/bin/eslint.js . --max-warnings=0` -> passed.
+- Full standalone TypeScript test sweep: 27/27 tests passed with JSX and alias support in the local runner.
+- `git diff --check` -> passed.
+- Production build: bundled Node running `node_modules/next/dist/bin/next build` -> passed.
+- Browser/IAB automation still failed with Windows OS access denied, so Chrome/CDP fallback verified against `http://127.0.0.1:3007`:
+  - upload overlay mounts with figure, film grain, fog, letterbox, and visible `Skip`,
+  - `Skip` unmounts the overlay and leaves the upload page usable,
+  - refresh replays the intro,
+  - Escape skips the intro,
+  - `/players` does not mount the intro,
+  - reduced-motion hides the full cinematic layers and unmounts quickly,
+  - mobile keeps `Skip` visible and has no horizontal overflow.
+- Captured local preview artifacts in ignored temp output:
+  - `tmp-upload-cinematic-capture/upload-cinematic-filmstrip.png`
+  - `tmp-upload-cinematic-capture/upload-cinematic-preview.svg`
+
 ### Upload cinematic painted-warrior follow-up
 
 - User rejected the prior blocky-looking figure and asked to use the attached fan-art mood reference.

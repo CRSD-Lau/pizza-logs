@@ -100,6 +100,8 @@ export function UploadCinematicIntro() {
           />
         ))}
       </div>
+      <div className="frozen-aggro-film-grain" aria-hidden="true" />
+      <div className="frozen-aggro-letterbox" aria-hidden="true" />
 
       <Button
         type="button"
@@ -112,6 +114,11 @@ export function UploadCinematicIntro() {
       </Button>
 
       <div className="frozen-aggro-whiteout" aria-hidden="true" />
+      <div className="frozen-aggro-cinematic-fog" aria-hidden="true">
+        <span />
+        <span />
+        <span />
+      </div>
       <div className="frozen-aggro-horizon" aria-hidden="true" />
       <div className="frozen-aggro-spires" aria-hidden="true">
         <span />
@@ -126,6 +133,7 @@ export function UploadCinematicIntro() {
       </div>
 
       <div className="frozen-aggro-figure" aria-hidden="true">
+        <div className="frozen-aggro-backlight" />
         <div className="frozen-aggro-boss-aura" />
         <div className="frozen-aggro-shadow" />
         <svg viewBox="0 0 360 470" className="frozen-aggro-warlord">
@@ -163,7 +171,7 @@ export function UploadCinematicIntro() {
               <stop offset="100%" stopColor="#0a1624" stopOpacity="0.08" />
             </radialGradient>
           </defs>
-          <g className="frozen-aggro-painted-figure" filter="url(#frozenPaintEdge)">
+          <g className="frozen-aggro-painted-figure frozen-aggro-closeup-silhouette" filter="url(#frozenPaintEdge)">
             <path
               d="M180 58C121 88 80 154 58 283c-8 47-13 105-14 174h272c-1-69-6-127-14-174-22-129-63-195-122-225Z"
               className="frozen-aggro-cape"
@@ -205,6 +213,7 @@ export function UploadCinematicIntro() {
               <path d="M164 134h32l12 18-28 24-28-24 12-18Z" className="frozen-aggro-mask-shadow" />
               <path d="M164 126h-23l-19 22 37 5 5-27ZM196 126h23l19 22-37 5-5-27Z" className="frozen-aggro-cheek-plate" />
               <path d="M180 83 164 129h32L180 83Z" className="frozen-aggro-face-rune" />
+              <path d="M146 127c17-7 51-7 68 0-17 11-51 11-68 0Z" className="frozen-aggro-visor-glow" />
               <path d="M158 122h16" className="frozen-aggro-eye-line frozen-aggro-eyes" />
               <path d="M186 122h16" className="frozen-aggro-eye-line frozen-aggro-eyes" />
               <circle cx="94" cy="183" r="23" className="frozen-aggro-shoulder-rune" />

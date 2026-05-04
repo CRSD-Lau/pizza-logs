@@ -19,6 +19,7 @@
 
 | Bug | Fix | Commit |
 |---|---|---|
+| Upload cinematic still felt too flat/vector-like instead of movie-like | Added procedural film grain, letterbox bars, rolling fog, stronger cold backlight, visor glow, and camera framing that keeps the full frozen warlord readable before impact; Chrome/CDP captured a new preview filmstrip | this commit |
 | Upload cinematic frozen warlord looked too blocky and not close enough to the requested fan-art mood | Replaced the simple geometric figure with a more detailed original CSS/SVG painted-warrior pass: roughened edges, layered cloak, jagged crown, mask plates, fur/ice mantle, heavier armor, and rune-vein glow; no external image asset was added | this commit |
 | Upload cinematic overlay could be trapped below the sticky site header, making the intro feel less full-screen and risking hidden controls | `UploadCinematicIntro` now renders through a `document.body` portal; browser/CDP verified the overlay sits above the header and `Skip` is visible on desktop and mobile | this commit |
 | Frozen Logbook intro was global, but the new cinematic request needed upload-page-only playback | Removed the layout-level `FrozenLogbookIntro`, added `UploadCinematicIntro` only to the Upload route (`/`), and verified `/players` does not mount the cinematic | this commit |
