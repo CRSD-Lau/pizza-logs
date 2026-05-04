@@ -10,6 +10,7 @@ import { getClassIconUrl } from "@/lib/warmane-portrait";
 import { formatDps } from "@/lib/utils";
 import { cn } from "@/lib/utils";
 import { isDatabaseConnectionError } from "@/lib/database-errors";
+import { getRevealClassName, getRevealStyle } from "@/lib/ui-animation";
 
 export const metadata: Metadata = { title: "Players" };
 export const dynamic = "force-dynamic";
@@ -272,13 +273,17 @@ export default async function PlayersPage({ searchParams }: Props) {
         />
       ) : (
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-2">
-          {enriched.map(p => {
+          {enriched.map((p, index) => {
             const color = getClassColor(p.class ?? p.name);
             return (
               <Link
                 key={p.id}
                 href={`/players/${encodeURIComponent(p.name)}`}
-                className="bg-bg-panel border border-gold-dim rounded px-4 py-3 hover:border-gold/50 transition-colors group flex items-center gap-3"
+                className={getRevealClassName({
+                  className:
+                    "bg-bg-panel border border-gold-dim rounded px-4 py-3 hover:border-gold/50 transition-colors group flex items-center gap-3",
+                })}
+                style={getRevealStyle(index)}
               >
                 {/* Avatar */}
                 <PlayerAvatar

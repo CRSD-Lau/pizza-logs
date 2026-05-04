@@ -8,8 +8,8 @@ import { SessionLineChart } from "@/components/charts/SessionLineChart";
 import type { ChartPoint, PlayerLine } from "@/components/charts/SessionLineChart";
 import { StatCard } from "@/components/ui/StatCard";
 import { getClassColor } from "@/lib/constants/classes";
-import { sortByICCOrder } from "@/lib/constants/bosses";
 import { getClassIconUrl } from "@/lib/warmane-portrait";
+import { getRevealClassName, getRevealStyle, orderBossDisplayEntries } from "@/lib/ui-animation";
 import { cn, formatDps, formatDuration } from "@/lib/utils";
 
 interface Props {
@@ -42,7 +42,11 @@ export default async function SessionPlayerPage({ params }: Props) {
 
   if (encounters.length === 0) notFound();
 
-  const orderedEncounters = sortByICCOrder(encounters, enc => enc.boss.name);
+  const orderedEncounters = orderBossDisplayEntries(
+    encounters,
+    enc => enc.boss.name,
+    enc => enc.startedAt,
+  );
 
   const firstParticipation = encounters
     .flatMap(e => e.participants)
@@ -204,11 +208,16 @@ export default async function SessionPlayerPage({ params }: Props) {
 
       <AccordionSection title="Encounter Breakdown" count={myStats.length} defaultOpen>
         <div className="bg-bg-panel border border-gold-dim rounded divide-y divide-gold-dim overflow-hidden">
-          {myStats.map((e) => (
+          {myStats.map((e, index) => (
             <Link
               key={e.encounterId}
               href={`/encounters/${e.encounterId}`}
-              className="flex items-start justify-between px-4 py-3 hover:bg-bg-hover transition-colors group gap-3 flex-wrap"
+              className={getRevealClassName({
+                boss: true,
+                className:
+                  "flex items-start justify-between px-4 py-3 hover:bg-bg-hover transition-colors group gap-3 flex-wrap",
+              })}
+              style={getRevealStyle(index)}
             >
               <div className="flex items-center gap-3 flex-wrap">
                 <span

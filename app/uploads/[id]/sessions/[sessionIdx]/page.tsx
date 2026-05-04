@@ -7,8 +7,8 @@ import { PlayerAvatar } from "@/components/players/PlayerAvatar";
 import { AccordionSection } from "@/components/ui/AccordionSection";
 import { StatCard } from "@/components/ui/StatCard";
 import { getClassColor } from "@/lib/constants/classes";
-import { sortByICCOrder } from "@/lib/constants/bosses";
 import { getClassIconUrl } from "@/lib/warmane-portrait";
+import { getRevealClassName, getRevealStyle, orderBossDisplayEntries } from "@/lib/ui-animation";
 import { cn, formatDuration, formatNumber } from "@/lib/utils";
 
 interface Props {
@@ -49,7 +49,12 @@ export default async function SessionDetailPage({ params }: Props) {
 
   if (encounters.length === 0) notFound();
 
-  const orderedEncounters = sortByICCOrder(encounters, enc => enc.boss.name);
+  const orderedEncounters = orderBossDisplayEntries(
+    encounters,
+    enc => enc.boss.name,
+    enc => enc.startedAt,
+  );
+  const encounterRevealIndex = new Map(orderedEncounters.map((enc, index) => [enc.id, index]));
 
   const kills = orderedEncounters.filter(e => e.outcome === "KILL").length;
   const wipes = orderedEncounters.filter(e => e.outcome === "WIPE").length;
@@ -218,7 +223,12 @@ export default async function SessionDetailPage({ params }: Props) {
                     <Link
                       key={enc.id}
                       href={`/encounters/${enc.id}`}
-                      className="flex items-start justify-between gap-3 px-4 py-3 hover:bg-bg-hover transition-colors group flex-wrap"
+                      className={getRevealClassName({
+                        boss: true,
+                        className:
+                          "flex items-start justify-between gap-3 px-4 py-3 hover:bg-bg-hover transition-colors group flex-wrap",
+                      })}
+                      style={getRevealStyle(encounterRevealIndex.get(enc.id) ?? 0)}
                     >
                       <div className="flex items-center gap-3 flex-wrap">
                         <span
@@ -271,7 +281,7 @@ export default async function SessionDetailPage({ params }: Props) {
       {playerSet.size > 0 && (
         <AccordionSection title="Raid Roster" count={playerSet.size} defaultOpen>
           <div className="bg-bg-panel border border-gold-dim rounded p-4 flex flex-wrap gap-2">
-            {Array.from(playerSet.entries()).map(([name, cls]) => {
+            {Array.from(playerSet.entries()).map(([name, cls], index) => {
               const rosterMember = rosterMemberMap.get(name.toLowerCase());
               const characterClass = cls ?? rosterMember?.className ?? null;
               const classColor = getClassColor(characterClass ?? name);
@@ -280,7 +290,11 @@ export default async function SessionDetailPage({ params }: Props) {
                 <Link
                   key={name}
                   href={`/raids/${id}/sessions/${sessionIndex}/players/${encodeURIComponent(name)}`}
-                  className="inline-flex items-center gap-2 rounded border border-gold-dim bg-bg-card px-2 py-1 text-xs hover:border-gold transition-colors"
+                  className={getRevealClassName({
+                    className:
+                      "inline-flex items-center gap-2 rounded border border-gold-dim bg-bg-card px-2 py-1 text-xs hover:border-gold transition-colors",
+                  })}
+                  style={getRevealStyle(index)}
                 >
                   <PlayerAvatar
                     name={name}

@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { cn, formatDps } from "@/lib/utils";
 import { getClassColor } from "@/lib/constants/classes";
+import { getRevealClassName, getRevealStyle } from "@/lib/ui-animation";
 
 interface LeaderboardEntry {
   rank: number;
@@ -27,14 +28,18 @@ export function LeaderboardBar({ entries, metric, className }: LeaderboardBarPro
 
   return (
     <div className={cn("space-y-2", className)}>
-      {entries.map((e) => {
+      {entries.map((e, index) => {
         const fillPct = maxVal > 0 ? (e.value / maxVal) * 100 : 0;
         const color = getClassColor(e.class ?? e.playerName);
 
         return (
           <div
             key={`${e.rank}-${e.playerName}`}
-            className="relative overflow-hidden rounded bg-bg-card border border-transparent hover:border-gold-dim transition-colors group"
+            className={cn(
+              getRevealClassName(),
+              "relative overflow-hidden rounded bg-bg-card border border-transparent hover:border-gold-dim transition-colors group"
+            )}
+            style={getRevealStyle(index)}
           >
             <div
               className="absolute inset-y-0 left-0 pointer-events-none"

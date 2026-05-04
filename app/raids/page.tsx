@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 import { DatabaseUnavailable } from "@/components/ui/DatabaseUnavailable";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { isDatabaseConnectionError } from "@/lib/database-errors";
+import { getRevealClassName, getRevealStyle } from "@/lib/ui-animation";
 
 export const metadata: Metadata = { title: "Raids" };
 export const dynamic = "force-dynamic";
@@ -122,11 +123,16 @@ export default async function RaidsPage() {
                 {day}
               </p>
               <div className="space-y-3">
-                {daySessions.map(s => (
+                {daySessions.map((s, index) => (
                   <Link
                     key={`${s.uploadId}-${s.sessionIndex}`}
                     href={`/raids/${s.uploadId}/sessions/${s.sessionIndex}`}
-                    className="block bg-bg-panel border border-gold-dim rounded p-4 hover:border-gold/50 transition-colors group"
+                    className={getRevealClassName({
+                      boss: true,
+                      className:
+                        "block bg-bg-panel border border-gold-dim rounded p-4 hover:border-gold/50 transition-colors group",
+                    })}
+                    style={getRevealStyle(index)}
                   >
                     <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                       <div className="space-y-2 min-w-0">

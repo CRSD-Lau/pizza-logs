@@ -2,7 +2,13 @@
 
 ## Status
 
-**Desktop checkout is back to public `main` only.** `C:\Users\neil_\OneDrive\Desktop\PizzaLogs` is on `main` tracking `origin/main`. The old `PizzaLogs-main-queue-fix` worktree folder and stale Git metadata are removed, the local modernization/Claude branches are deleted, and the remote `codex/pizza-logs-modernization` branch was deleted after confirming it matched `main`.
+**MVP animation pass is implemented and validated for main deployment.** The app now has a first-visit CSS-only Frozen Logbook intro, subtle reveal animations for boss/player/leaderboard rows, and a shared `lib/ui-animation.ts` helper. The intro uses `localStorage` key `pizzaLogsFrozenIntroSeen`; clear it with `localStorage.removeItem("pizzaLogsFrozenIntroSeen")` to retest the first-visit flow.
+
+**Raid session boss display now preserves parsed timestamp order when available.** `orderBossDisplayEntries` sorts timestamped encounter rows by `startedAt` and falls back to the existing ICC progression helper only when timestamp/order data is unavailable. Leaderboard boss boards still use ICC progression order because they are aggregate boss boards, not a single timestamped raid session.
+
+**Animation verification passed locally against the built app.** Focused red/green tests covered the intro source and reusable reveal/order helper. TypeScript, ESLint, `git diff --check`, and `next build` passed. A headless Chrome DevTools check confirmed first-visit intro, skip, refresh suppression, auto-complete, reduced-motion behavior, and mobile `/players` overflow/search/nav behavior on `http://127.0.0.1:3005`.
+
+**Desktop checkout started clean from public `main`; animation work was developed on `codex/pizza-logs-animation-mvp` before main deployment.** The old `PizzaLogs-main-queue-fix` worktree folder and stale Git metadata are removed, the local modernization/Claude branches are deleted, and the remote `codex/pizza-logs-modernization` branch was deleted after confirming it matched `main`.
 
 **Hunter weapon GearScore display/total is fixed.** Player gear cards now display raw per-item GearScore values through `displayItemScores`. Hunter-only melee/ranged GearScoreLite weighting was also removed from the total calculation because Notlich's in-game total (`6237`) follows the raw hunter weapon scores rather than counting heroic Scourgeborne Waraxes as `168` each. Titan Grip handling remains intact.
 
@@ -47,6 +53,7 @@
 | Verify ICC boss ordering on real uploads | VERIFY | Check `/raids/<upload>/sessions/<idx>` and `/leaderboards` with full/partial ICC data after deploy |
 | Verify player Per-Boss Summary ordering | VERIFY | Check `/players/Notlich`; summary cards should follow ICC order instead of DPS order |
 | Verify remaining ICC display ordering | VERIFY | Check `/players/<name>` Recent Encounters and `/weekly` Boss Kills This Week after deploy |
+| Verify animation MVP on production | VERIFY | After Railway deploy, clear `localStorage.pizzaLogsFrozenIntroSeen`, reload production, test intro skip/auto-complete and spot-check `/raids`, `/leaderboards`, and `/players` reveal behavior |
 | Import local sample data | VERIFY | Local DB is live but empty for players/raids; upload a combat log or run Warmane roster sync to populate search results |
 | Stats / Analytics page | FEATURE | Brainstorm first, then design, then build |
 | Verify Skada numbers in-game | VERIFY | Neil to do manually |

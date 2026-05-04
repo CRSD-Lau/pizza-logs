@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { cn, formatDps, formatNumber } from "@/lib/utils";
 import { getClassColor } from "@/lib/constants/classes";
+import { getRevealClassName, getRevealStyle } from "@/lib/ui-animation";
 
 interface SpellEntry {
   damage:  number;
@@ -66,10 +67,11 @@ export function DamageMeter({ participants, metric = "dps" }: DamageMeterProps) 
             <div key={p.player.name}>
               <div
                 className={cn(
+                  getRevealClassName(),
                   "meter-row grid gap-2 items-center px-3 py-2.5 bg-bg-card",
                   isActive && "active"
                 )}
-                style={{ gridTemplateColumns: "2fr 1fr 1fr 1fr 1fr" }}
+                style={getRevealStyle(idx, { gridTemplateColumns: "2fr 1fr 1fr 1fr 1fr" })}
                 onClick={() => setSelected(isActive ? null : p.player.name)}
               >
                 {/* Bar background fill */}

@@ -4,12 +4,45 @@
 2026-05-04
 
 ## Git
-**Branch:** `codex/pizza-logs-modernization`
+**Feature branch:** `codex/pizza-logs-animation-mvp`
+**Deploy target:** `origin/main`
 **Latest favicon asset commit:** `527c883` on `origin/main`
 
 ---
 
 ## What Was Done This Session
+
+### MVP animation pass
+
+- Added a first-visit `FrozenLogbookIntro` overlay mounted from `app/layout.tsx`.
+- The intro is CSS-only and uses the existing dark/gold/frost palette:
+  - dark ICC-style background treatment,
+  - subtle CSS frost particles,
+  - small frost/gold glow mark,
+  - `Pizza Logs` title reveal,
+  - tagline `Raid data, forged from combat logs.`
+- The intro is capped at `2300ms`, has a visible `Skip` button, and unmounts after skip or completion.
+- First-visit state is stored in browser `localStorage` key `pizzaLogsFrozenIntroSeen`.
+- Reduced-motion users get no particle/entry animations and a short `350ms` intro timeout.
+- Added shared CSS reveal classes:
+  - `.reveal-item`
+  - `.boss-reveal-item`
+- Added `lib/ui-animation.ts` for reusable reveal styles/classes and centralized boss display ordering:
+  - timestamped encounter/session rows sort by `startedAt` and preserve original order for equal timestamps,
+  - fallback uses the existing ICC progression helper when timestamps are not available.
+- Wired subtle reveal animations into:
+  - `/raids` session cards,
+  - raid session encounter rows,
+  - raid session roster chips,
+  - session player encounter rows,
+  - `/leaderboards` boss sections,
+  - leaderboard DPS/HPS rows,
+  - `/players` player cards,
+  - player profile records, per-boss cards, and recent encounter rows,
+  - damage/target meter rows.
+- No framer-motion dependency was added because the repo does not already include it.
+- No parser behavior, Prisma schema, DB queries, navigation structure, layout structure, copyrighted images, audio, 3D, WebGL, or external assets were added.
+- Count-up number animation was intentionally not added; there was no existing safe utility, and data accuracy/readability is more important for this MVP.
 
 ### Desktop branch/worktree cleanup
 
@@ -257,6 +290,25 @@ Preserved the main-branch queue fix while merging modernization:
 
 ## Verification
 
+- MVP animation pass:
+  - `tests/ui-animation.test.ts` -> failed first on missing `lib/ui-animation`, then passed.
+  - `tests/frozen-intro-source.test.ts` -> failed first on missing `components/intro/FrozenLogbookIntro.tsx`, then passed.
+  - `tests/boss-order.test.ts` -> passed.
+  - `tests/player-profile.test.ts` -> passed.
+  - `tests/player-search-ui-source.test.ts` -> passed.
+  - TypeScript: bundled Node running `node_modules/typescript/bin/tsc --noEmit` -> passed.
+  - Full ESLint: bundled Node running `node_modules/eslint/bin/eslint.js . --max-warnings=0` -> passed.
+  - `git diff --check` -> passed.
+  - Production build: bundled Node running `node_modules/next/dist/bin/next build` -> passed in the OneDrive checkout.
+  - Local HTTP smoke on built server `http://127.0.0.1:3005` returned HTTP 200 for `/raids`, `/leaderboards`, and `/players`.
+  - The Browser plugin's Node REPL bridge was blocked by Windows access control, so manual browser verification used local headless Chrome through the DevTools protocol.
+  - Chrome checks confirmed:
+    - first visit shows the intro, skip button, and tagline,
+    - skip unmounts the overlay and writes `pizzaLogsFrozenIntroSeen = "1"`,
+    - refresh after skip does not show the intro,
+    - automatic completion unmounts and writes the same key,
+    - reduced-motion hides particles, disables overlay animation, and unmounts quickly,
+    - mobile `/players` at `390x844` has no horizontal overflow and keeps the mobile nav/search available.
 - GearScore display repair:
   - `tests/gearscore-lite.test.ts` -> passed, including hunter dual heroic Scourgeborne Waraxe card and contribution scores of `531`/`531`
   - `tests/item-template.test.ts` -> passed, including corrected `InventoryType` 25/26/28 mapping
@@ -406,6 +458,9 @@ Preserved the main-branch queue fix while merging modernization:
 
 ## Current State
 
+- MVP animation pass is implemented and validated for `origin/main` deployment.
+- Intro reset for testing: run `localStorage.removeItem("pizzaLogsFrozenIntroSeen")` in the browser console, then reload.
+- Raid session encounter displays now preserve parsed/session timestamp order when `startedAt` values are available. The existing ICC progression order remains the fallback for boss displays that do not have encounter timestamps, such as leaderboard boss-board ordering.
 - Gear card item-level and visible per-item `GS` display now distinguish raw item score from character contribution, and hunter one-hand weapons now count at normal item score in the total. This fixes Notlich-style hunter dual Scourgeborne Waraxe cards showing `168` instead of `531` each and removes the hunter weighting that kept Notlich's total below the in-game value.
 - Existing `wow_items` rows affected by the old ranged/relic map are repaired by migration `20260504120000_repair_wow_item_ranged_relic_equip_locs`.
 - Global player search is implemented on `codex/pizza-logs-modernization`. The header now has a compact autocomplete on large screens and a visible search row on smaller screens. The endpoint searches combat-log players plus PizzaWarriors/Lordaeron roster-only members and returns capped stable JSON for `/players/<name>` navigation.

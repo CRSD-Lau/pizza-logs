@@ -6,6 +6,7 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import Link from "next/link";
 import { isDatabaseConnectionError } from "@/lib/database-errors";
 import { sortBossesByICCOrder } from "@/lib/constants/bosses";
+import { getRevealClassName, getRevealStyle } from "@/lib/ui-animation";
 
 export const metadata: Metadata = { title: "Leaderboards" };
 export const dynamic = "force-dynamic";
@@ -108,8 +109,12 @@ export default async function LeaderboardsPage() {
         />
       ) : (
         <div className="space-y-16">
-          {boards.map(({ boss, dpsEntries, hpsEntries }) => (
-            <section key={boss.id} className="space-y-6">
+          {boards.map(({ boss, dpsEntries, hpsEntries }, index) => (
+            <section
+              key={boss.id}
+              className={getRevealClassName({ boss: true, className: "space-y-6" })}
+              style={getRevealStyle(index)}
+            >
               {/* Boss header */}
               <div className="border-b border-gold-dim pb-3">
                 <Link

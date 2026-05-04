@@ -14,6 +14,7 @@ import { buildPlayerPerBossSummary, buildPlayerRecentEncounters, resolvePlayerPr
 import { getClassIconUrl } from "@/lib/warmane-portrait";
 import { formatDps } from "@/lib/utils";
 import { getClassColor } from "@/lib/constants/classes";
+import { getRevealClassName, getRevealStyle } from "@/lib/ui-animation";
 import { cn } from "@/lib/utils";
 
 interface Props { params: Promise<{ playerName: string }> }
@@ -140,8 +141,14 @@ export default async function PlayerPage({ params }: Props) {
       {milestones.length > 0 && (
         <AccordionSection title="All-Time Records" sub="Current rankings, kills only" count={milestones.length} defaultOpen>
           <div className="grid sm:grid-cols-2 gap-2">
-            {milestones.map(m => (
-              <div key={m.id} className="milestone-banner flex items-center justify-between text-sm">
+            {milestones.map((m, index) => (
+              <div
+                key={m.id}
+                className={getRevealClassName({
+                  className: "milestone-banner flex items-center justify-between text-sm",
+                })}
+                style={getRevealStyle(index)}
+              >
                 <div className="flex items-center gap-2">
                   <span className={cn(
                     "rank-badge",
@@ -176,11 +183,15 @@ export default async function PlayerPage({ params }: Props) {
       {perBoss.length > 0 && (
         <AccordionSection title="Per-Boss Summary" count={perBoss.length} defaultOpen>
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-2">
-            {perBoss.map(b => (
+            {perBoss.map((b, index) => (
               <Link
                 key={b.bossSlug}
                 href={`/bosses/${b.bossSlug}`}
-                className="bg-bg-card border border-gold-dim rounded px-4 py-3 hover:border-gold/40 transition-colors block"
+                className={getRevealClassName({
+                  boss: true,
+                  className: "bg-bg-card border border-gold-dim rounded px-4 py-3 hover:border-gold/40 transition-colors block",
+                })}
+                style={getRevealStyle(index)}
               >
                 <div className="flex items-center justify-between mb-1">
                   <span className="text-sm font-semibold text-text-primary">{b.bossName}</span>
@@ -206,11 +217,15 @@ export default async function PlayerPage({ params }: Props) {
       <AccordionSection title="Recent Encounters" count={participants.length} defaultOpen={false}>
         {participants.length > 0 ? (
           <div className="bg-bg-panel border border-gold-dim rounded divide-y divide-gold-dim">
-            {recentEncounters.map(p => (
+            {recentEncounters.map((p, index) => (
               <Link
                 key={p.id}
                 href={`/encounters/${p.encounter.id}`}
-                className="flex items-center justify-between px-4 py-2.5 hover:bg-bg-hover transition-colors"
+                className={getRevealClassName({
+                  boss: true,
+                  className: "flex items-center justify-between px-4 py-2.5 hover:bg-bg-hover transition-colors",
+                })}
+                style={getRevealStyle(index)}
               >
                 <div className="flex items-center gap-3">
                   <span className={p.encounter.outcome === "KILL" ? "outcome-kill" : "outcome-wipe"}>

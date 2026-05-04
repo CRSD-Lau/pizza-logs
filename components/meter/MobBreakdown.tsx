@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { cn, formatNumber } from "@/lib/utils";
 import { getClassColor } from "@/lib/constants/classes";
+import { getRevealClassName, getRevealStyle } from "@/lib/ui-animation";
 
 export interface MobEntry {
   name:        string;
@@ -55,7 +56,7 @@ export function MobBreakdown({ mobs, title }: MobBreakdownProps) {
       )}
 
       <div className="space-y-0.5">
-        {mobs.map(mob => {
+        {mobs.map((mob, index) => {
           const pct     = totalDamage > 0 ? Math.round((mob.totalDamage / totalDamage) * 100) : 0;
           const fillPct = maxDamage   > 0 ? (mob.totalDamage / maxDamage) * 100 : 0;
           const critPct = mob.hits    > 0 ? Math.round(mob.crits / mob.hits * 100) : 0;
@@ -65,10 +66,11 @@ export function MobBreakdown({ mobs, title }: MobBreakdownProps) {
             <div key={mob.name}>
               <div
                 className={cn(
+                  getRevealClassName(),
                   "meter-row grid gap-2 items-center px-3 py-2.5 bg-bg-card cursor-pointer",
                   isOpen && "active"
                 )}
-                style={{ gridTemplateColumns: "2fr 1fr 1fr 1fr" }}
+                style={getRevealStyle(index, { gridTemplateColumns: "2fr 1fr 1fr 1fr" })}
                 onClick={() => setSelected(isOpen ? null : mob.name)}
               >
                 {/* Bar fill */}
