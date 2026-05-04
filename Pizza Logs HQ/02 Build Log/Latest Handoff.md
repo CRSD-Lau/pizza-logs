@@ -60,6 +60,16 @@
 - Browser review artifacts are under ignored temp output:
   - `tmp-mobile-check/hd_cinematic_intro/site_integration/desktop-intro-latest-edge.png`
   - `tmp-mobile-check/hd_cinematic_intro/site_integration/desktop-after-latest-edge.png`
+- Deployed to `origin/main` at `5a6ef83`.
+- Production verification after Railway deploy:
+  - `/intro/pizza-logs-cinematic-intro.webm` returned HTTP 200 with `video/webm`,
+  - `/intro/pizza-logs-cinematic-intro.mp4` returned HTTP 200 with `video/mp4`,
+  - `/intro/pizza-logs-cinematic-poster.jpg` returned HTTP 200 with `image/jpeg`,
+  - production layout bundle contained `pizza-logs-cinematic-intro.webm` and no `frozen-intro-particle` marker,
+  - Edge headless production screenshots confirmed the cinematic overlay and post-fade app reveal.
+- Production screenshots:
+  - `tmp-mobile-check/hd_cinematic_intro/site_integration/production-intro-edge.png`
+  - `tmp-mobile-check/hd_cinematic_intro/site_integration/production-after-edge.png`
 - No parser behavior, Prisma schema, DB queries, upload logic, admin gates, or Railway config were changed.
 
 ### MVP animation pass
@@ -545,7 +555,7 @@ Preserved the main-branch queue fix while merging modernization:
 
 ## Current State
 
-- HD cinematic intro integration is implemented on `codex/upload-cinematic-intro` and ready for deployment to `origin/main`. The old CSS-only particle/title intro has been replaced by the generated cinematic video assets in `public/intro/`.
+- HD cinematic intro integration is live on production at `5a6ef83`. The old CSS-only particle/title intro has been replaced by the generated cinematic video assets in `public/intro/`.
 - Intro behavior: `FrozenLogbookIntro` now plays the HD cinematic on hard page load, uses WebM with MP4 fallback, lasts up to `5200ms`, exits on video end, keeps `Skip`, and avoids replaying on every internal route change. Reduced-motion users get the static poster and a short `350ms` timeout.
 - Raid session encounter displays now preserve parsed/session timestamp order when `startedAt` values are available. The existing ICC progression order remains the fallback for boss displays that do not have encounter timestamps, such as leaderboard boss-board ordering.
 - Gear card item-level and visible per-item `GS` display now distinguish raw item score from character contribution, and hunter one-hand weapons now count at normal item score in the total. This fixes Notlich-style hunter dual Scourgeborne Waraxe cards showing `168` instead of `531` each and removes the hunter weighting that kept Notlich's total below the in-game value.
@@ -569,7 +579,7 @@ Preserved the main-branch queue fix while merging modernization:
 
 ## Exact Next Step
 
-For cinematic intro: after pushing to `origin/main` and Railway deploys, hard-refresh `https://pizza-logs-production.up.railway.app/` and verify the HD video intro appears, the `Skip` button dismisses it, and the app is visible after the fade.
+For cinematic intro: production is deployed and verified with headless screenshots. A human visual pass in a normal browser is still useful to judge taste and playback smoothness outside headless capture.
 
 For GearScore: after deploy, spot-check `/players/Notlich`; both heroic Scourgeborne Waraxe cards should show `GS 531`, and the summary should be much closer to the in-game `6237` because hunter weapon weighting is no longer applied.
 
