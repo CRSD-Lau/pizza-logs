@@ -7,13 +7,14 @@ const component = readFileSync(path.join(root, "components", "intro", "FrozenLog
 const globals = readFileSync(path.join(root, "app", "globals.css"), "utf8");
 const layout = readFileSync(path.join(root, "app", "layout.tsx"), "utf8");
 
-assert.match(component, /FROZEN_INTRO_STORAGE_KEY = "pizzaLogsFrozenIntroSeen"/);
-assert.match(component, /INTRO_DURATION_MS = 2300/);
-assert.match(component, /localStorage\.getItem\(FROZEN_INTRO_STORAGE_KEY\)/);
-assert.match(component, /localStorage\.setItem\(FROZEN_INTRO_STORAGE_KEY, "1"\)/);
-assert.match(component, /INTRO_REPLAY_PARAM = "intro"/);
-assert.match(component, /URLSearchParams\(window\.location\.search\)/);
-assert.match(component, /searchParams\.get\(INTRO_REPLAY_PARAM\) === "1"/);
+assert.match(component, /import \{ usePathname \} from "next\/navigation"/);
+assert.match(component, /INTRO_DURATION_MS = 3000/);
+assert.match(component, /const pathname = usePathname\(\)/);
+assert.match(component, /setIntroRunId\(\(current\) => current \+ 1\)/);
+assert.match(component, /useEffect\(\(\) => \{[\s\S]*\}, \[finishIntro, pathname\]\)/);
+assert.match(component, /key=\{introRunId\}/);
+assert.doesNotMatch(component, /localStorage/);
+assert.doesNotMatch(component, /URLSearchParams/);
 assert.match(component, />\s*Skip\s*</);
 assert.match(component, /Raid data, forged from combat logs\./);
 

@@ -14,15 +14,15 @@
 
 ### MVP animation pass
 
-- Added a first-visit `FrozenLogbookIntro` overlay mounted from `app/layout.tsx`.
+- Added a `FrozenLogbookIntro` overlay mounted from `app/layout.tsx`.
 - The intro is CSS-only and uses the existing dark/gold/frost palette:
   - dark ICC-style background treatment,
   - subtle CSS frost particles,
   - small frost/gold glow mark,
   - `Pizza Logs` title reveal,
   - tagline `Raid data, forged from combat logs.`
-- The intro is capped at `2300ms`, has a visible `Skip` button, and unmounts after skip or completion.
-- First-visit state is stored in browser `localStorage` key `pizzaLogsFrozenIntroSeen`.
+- The intro is capped at `3000ms`, has a visible `Skip` button, and unmounts after skip or completion.
+- The intro now appears on initial load and every client-side route change, not only first visit.
 - Reduced-motion users get no particle/entry animations and a short `350ms` intro timeout.
 - Added shared CSS reveal classes:
   - `.reveal-item`
@@ -56,6 +56,7 @@
 - Increased shared reveal timing to `420ms` with `70ms` stagger and a slightly larger upward motion so row/card reveals are visible but still lightweight.
 - Wired Guild roster table rows into the shared reveal helper.
 - Added a Tailwind safelist for the shared reveal classes so the built production CSS includes the animation selectors and keyframes.
+- Follow-up per user request: removed the normal `localStorage` gate and changed the intro to replay on every page change using `usePathname()`. The explicit `?intro=1` replay URL is no longer needed for normal behavior.
 
 ### Desktop branch/worktree cleanup
 
@@ -335,6 +336,15 @@ Preserved the main-branch queue fix while merging modernization:
   - Production build: bundled Node running `node_modules/next/dist/bin/next build` -> passed.
   - Local headless Chrome check against `http://127.0.0.1:3006` confirmed `?intro=1` replays the intro even with `pizzaLogsFrozenIntroSeen = "1"`, Skip still unmounts the overlay, and a normal refresh does not replay it.
   - Local production CSS check against `http://127.0.0.1:3007` confirmed the generated stylesheet contains `.reveal-item`, `.boss-reveal-item`, `@keyframes revealItem`, `@keyframes bossRevealItem`, and the `420ms` reveal timing.
+- Route-change intro follow-up:
+  - `tests/frozen-intro-source.test.ts` -> failed first because the intro still used the old localStorage gate and `2300ms` duration, then passed after switching to `usePathname()` and `3000ms`.
+  - `tests/ui-animation.test.ts` -> passed.
+  - TypeScript: bundled Node running `node_modules/typescript/bin/tsc --noEmit` -> passed.
+  - Full ESLint: bundled Node running `node_modules/eslint/bin/eslint.js . --max-warnings=0` -> passed.
+  - `git diff --check` -> passed.
+  - Production build: bundled Node running `node_modules/next/dist/bin/next build` -> passed.
+  - Local Chrome/CDP check against built app returned `{"initialIntro":true,"routeChangeIntro":true,"pathname":"/players"}` after skipping the initial intro and clicking the `/players` nav link.
+  - Parser tests: bundled Python running `python -m pytest tests/ -v` from `parser/` -> 123 passed.
 - GearScore display repair:
   - `tests/gearscore-lite.test.ts` -> passed, including hunter dual heroic Scourgeborne Waraxe card and contribution scores of `531`/`531`
   - `tests/item-template.test.ts` -> passed, including corrected `InventoryType` 25/26/28 mapping
@@ -484,8 +494,8 @@ Preserved the main-branch queue fix while merging modernization:
 
 ## Current State
 
-- MVP animation pass is implemented, pushed to `origin/main` at `8a6de54`, and verified on production after Railway deployed the new client bundle. This visibility follow-up makes the animation replayable and keeps reveal CSS from being purged by Tailwind.
-- Intro replay for testing: add `?intro=1` to any Pizza Logs URL, for example `https://pizza-logs-production.up.railway.app/?intro=1`. Full reset still works with `localStorage.removeItem("pizzaLogsFrozenIntroSeen")`.
+- MVP animation pass is implemented, pushed to `origin/main` at `8a6de54`, and verified on production after Railway deployed the new client bundle. The latest follow-up makes the intro appear on every page change and keeps reveal CSS from being purged by Tailwind.
+- Intro behavior: `FrozenLogbookIntro` appears on initial load and each client-side route change, lasts `3000ms` for normal motion, and can still be dismissed with `Skip`. Reduced-motion users get the simplified short timeout.
 - Raid session encounter displays now preserve parsed/session timestamp order when `startedAt` values are available. The existing ICC progression order remains the fallback for boss displays that do not have encounter timestamps, such as leaderboard boss-board ordering.
 - Gear card item-level and visible per-item `GS` display now distinguish raw item score from character contribution, and hunter one-hand weapons now count at normal item score in the total. This fixes Notlich-style hunter dual Scourgeborne Waraxe cards showing `168` instead of `531` each and removes the hunter weighting that kept Notlich's total below the in-game value.
 - Existing `wow_items` rows affected by the old ranged/relic map are repaired by migration `20260504120000_repair_wow_item_ranged_relic_equip_locs`.

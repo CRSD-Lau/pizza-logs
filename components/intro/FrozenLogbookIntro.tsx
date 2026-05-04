@@ -2,11 +2,10 @@
 
 import type { CSSProperties } from "react";
 import { useCallback, useEffect, useState } from "react";
+import { usePathname } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 
-export const FROZEN_INTRO_STORAGE_KEY = "pizzaLogsFrozenIntroSeen";
-export const INTRO_REPLAY_PARAM = "intro";
-export const INTRO_DURATION_MS = 2300;
+export const INTRO_DURATION_MS = 3000;
 
 const PARTICLES = [
   { left: 7, top: 22, delay: 0, duration: 6 },
@@ -30,55 +29,29 @@ type ParticleStyle = CSSProperties & {
   "--particle-duration": string;
 };
 
-function hasSeenIntro(): boolean {
-  try {
-    return window.localStorage.getItem(FROZEN_INTRO_STORAGE_KEY) === "1";
-  } catch {
-    return false;
-  }
-}
-
-function shouldReplayIntro(): boolean {
-  const searchParams = new URLSearchParams(window.location.search);
-  return searchParams.get(INTRO_REPLAY_PARAM) === "1";
-}
-
-function markIntroSeen() {
-  try {
-    window.localStorage.setItem(FROZEN_INTRO_STORAGE_KEY, "1");
-  } catch {
-    // Local storage can be disabled; the overlay still unmounts for this page load.
-  }
-}
-
 export function FrozenLogbookIntro() {
+  const pathname = usePathname();
   const [visible, setVisible] = useState(false);
-  const [ready, setReady] = useState(false);
+  const [introRunId, setIntroRunId] = useState(0);
 
   const finishIntro = useCallback(() => {
-    markIntroSeen();
     setVisible(false);
   }, []);
 
   useEffect(() => {
-    if (hasSeenIntro() && !shouldReplayIntro()) {
-      setReady(true);
-      return;
-    }
-
     const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     const timeout = window.setTimeout(finishIntro, reduceMotion ? 350 : INTRO_DURATION_MS);
 
+    setIntroRunId((current) => current + 1);
     setVisible(true);
-    setReady(true);
 
     return () => window.clearTimeout(timeout);
-  }, [finishIntro]);
+  }, [finishIntro, pathname]);
 
-  if (!ready || !visible) return null;
+  if (!visible) return null;
 
   return (
-    <div className="frozen-intro-overlay" role="dialog" aria-label="Pizza Logs intro">
+    <div key={introRunId} className="frozen-intro-overlay" role="dialog" aria-label="Pizza Logs intro">
       <div className="frozen-intro-particles" aria-hidden="true">
         {PARTICLES.map((particle, index) => (
           <span
