@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { getWeekBounds } from "@/lib/utils";
+import { buildWeeklyBossKills } from "@/lib/weekly-stats";
 
 export async function GET(req: NextRequest): Promise<NextResponse> {
   const { searchParams } = new URL(req.url);
@@ -78,15 +79,7 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
     },
   });
 
-  // Boss kill counts
-  const bossKills = Object.values(
-    kills.reduce<Record<string, { name: string; slug: string; raid: string; kills: number }>>((acc, enc) => {
-      const key = enc.boss.slug;
-      if (!acc[key]) acc[key] = { name: enc.boss.name, slug: enc.boss.slug, raid: enc.boss.raid, kills: 0 };
-      acc[key].kills++;
-      return acc;
-    }, {})
-  ).sort((a, b) => b.kills - a.kills);
+  const bossKills = buildWeeklyBossKills(kills);
 
   return NextResponse.json({
     weekStart:    start.toISOString(),

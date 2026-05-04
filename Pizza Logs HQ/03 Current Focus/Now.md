@@ -14,6 +14,8 @@
 
 **Player profile Per-Boss Summary now uses the same ICC ordering.** `/players/<name>` no longer sorts summary cards by best DPS. The player page uses `buildPlayerPerBossSummary`, which groups player boss stats and applies the shared `sortByICCOrder` helper.
 
+**Player Recent Encounters and weekly boss-kill cards now use ICC ordering too.** `/players/<name>` keeps the recent 20 encounter window but displays it in ICC progression order through `buildPlayerRecentEncounters`. `/weekly` and `/api/weekly` use `buildWeeklyBossKills`, so Boss Kills This Week no longer sorts by kill count.
+
 **Codex should push validated work by default.** `AGENTS.md` now says Neil does not test local-only changes, so future change sessions should commit and push scoped work to Git unless Neil explicitly asks to keep it local. Deploy/live/main pushes still require the repo's normal validation gates.
 
 **Favicon update is live on production.** `app/icon.svg` now uses the same SVG mark as the navigation logo, and `public/favicon.ico` fixes the legacy `/favicon.ico` 404 reported from production. After deploy, production returned HTTP 200 for both `/favicon.ico` and `/icon.svg`.
@@ -44,6 +46,7 @@
 | Verify global player search | VERIFY | After deploy, spot-check exact-match Enter navigation, partial-match dropdowns, and roster-only character navigation from the header |
 | Verify ICC boss ordering on real uploads | VERIFY | Check `/raids/<upload>/sessions/<idx>` and `/leaderboards` with full/partial ICC data after deploy |
 | Verify player Per-Boss Summary ordering | VERIFY | Check `/players/Notlich`; summary cards should follow ICC order instead of DPS order |
+| Verify remaining ICC display ordering | VERIFY | Check `/players/<name>` Recent Encounters and `/weekly` Boss Kills This Week after deploy |
 | Import local sample data | VERIFY | Local DB is live but empty for players/raids; upload a combat log or run Warmane roster sync to populate search results |
 | Stats / Analytics page | FEATURE | Brainstorm first, then design, then build |
 | Verify Skada numbers in-game | VERIFY | Neil to do manually |

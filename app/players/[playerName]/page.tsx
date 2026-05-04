@@ -10,7 +10,7 @@ import { PlayerAvatar } from "@/components/players/PlayerAvatar";
 import { PlayerGearSection, PlayerGearSectionSkeleton } from "@/components/players/PlayerGearSection";
 import { getWarmaneCharacterGear } from "@/lib/warmane-armory";
 import { DEFAULT_GUILD_NAME, DEFAULT_GUILD_REALM } from "@/lib/warmane-guild-roster";
-import { buildPlayerPerBossSummary, resolvePlayerProfile } from "@/lib/player-profile";
+import { buildPlayerPerBossSummary, buildPlayerRecentEncounters, resolvePlayerProfile } from "@/lib/player-profile";
 import { getClassIconUrl } from "@/lib/warmane-portrait";
 import { formatDps } from "@/lib/utils";
 import { getClassColor } from "@/lib/constants/classes";
@@ -88,6 +88,7 @@ export default async function PlayerPage({ params }: Props) {
   const color = getClassColor(profile.className ?? name);
 
   const perBoss = buildPlayerPerBossSummary(participants);
+  const recentEncounters = buildPlayerRecentEncounters(participants);
 
   return (
     <div className="pt-10 space-y-10">
@@ -205,7 +206,7 @@ export default async function PlayerPage({ params }: Props) {
       <AccordionSection title="Recent Encounters" count={participants.length} defaultOpen={false}>
         {participants.length > 0 ? (
           <div className="bg-bg-panel border border-gold-dim rounded divide-y divide-gold-dim">
-            {participants.slice(0, 20).map(p => (
+            {recentEncounters.map(p => (
               <Link
                 key={p.id}
                 href={`/encounters/${p.encounter.id}`}

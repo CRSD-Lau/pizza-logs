@@ -98,3 +98,10 @@ export function buildPlayerPerBossSummary(
 
   return sortByICCOrder(Object.values(perBoss), boss => boss.bossName);
 }
+
+export function buildPlayerRecentEncounters<T extends PlayerPerBossParticipant>(
+  participants: readonly T[],
+  limit = 20,
+): T[] {
+  return sortByICCOrder(participants.slice(0, limit), participant => participant.encounter.boss.name);
+}

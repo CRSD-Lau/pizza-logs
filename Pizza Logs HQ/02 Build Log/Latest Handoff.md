@@ -69,6 +69,15 @@
 - The helper uses the shared `sortByICCOrder` from `lib/constants/bosses.ts`, so player summaries now follow the same canonical ICC order as raid sessions and leaderboards.
 - Unknown/non-ICC bosses retain the shared fallback behavior from the ICC sorter.
 
+### Remaining ICC display ordering follow-up
+
+- Fixed `/players/<name>` Recent Encounters so the most recent 20-player-encounter window is displayed in ICC progression order instead of reverse chronological boss order.
+- Added `buildPlayerRecentEncounters` in `lib/player-profile.ts`; duplicates keep their original order within the same boss.
+- Fixed `/weekly` Boss Kills This Week sorting by kill count instead of ICC progression order.
+- Added `buildWeeklyBossKills` in `lib/weekly-stats.ts` and reused it in both:
+  - `app/weekly/page.tsx`
+  - `app/api/weekly/route.ts`
+
 ### Codex push expectation
 
 - Updated `AGENTS.md` to record that Neil does not test local-only changes.
@@ -267,6 +276,15 @@ Preserved the main-branch queue fix while merging modernization:
   - `git diff --check` -> passed.
 - Player profile Per-Boss Summary ordering:
   - `tests/player-profile.test.ts` -> passed after first failing on the missing `buildPlayerPerBossSummary` export.
+  - `tests/boss-order.test.ts` -> passed.
+  - TypeScript: bundled Node running `node_modules/typescript/bin/tsc --noEmit` -> passed.
+  - Full ESLint: bundled Node running `node_modules/eslint/bin/eslint.js . --max-warnings=0` -> passed.
+  - Production build: bundled Node running `node_modules/next/dist/bin/next build` -> passed.
+  - Parser tests: bundled Python running `python -m pytest tests/ -v` from `parser/` -> 123 passed.
+  - `git diff --check` -> passed.
+- Remaining ICC display ordering follow-up:
+  - `tests/player-profile.test.ts` -> passed after first failing on the missing `buildPlayerRecentEncounters` export.
+  - `tests/weekly-stats.test.ts` -> passed after first failing on missing `lib/weekly-stats`.
   - `tests/boss-order.test.ts` -> passed.
   - TypeScript: bundled Node running `node_modules/typescript/bin/tsc --noEmit` -> passed.
   - Full ESLint: bundled Node running `node_modules/eslint/bin/eslint.js . --max-warnings=0` -> passed.

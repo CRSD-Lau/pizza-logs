@@ -19,6 +19,7 @@
 
 | Bug | Fix | Commit |
 |---|---|---|
+| Player Recent Encounters and weekly Boss Kills This Week did not use ICC kill order | Added `buildPlayerRecentEncounters` and `buildWeeklyBossKills`; player recent encounters, `/weekly`, and `/api/weekly` now use the shared ICC progression order | this commit |
 | Player profile Per-Boss Summary sorted bosses by best DPS instead of ICC kill order | Added `buildPlayerPerBossSummary` and wired `/players/<name>` to the shared ICC boss-order helper used by raid sessions and leaderboards | this commit |
 | Hunter one-hand melee weapon gear cards and summary total used hunter-specific GearScoreLite weapon weighting | Added `displayItemScores` for raw per-item card display and removed hunter-only melee/ranged weighting from the total calculation so dual heroic Scourgeborne Waraxes count as `531` each; Titan Grip handling remains intact | this commit |
 | AzerothCore thrown/ranged-right/relic item metadata imported with shifted equip locations | Corrected `InventoryType` mapping for 25/26/28 and added migration `20260504120000_repair_wow_item_ranged_relic_equip_locs` to repair existing `wow_items` rows | this commit |
