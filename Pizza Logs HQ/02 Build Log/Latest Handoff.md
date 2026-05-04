@@ -41,7 +41,26 @@
   - 1920x1080,
   - 60fps,
   - 5.0s MP4/WebM outputs.
-- No website integration, parser behavior, database schema, or app code was changed in this pass.
+
+### HD cinematic intro website integration
+
+- Replaced the old CSS-only `FrozenLogbookIntro` particle/title treatment with the generated HD cinematic video.
+- Added web-served intro assets:
+  - `public/intro/pizza-logs-cinematic-intro.webm`
+  - `public/intro/pizza-logs-cinematic-intro.mp4`
+  - `public/intro/pizza-logs-cinematic-poster.jpg`
+- Intro behavior now:
+  - plays on hard page load as the site intro,
+  - uses WebM first with MP4 fallback,
+  - keeps an always-available `Skip` button,
+  - exits on video end or after the `5200ms` safety timeout,
+  - avoids replaying on every client-side route change because a five-second movie on every navigation is too intrusive,
+  - respects `prefers-reduced-motion` by showing the poster briefly and closing after `350ms`.
+- Updated the source regression so the app cannot silently fall back to the old CSS particle intro.
+- Browser review artifacts are under ignored temp output:
+  - `tmp-mobile-check/hd_cinematic_intro/site_integration/desktop-intro-latest-edge.png`
+  - `tmp-mobile-check/hd_cinematic_intro/site_integration/desktop-after-latest-edge.png`
+- No parser behavior, Prisma schema, DB queries, upload logic, admin gates, or Railway config were changed.
 
 ### MVP animation pass
 
@@ -526,8 +545,8 @@ Preserved the main-branch queue fix while merging modernization:
 
 ## Current State
 
-- MVP animation pass is implemented, pushed to `origin/main` at `8a6de54`, and verified on production after Railway deployed the new client bundle. The latest follow-up was pushed to `origin/main` at `a499de0`; it makes the intro appear on every page change and keeps reveal CSS from being purged by Tailwind.
-- Intro behavior: `FrozenLogbookIntro` appears on initial load and each client-side route change, lasts `3000ms` for normal motion, and can still be dismissed with `Skip`. Reduced-motion users get the simplified short timeout.
+- HD cinematic intro integration is implemented on `codex/upload-cinematic-intro` and ready for deployment to `origin/main`. The old CSS-only particle/title intro has been replaced by the generated cinematic video assets in `public/intro/`.
+- Intro behavior: `FrozenLogbookIntro` now plays the HD cinematic on hard page load, uses WebM with MP4 fallback, lasts up to `5200ms`, exits on video end, keeps `Skip`, and avoids replaying on every internal route change. Reduced-motion users get the static poster and a short `350ms` timeout.
 - Raid session encounter displays now preserve parsed/session timestamp order when `startedAt` values are available. The existing ICC progression order remains the fallback for boss displays that do not have encounter timestamps, such as leaderboard boss-board ordering.
 - Gear card item-level and visible per-item `GS` display now distinguish raw item score from character contribution, and hunter one-hand weapons now count at normal item score in the total. This fixes Notlich-style hunter dual Scourgeborne Waraxe cards showing `168` instead of `531` each and removes the hunter weighting that kept Notlich's total below the in-game value.
 - Existing `wow_items` rows affected by the old ranged/relic map are repaired by migration `20260504120000_repair_wow_item_ranged_relic_equip_locs`.
@@ -549,6 +568,8 @@ Preserved the main-branch queue fix while merging modernization:
 ---
 
 ## Exact Next Step
+
+For cinematic intro: after pushing to `origin/main` and Railway deploys, hard-refresh `https://pizza-logs-production.up.railway.app/` and verify the HD video intro appears, the `Skip` button dismisses it, and the app is visible after the fade.
 
 For GearScore: after deploy, spot-check `/players/Notlich`; both heroic Scourgeborne Waraxe cards should show `GS 531`, and the summary should be much closer to the in-game `6237` because hunter weapon weighting is no longer applied.
 

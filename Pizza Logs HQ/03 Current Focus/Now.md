@@ -2,15 +2,15 @@
 
 ## Status
 
-**HD cinematic intro review asset is built and awaiting visual approval.** The strip-derived previews were rejected as too low quality for a modern website intro. The approved creative direction treats the strips as storyboards only and moves toward a pre-rendered HD cinematic: ICC/WotLK-inspired frost-armored raid boss, blizzard approach, blue-eye reveal, close-up hold, and a clean fade into the real Pizza Logs page. Spec: `docs/superpowers/specs/2026-05-04-hd-cinematic-intro-design.md`; plan: `docs/superpowers/plans/2026-05-04-hd-cinematic-intro-asset.md`. Review output is under ignored temp path `tmp-mobile-check/hd_cinematic_intro/rendered/intro_hd_cinematic_review.mp4` plus WebM/contact-sheet variants. No app integration has been done yet.
+**HD cinematic intro is integrated on `codex/upload-cinematic-intro` and ready for live deployment.** The strip-derived previews were rejected as too low quality, so the approved direction uses a generated pre-rendered HD cinematic: ICC/WotLK-inspired frost-armored raid boss, blizzard approach, blue-eye reveal, close-up hold, and a clean fade into the real Pizza Logs page. The app now serves `public/intro/pizza-logs-cinematic-intro.webm`, MP4 fallback, and poster art. `FrozenLogbookIntro` plays the cinematic on hard page load, keeps `Skip`, exits on video end or after `5200ms`, and gives reduced-motion users the poster with a short `350ms` timeout.
 
-**MVP animation pass is live on production, including the route-change intro follow-up.** The app has a CSS-only Frozen Logbook intro, subtle reveal animations for boss/player/leaderboard rows, and a shared `lib/ui-animation.ts` helper. The intro now appears on initial load and every client-side page change, lasts `3000ms` for normal motion, keeps the `Skip` button, and does not use the old one-time `localStorage` gate.
+**The old CSS-only intro is being superseded by the cinematic intro.** Production currently still has the earlier Frozen Logbook intro until this branch is pushed to `origin/main` and Railway deploys. The shared reveal animations for boss/player/leaderboard rows and `lib/ui-animation.ts` remain in place.
 
 **Animation visibility follow-up is implemented.** After user feedback that the animation only flashed once and was not obvious, the follow-up makes the intro replay on every page change, makes shared reveal timing more visible (`420ms` / `70ms` stagger), includes Guild roster rows in the reveal wiring, and safelists `reveal-item` / `boss-reveal-item` so Tailwind keeps the shared animation CSS in production builds.
 
 **Raid session boss display now preserves parsed timestamp order when available.** `orderBossDisplayEntries` sorts timestamped encounter rows by `startedAt` and falls back to the existing ICC progression helper only when timestamp/order data is unavailable. Leaderboard boss boards still use ICC progression order because they are aggregate boss boards, not a single timestamped raid session.
 
-**Animation verification passed locally and the live bundle was verified after Railway deploy.** Focused red/green tests cover the intro source, reusable reveal/order helper, Guild row wiring, and Tailwind safelist. TypeScript, ESLint, `git diff --check`, `next build`, and parser tests passed. A local Chrome/CDP check against the built app returned `initialIntro: true` and `routeChangeIntro: true` after clicking from `/` to `/players`. Production bundle checks confirmed the old `pizzaLogsFrozenIntroSeen` gate is gone and the route-change intro markers are present.
+**Cinematic intro verification passed locally.** Focused red/green source test covers video sources, poster fallback, skip, reduced-motion handling, and removal of the old particle intro. TypeScript, ESLint, `git diff --check`, temp-copy `next build`, parser tests, local media route checks, and Edge headless screenshots passed. Browser review artifacts are under `tmp-mobile-check/hd_cinematic_intro/site_integration/`.
 
 **Desktop checkout started clean from public `main`; animation work was developed on `codex/pizza-logs-animation-mvp` before main deployment.** The old `PizzaLogs-main-queue-fix` worktree folder and stale Git metadata are removed, the local modernization/Claude branches are deleted, and the remote `codex/pizza-logs-modernization` branch was deleted after confirming it matched `main`.
 
@@ -46,7 +46,7 @@
 
 | Task | Type | Notes |
 |------|------|-------|
-| Review HD cinematic intro asset | DESIGN | Review `tmp-mobile-check/hd_cinematic_intro/rendered/intro_hd_cinematic_review.mp4`; if approved, plan website overlay integration and web-optimized asset placement |
+| Deploy/verify HD cinematic intro | DEPLOY | Push `codex/upload-cinematic-intro` to `origin/main`, wait for Railway, then hard-refresh production and verify the video intro, Skip button, and post-fade app reveal |
 | Verify Notlich gear cards | VERIFY | After deploy, `/players/Notlich` should show both heroic Scourgeborne Waraxes as `GS 531` |
 | Verify production admin config | DEPLOY | Confirm Railway Web Service has `ADMIN_SECRET`; do not set `ADMIN_COOKIE_SECURE=false` in Railway |
 | Verify Railway deploy logs | DEPLOY | Use Railway dashboard/CLI; local Railway CLI is not installed |
