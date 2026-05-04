@@ -52,6 +52,13 @@
 - Parser output was inspected: `parser/bosses.py` emits canonical ICC boss names matching `WOTLK_BOSSES`, and uploads map parser `bossName` to the normalized `bosses` table by name.
 - No parser behavior, Prisma schema, or UI structure was changed.
 
+### Player profile Per-Boss Summary ordering
+
+- Fixed `/players/<name>` Per-Boss Summary cards sorting by best DPS instead of ICC progression order.
+- Added `buildPlayerPerBossSummary` in `lib/player-profile.ts` so the player page groups kills/best DPS/best HPS in one tested helper.
+- The helper uses the shared `sortByICCOrder` from `lib/constants/bosses.ts`, so player summaries now follow the same canonical ICC order as raid sessions and leaderboards.
+- Unknown/non-ICC bosses retain the shared fallback behavior from the ICC sorter.
+
 ### Codex push expectation
 
 - Updated `AGENTS.md` to record that Neil does not test local-only changes.
@@ -243,6 +250,14 @@ Preserved the main-branch queue fix while merging modernization:
   - Local fresh DB is not migration-baselined, so `prisma migrate deploy` refused with P3005 as expected; the repair SQL was verified directly with `psql`, updating guns/crossbows to `INVTYPE_RANGEDRIGHT`, thrown weapons to `INVTYPE_THROWN`, and relics to `INVTYPE_RELIC`
 - ICC boss ordering:
   - `tests/boss-order.test.ts` -> passed after first failing on missing exports.
+  - TypeScript: bundled Node running `node_modules/typescript/bin/tsc --noEmit` -> passed.
+  - Full ESLint: bundled Node running `node_modules/eslint/bin/eslint.js . --max-warnings=0` -> passed.
+  - Production build: bundled Node running `node_modules/next/dist/bin/next build` -> passed.
+  - Parser tests: bundled Python running `python -m pytest tests/ -v` from `parser/` -> 123 passed.
+  - `git diff --check` -> passed.
+- Player profile Per-Boss Summary ordering:
+  - `tests/player-profile.test.ts` -> passed after first failing on the missing `buildPlayerPerBossSummary` export.
+  - `tests/boss-order.test.ts` -> passed.
   - TypeScript: bundled Node running `node_modules/typescript/bin/tsc --noEmit` -> passed.
   - Full ESLint: bundled Node running `node_modules/eslint/bin/eslint.js . --max-warnings=0` -> passed.
   - Production build: bundled Node running `node_modules/next/dist/bin/next build` -> passed.

@@ -19,6 +19,7 @@
 
 | Bug | Fix | Commit |
 |---|---|---|
+| Player profile Per-Boss Summary sorted bosses by best DPS instead of ICC kill order | Added `buildPlayerPerBossSummary` and wired `/players/<name>` to the shared ICC boss-order helper used by raid sessions and leaderboards | this commit |
 | Hunter one-hand melee weapon gear cards and summary total used hunter-specific GearScoreLite weapon weighting | Added `displayItemScores` for raw per-item card display and removed hunter-only melee/ranged weighting from the total calculation so dual heroic Scourgeborne Waraxes count as `531` each; Titan Grip handling remains intact | this commit |
 | AzerothCore thrown/ranged-right/relic item metadata imported with shifted equip locations | Corrected `InventoryType` mapping for 25/26/28 and added migration `20260504120000_repair_wow_item_ranged_relic_equip_locs` to repair existing `wow_items` rows | this commit |
 | Raid session and leaderboard boss lists could display ICC bosses alphabetically instead of in kill order | Added shared ICC progression-order helpers in `lib/constants/bosses.ts`; `/leaderboards` and raid session displays now sort known ICC bosses from Lord Marrowgar through The Lich King, with normalization for common non-canonical labels | this commit |

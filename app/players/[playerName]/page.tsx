@@ -10,7 +10,7 @@ import { PlayerAvatar } from "@/components/players/PlayerAvatar";
 import { PlayerGearSection, PlayerGearSectionSkeleton } from "@/components/players/PlayerGearSection";
 import { getWarmaneCharacterGear } from "@/lib/warmane-armory";
 import { DEFAULT_GUILD_NAME, DEFAULT_GUILD_REALM } from "@/lib/warmane-guild-roster";
-import { resolvePlayerProfile } from "@/lib/player-profile";
+import { buildPlayerPerBossSummary, resolvePlayerProfile } from "@/lib/player-profile";
 import { getClassIconUrl } from "@/lib/warmane-portrait";
 import { formatDps } from "@/lib/utils";
 import { getClassColor } from "@/lib/constants/classes";
@@ -87,17 +87,7 @@ export default async function PlayerPage({ params }: Props) {
   const milestones = player?.milestones ?? [];
   const color = getClassColor(profile.className ?? name);
 
-  // Group by boss for per-boss bests
-  const perBoss = participants.reduce<Record<string, {
-    bossName: string; bossSlug: string; kills: number; bestDps: number; bestHps: number;
-  }>>((acc, p) => {
-    const k = p.encounter.boss.slug;
-    if (!acc[k]) acc[k] = { bossName: p.encounter.boss.name, bossSlug: k, kills: 0, bestDps: 0, bestHps: 0 };
-    if (p.encounter.outcome === "KILL") acc[k].kills++;
-    if (p.dps > acc[k].bestDps) acc[k].bestDps = p.dps;
-    if (p.hps > acc[k].bestHps) acc[k].bestHps = p.hps;
-    return acc;
-  }, {});
+  const perBoss = buildPlayerPerBossSummary(participants);
 
   return (
     <div className="pt-10 space-y-10">
@@ -182,33 +172,31 @@ export default async function PlayerPage({ params }: Props) {
       )}
 
       {/* Per-boss bests */}
-      {Object.values(perBoss).length > 0 && (
-        <AccordionSection title="Per-Boss Summary" count={Object.values(perBoss).length} defaultOpen>
+      {perBoss.length > 0 && (
+        <AccordionSection title="Per-Boss Summary" count={perBoss.length} defaultOpen>
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-2">
-            {Object.values(perBoss)
-              .sort((a, b) => b.bestDps - a.bestDps)
-              .map(b => (
-                <Link
-                  key={b.bossSlug}
-                  href={`/bosses/${b.bossSlug}`}
-                  className="bg-bg-card border border-gold-dim rounded px-4 py-3 hover:border-gold/40 transition-colors block"
-                >
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="text-sm font-semibold text-text-primary">{b.bossName}</span>
-                    <span className="text-xs text-success font-bold">{b.kills} kills</span>
+            {perBoss.map(b => (
+              <Link
+                key={b.bossSlug}
+                href={`/bosses/${b.bossSlug}`}
+                className="bg-bg-card border border-gold-dim rounded px-4 py-3 hover:border-gold/40 transition-colors block"
+              >
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-sm font-semibold text-text-primary">{b.bossName}</span>
+                  <span className="text-xs text-success font-bold">{b.kills} kills</span>
+                </div>
+                {b.bestDps > 0 && (
+                  <div className="text-xs text-text-secondary">
+                    Best DPS: <span className="font-bold text-text-primary tabular-nums">{formatDps(b.bestDps)}</span>
                   </div>
-                  {b.bestDps > 0 && (
-                    <div className="text-xs text-text-secondary">
-                      Best DPS: <span className="font-bold text-text-primary tabular-nums">{formatDps(b.bestDps)}</span>
-                    </div>
-                  )}
-                  {b.bestHps > 100 && (
-                    <div className="text-xs text-text-secondary">
-                      Best HPS: <span className="font-bold text-text-primary tabular-nums">{formatDps(b.bestHps)}</span>
-                    </div>
-                  )}
-                </Link>
-              ))}
+                )}
+                {b.bestHps > 100 && (
+                  <div className="text-xs text-text-secondary">
+                    Best HPS: <span className="font-bold text-text-primary tabular-nums">{formatDps(b.bestHps)}</span>
+                  </div>
+                )}
+              </Link>
+            ))}
           </div>
         </AccordionSection>
       )}

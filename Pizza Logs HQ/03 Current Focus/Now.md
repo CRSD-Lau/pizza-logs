@@ -10,6 +10,8 @@
 
 **ICC boss ordering is fixed in code for raid-session displays and leaderboards.** `lib/constants/bosses.ts` now owns the canonical Icecrown Citadel progression order plus normalization for common labels like Gunship variants, `Lich King`, and Blood-Queen Lana'thel variants. `/leaderboards` uses that shared sorter instead of alphabetical boss-name order, and raid session encounter displays use it while preserving duplicate pull order.
 
+**Player profile Per-Boss Summary now uses the same ICC ordering.** `/players/<name>` no longer sorts summary cards by best DPS. The player page uses `buildPlayerPerBossSummary`, which groups player boss stats and applies the shared `sortByICCOrder` helper.
+
 **Codex should push validated work by default.** `AGENTS.md` now says Neil does not test local-only changes, so future change sessions should commit and push scoped work to Git unless Neil explicitly asks to keep it local. Deploy/live/main pushes still require the repo's normal validation gates.
 
 **Favicon update is live on production.** `app/icon.svg` now uses the same SVG mark as the navigation logo, and `public/favicon.ico` fixes the legacy `/favicon.ico` 404 reported from production. After deploy, production returned HTTP 200 for both `/favicon.ico` and `/icon.svg`.
@@ -39,6 +41,7 @@
 | Test Warmane portrait userscript `0.5.0` | VERIFY | Install from `/admin` -> Warmane Gear Cache -> Character Portraits, open a Warmane character profile once, wait for any modelviewer frame to load, then check `/players/<name>`, `/guild-roster`, raid session roster chips, and session player deep-dive pages |
 | Verify global player search | VERIFY | After deploy, spot-check exact-match Enter navigation, partial-match dropdowns, and roster-only character navigation from the header |
 | Verify ICC boss ordering on real uploads | VERIFY | Check `/raids/<upload>/sessions/<idx>` and `/leaderboards` with full/partial ICC data after deploy |
+| Verify player Per-Boss Summary ordering | VERIFY | Check `/players/Notlich`; summary cards should follow ICC order instead of DPS order |
 | Import local sample data | VERIFY | Local DB is live but empty for players/raids; upload a combat log or run Warmane roster sync to populate search results |
 | Stats / Analytics page | FEATURE | Brainstorm first, then design, then build |
 | Verify Skada numbers in-game | VERIFY | Neil to do manually |

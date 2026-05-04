@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { resolvePlayerProfile } from "../lib/player-profile";
+import { buildPlayerPerBossSummary, resolvePlayerProfile } from "../lib/player-profile";
 
 const rosterOnlyProfile = resolvePlayerProfile({
   player: null,
@@ -51,5 +51,70 @@ assert.equal(combatLogProfile.name, "Lausudo");
 assert.equal(combatLogProfile.guildName, "PizzaWarriors");
 assert.equal(combatLogProfile.rankName, "Core 1");
 assert.deepEqual(combatLogProfile.milestones, [{ id: "m1" }]);
+
+const perBossSummary = buildPlayerPerBossSummary([
+  {
+    dps: 11920,
+    hps: 1230,
+    encounter: {
+      outcome: "KILL",
+      boss: { name: "Blood-Queen Lana'thel", slug: "blood-queen-lanathel" },
+    },
+  },
+  {
+    dps: 10420,
+    hps: 0,
+    encounter: {
+      outcome: "KILL",
+      boss: { name: "Deathbringer Saurfang", slug: "deathbringer-saurfang" },
+    },
+  },
+  {
+    dps: 2180,
+    hps: 0,
+    encounter: {
+      outcome: "KILL",
+      boss: { name: "Gunship Battle", slug: "gunship-battle" },
+    },
+  },
+  {
+    dps: 7830,
+    hps: 0,
+    encounter: {
+      outcome: "WIPE",
+      boss: { name: "Professor Putricide", slug: "professor-putricide" },
+    },
+  },
+  {
+    dps: 6500,
+    hps: 0,
+    encounter: {
+      outcome: "KILL",
+      boss: { name: "The Lich King", slug: "the-lich-king" },
+    },
+  },
+  {
+    dps: 2100,
+    hps: 0,
+    encounter: {
+      outcome: "WIPE",
+      boss: { name: "Gunship Battle", slug: "gunship-battle" },
+    },
+  },
+]);
+
+assert.deepEqual(
+  perBossSummary.map((boss) => boss.bossName),
+  [
+    "Gunship Battle",
+    "Deathbringer Saurfang",
+    "Professor Putricide",
+    "Blood-Queen Lana'thel",
+    "The Lich King",
+  ],
+);
+assert.equal(perBossSummary[0].kills, 1);
+assert.equal(perBossSummary[0].bestDps, 2180);
+assert.equal(perBossSummary[3].bestHps, 1230);
 
 console.log("player-profile tests passed");

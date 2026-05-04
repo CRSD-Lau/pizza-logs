@@ -1,3 +1,5 @@
+import { sortByICCOrder } from "./constants/bosses";
+
 export type PlayerProfilePlayer = {
   name: string;
   class: string | null;
@@ -28,6 +30,26 @@ export type PlayerProfile = {
   milestones: unknown[];
 };
 
+export type PlayerPerBossParticipant = {
+  dps: number;
+  hps: number;
+  encounter: {
+    outcome: string;
+    boss: {
+      name: string;
+      slug: string;
+    };
+  };
+};
+
+export type PlayerPerBossSummary = {
+  bossName: string;
+  bossSlug: string;
+  kills: number;
+  bestDps: number;
+  bestHps: number;
+};
+
 export function resolvePlayerProfile({
   player,
   rosterMember,
@@ -49,4 +71,30 @@ export function resolvePlayerProfile({
     isRosterOnly: !player,
     milestones: player?.milestones ?? [],
   };
+}
+
+export function buildPlayerPerBossSummary(
+  participants: readonly PlayerPerBossParticipant[],
+): PlayerPerBossSummary[] {
+  const perBoss = participants.reduce<Record<string, PlayerPerBossSummary>>((acc, participant) => {
+    const key = participant.encounter.boss.slug;
+
+    if (!acc[key]) {
+      acc[key] = {
+        bossName: participant.encounter.boss.name,
+        bossSlug: key,
+        kills: 0,
+        bestDps: 0,
+        bestHps: 0,
+      };
+    }
+
+    if (participant.encounter.outcome === "KILL") acc[key].kills++;
+    if (participant.dps > acc[key].bestDps) acc[key].bestDps = participant.dps;
+    if (participant.hps > acc[key].bestHps) acc[key].bestHps = participant.hps;
+
+    return acc;
+  }, {});
+
+  return sortByICCOrder(Object.values(perBoss), boss => boss.bossName);
 }
