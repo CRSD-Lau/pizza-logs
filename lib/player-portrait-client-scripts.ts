@@ -64,6 +64,7 @@ export function buildPlayerPortraitUserscript(options: PlayerPortraitUserscriptO
       "Warrior",
     ];
     const knownRealms = ["Lordaeron", "Icecrown", "Blackrock", "Frostmourne", "Frostwolf", "Outland", "Onyxia"];
+    const queuedAvatars = new WeakSet<HTMLElement>();
 
     const isDisabled = function isDisabled() {
       try {
@@ -523,8 +524,8 @@ export function buildPlayerPortraitUserscript(options: PlayerPortraitUserscriptO
     const run = function run() {
       discoverAvatarElements().forEach((element) => {
         if (!element.dataset) return;
-        if (element.dataset.pizzaPortraitQueued === "1") return;
-        element.dataset.pizzaPortraitQueued = "1";
+        if (queuedAvatars.has(element)) return;
+        queuedAvatars.add(element);
         setTimeout(() => { void processAvatar(element); }, 0);
       });
     };
@@ -576,7 +577,7 @@ export function buildPlayerPortraitUserscript(options: PlayerPortraitUserscriptO
     "// ==UserScript==",
     `// @name         Pizza Logs Warmane Portraits${nameSuffix}`,
     `// @namespace    ${pizzaLogsOrigin}`,
-    "// @version      0.5.1",
+    "// @version      0.5.2",
     "// @description  Replaces Pizza Logs character initials with Warmane Armory portraits or cached rendered character faces when available.",
     "// @match        https://pizza-logs-production.up.railway.app/*",
     "// @match        http://localhost:3000/*",

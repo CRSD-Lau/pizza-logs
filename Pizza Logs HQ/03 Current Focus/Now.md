@@ -2,7 +2,7 @@
 
 ## Active Focus
 
-Fixing the Warmane portrait userscript so rendered faces can be captured more reliably.
+Shipping the Warmane portrait userscript fixes through draft PR #8.
 
 ## Current Branch Rule
 
@@ -11,7 +11,9 @@ Codex works on `codex-dev`, pushes `origin/codex-dev`, and opens PRs into `main`
 ## This Session
 
 - Fixed the portrait userscript modelviewer handoff race that caused rendered portrait capture to be skipped when the iframe loaded before the Warmane parent page wrote the character target.
-- Bumped the portrait userscript to `0.5.1`.
+- Fixed the `/guild-roster` hydration mismatch caused by the userscript writing `data-pizza-portrait-queued` onto SSR avatar nodes before React hydration.
+- Replaced that DOM queue marker with an in-memory `WeakSet`.
+- Bumped the portrait userscript to `0.5.2`.
 - Added local userscript builders and install endpoints for gear, guild roster, and player portraits.
 - Added local install links and URL fields on `/admin` for browser-assisted local imports.
 - Kept production userscript URLs unchanged for Railway production.
@@ -27,11 +29,12 @@ Codex works on `codex-dev`, pushes `origin/codex-dev`, and opens PRs into `main`
 | Add local roster userscript | DONE | `http://127.0.0.1:3001/api/admin/guild-roster/userscript.local.user.js` |
 | Add local portrait userscript | DONE | `http://127.0.0.1:3001/api/player-portraits/userscript.local.user.js` |
 | Fix portrait capture race | DONE | Modelviewer frames now retry until Warmane target handoff is available |
+| Fix portrait hydration mismatch | DONE | Userscript no longer writes `data-pizza-portrait-queued` before hydration |
 | Run validation | DONE | Focused tests, lint, type-check, build, and live local endpoint checks passed |
-| Recover local 3001 server | DONE | Cleared generated `.next`, restarted `PizzaLogsLocalTestServer`, verified `/` and local userscript endpoint return 200 |
-| Branch publication | NEXT | Commit and push `codex-dev` |
-| PR creation | NEXT | Use `C:\Program Files\GitHub CLI\gh.exe`; connector still lacks PR write permission |
-| Human review | NEXT | Neil updates portrait userscript from `/admin` and tests by visiting Warmane character pages |
+| Recover local 3001 server | DONE | Cleared generated `.next`, restarted `PizzaLogsLocalTestServer`, verified `/` and local portrait endpoint return 200 |
+| Branch publication | DONE | Commit and push `codex-dev` for draft PR #8 |
+| PR creation | DONE | Draft PR #8 is open; connector still lacks PR write permission |
+| Human review | NEXT | Neil updates portrait userscript from `/admin` after merge and tests by visiting Warmane character pages |
 
 ## Open Follow-Ups
 

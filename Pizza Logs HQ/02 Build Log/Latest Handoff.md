@@ -33,7 +33,8 @@
 ## Local Userscript Changes This Session
 
 - Fixed a portrait userscript race where Wowhead/Zamimg modelviewer frames could load before the Warmane parent page wrote the character handoff into Tampermonkey storage. The frame now treats modelviewer pages as relevant immediately and retries for the handoff before giving up.
-- Bumped the portrait userscript to `0.5.1`.
+- Fixed a `/guild-roster` hydration mismatch caused by the Tampermonkey script adding `data-pizza-portrait-queued="1"` to server-rendered avatar nodes before React hydration. Queue state now stays in an in-memory `WeakSet` instead of the DOM.
+- Bumped the portrait userscript to `0.5.2`.
 - Added local install endpoints:
   - `http://127.0.0.1:3001/api/admin/armory-gear/userscript.local.user.js`
   - `http://127.0.0.1:3001/api/admin/guild-roster/userscript.local.user.js`
@@ -74,7 +75,7 @@ PowerShell/npm shims in `node_modules/.bin` hit OneDrive reparse-point `Access i
 | Next production build via bundled Node | Passed |
 | Local `3001` gear userscript endpoint | 200, contained local origin and local script name |
 | Local `3001` roster userscript endpoint | 200, contained local origin and local script name |
-| Local `3001` portrait userscript endpoint | 200, contained local origin and local script name |
+| Local `3001` portrait userscript endpoint | 200, contained local origin, version `0.5.2`, and no queued DOM marker |
 
 ## Local Server Recovery
 
@@ -82,7 +83,8 @@ PowerShell/npm shims in `node_modules/.bin` hit OneDrive reparse-point `Access i
 - Root cause was a mixed `.next` cache: the running dev server loaded a webpack runtime expecting chunks at `.next\server\5611.js`, while the actual chunks were under `.next\server\chunks\5611.js`.
 - Likely trigger: running a production `next build` while the long-running local dev server was still active.
 - Recovery performed: stopped the stale Next process, removed only the generated `.next` folder, restarted the existing `PizzaLogsLocalTestServer` scheduled task, and verified `/` plus the local gear userscript endpoint returned 200.
+- After the hydration fix build, the same generated-cache pattern briefly recurred with a missing `vendor-chunks/lucide-react.js`. Recovery was the same: fully stop repo Next processes, remove only generated `.next`, restart `PizzaLogsLocalTestServer`, then verify `/` and the local portrait userscript endpoint return 200.
 
 ## Exact Next Step
 
-Commit and push the portrait userscript race fix on `codex-dev`, open a PR with `C:\Program Files\GitHub CLI\gh.exe`, and have Neil reinstall or update the portrait userscript from `/admin`.
+Push the updated `codex-dev` commit into draft PR #8, then have Neil update the portrait userscript from `/admin` after the PR is merged to `main`.

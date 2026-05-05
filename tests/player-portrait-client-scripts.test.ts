@@ -45,7 +45,7 @@ assert.match(userscript, /\/\/ @name\s+Pizza Logs Warmane Portraits/);
 assert.match(localUserscript, /\/\/ @name\s+Pizza Logs Warmane Portraits \(Local\)/);
 assert.match(localUserscript, new RegExp(`// @namespace\\s+${PIZZA_LOGS_LOCAL_ORIGIN.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}`));
 assert.match(localUserscript, new RegExp(`// @downloadURL\\s+${LOCAL_PORTRAIT_USERSCRIPT_URL.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}`));
-assert.match(userscript, /\/\/ @version\s+0\.5\.1/);
+assert.match(userscript, /\/\/ @version\s+0\.5\.2/);
 assert.match(userscript, /\/\/ @match\s+https:\/\/pizza-logs-production\.up\.railway\.app\/\*/);
 assert.match(userscript, /\/\/ @match\s+http:\/\/localhost:3000\/\*/);
 assert.match(userscript, /\/\/ @match\s+http:\/\/127\.0\.0\.1:3000\/\*/);
@@ -156,6 +156,7 @@ async function verifyUserscriptReplacesInitialsWithFetchedPortrait() {
     "https://armory.warmane.com/images/characters/lichkingspet.jpg",
   );
   assert.equal(avatar.dataset.pizzaAvatarState, "portrait");
+  assert.equal(avatar.dataset.pizzaPortraitQueued, undefined);
 }
 
 async function verifyUserscriptFindsLegacyPlayerHeader() {
