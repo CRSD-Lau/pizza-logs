@@ -28,6 +28,7 @@
 ## Current Implementation Snapshot
 
 - Next.js app has public pages for upload, raids, sessions, encounters, bosses, leaderboards, players, guild roster, and weekly stats.
+- GitHub Actions posts new, reopened, and ready-for-review PR summaries to Slack when `PR_SLACK_WEBHOOK_URL` is configured for the Codex Slack `#pull-requests` channel.
 - `/uploads` and `/uploads/[id]` redirect to admin upload history; public raid/session pages use `/raids/...`.
 - `/admin`, `/admin/uploads`, cleanup actions, and admin import APIs are protected by `ADMIN_SECRET`.
 - Upload flow streams multipart data from `app/api/upload/route.ts` to parser `/parse-stream`, then writes database rows and milestones.
@@ -89,13 +90,22 @@ PowerShell/npm shims in `node_modules/.bin` hit OneDrive reparse-point `Access i
 - Imported notes keep user messages and assistant final replies, while omitting raw JSONL, tool payloads, encrypted reasoning payloads, and `.env*` contents.
 - Secret-like values were redacted during import, and the imported vault notes were checked with `git grep --untracked` for obvious database URLs, tokens, and private-key patterns.
 
+## PR Slack Notification This Session
+
+- Added `.github/workflows/pr-slack-notify.yml`.
+- The workflow uses `pull_request_target` for `opened`, `reopened`, and `ready_for_review` events without checking out or executing PR branch code.
+- Slack messages include the PR title, author, draft/ready state, source/target branches, changed-file count, PR description, changed-file summary, and buttons linking to the PR and diff.
+- Documented the required `PR_SLACK_WEBHOOK_URL` repository secret in `docs/git-workflow.md`.
+- The secret must contain a Slack incoming webhook configured for the Codex Slack server's `#pull-requests` channel.
+
 ## Remaining Risks
 
 - Absorbs are still not implemented as healing; Skada treats them separately.
 - Some Warmane heroic/Gunship evidence is not present in every log, so ambiguous attempts stay conservative rather than guessed heroic.
 - Useful damage is documented and test-covered through existing encounter rules, but needs more encounter-specific exclusions over time.
 - Upload route still lacks hard server-side size enforcement; this remains the highest practical upload-flow follow-up.
+- PR Slack notifications will fail until `PR_SLACK_WEBHOOK_URL` is added as a GitHub repository secret for `#pull-requests`.
 
 ## Exact Next Step
 
-Review draft PR #11 from `codex-dev` into `main` for the local checkout migration. Neil merges into `main` only after review; Codex does not merge or push `main` directly.
+Add the `PR_SLACK_WEBHOOK_URL` repository secret for the Codex Slack `#pull-requests` incoming webhook, then review the PR from `codex-dev` into `main`. Neil merges into `main` only after review; Codex does not merge or push `main` directly.

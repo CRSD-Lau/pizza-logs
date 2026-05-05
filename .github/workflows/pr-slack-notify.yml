@@ -1,0 +1,131 @@
+name: PR Slack Notify
+
+on:
+  pull_request_target:
+    types: [opened, reopened, ready_for_review]
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  notify:
+    name: Send pull request summary to Slack
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Post PR details
+        uses: actions/github-script@v7
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.PR_SLACK_WEBHOOK_URL }}
+        with:
+          script: |
+            const webhookUrl = process.env.SLACK_WEBHOOK_URL;
+            if (!webhookUrl) {
+              core.setFailed("Missing PR_SLACK_WEBHOOK_URL repository secret for the #pull-requests Slack webhook.");
+              return;
+            }
+
+            const pr = context.payload.pull_request;
+            const { owner, repo } = context.repo;
+            const action = context.payload.action.replace(/_/g, " ");
+
+            const files = await github.paginate(github.rest.pulls.listFiles, {
+              owner,
+              repo,
+              pull_number: pr.number,
+              per_page: 100,
+            });
+
+            const maxFiles = 25;
+            const fileSummary = files
+              .slice(0, maxFiles)
+              .map((file) => `- ${file.status}: \`${file.filename}\` (+${file.additions}/-${file.deletions})`)
+              .join("\n");
+            const fileOverflow = files.length > maxFiles
+              ? `\n- ...and ${files.length - maxFiles} more file(s)`
+              : "";
+
+            const body = (pr.body || "_No PR description provided._").trim();
+            const bodyLimit = 2400;
+            const safeBody = body
+              .replace(/@(channel|here|everyone)/gi, "@\u200b$1")
+              .slice(0, bodyLimit);
+            const bodySuffix = body.length > bodyLimit ? "\n\n_Description truncated in Slack. Open the PR for the full text._" : "";
+
+            const base = pr.base.ref;
+            const head = pr.head.ref;
+            const draftLabel = pr.draft ? "Draft" : "Ready";
+            const reviewUrl = `${pr.html_url}/files`;
+            const checksUrl = `${pr.html_url}/checks`;
+
+            const headerMarkdown = [
+              `*Pull request ${action}: <${pr.html_url}|#${pr.number} ${pr.title}>*`,
+              `*State:* ${draftLabel}`,
+              `*Author:* ${pr.user.login}`,
+              `*Branch:* \`${head}\` -> \`${base}\``,
+              `*Changed files:* ${files.length}`,
+              `*Review:* <${reviewUrl}|Files changed> | <${checksUrl}|Checks>`,
+            ].join("\n");
+
+            const bodyMarkdown = [
+              "",
+              "*PR Description*",
+              safeBody + bodySuffix,
+            ].join("\n");
+
+            const filesMarkdown = [
+              "",
+              "*Changed Files*",
+              fileSummary || "_No files reported by GitHub yet._",
+              fileOverflow,
+            ].join("\n");
+
+            const section = (text) => ({
+              type: "section",
+              text: {
+                type: "mrkdwn",
+                text: text.slice(0, 3000),
+              },
+            });
+
+            const response = await fetch(webhookUrl, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                text: `Pizza Logs PR #${pr.number}: ${pr.title}`,
+                unfurl_links: false,
+                unfurl_media: false,
+                blocks: [
+                  section(headerMarkdown),
+                  section(bodyMarkdown),
+                  section(filesMarkdown),
+                  {
+                    type: "actions",
+                    elements: [
+                      {
+                        type: "button",
+                        text: {
+                          type: "plain_text",
+                          text: "Open PR",
+                        },
+                        url: pr.html_url,
+                      },
+                      {
+                        type: "button",
+                        text: {
+                          type: "plain_text",
+                          text: "Review Diff",
+                        },
+                        url: reviewUrl,
+                      },
+                    ],
+                  },
+                ],
+              }),
+            });
+
+            if (!response.ok) {
+              const details = await response.text();
+              core.setFailed(`Slack webhook rejected the PR notification: ${response.status} ${details}`);
+            }
