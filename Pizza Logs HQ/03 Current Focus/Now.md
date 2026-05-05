@@ -6,6 +6,8 @@
 
 **PR workflow guardrails are in place.** Added `.github/pull_request_template.md`, `.github/workflows/ci.yml`, and `npm run check:pr`. CI runs on PRs targeting `main` and pushes to `main`; it installs with `npm ci --legacy-peer-deps`, then runs lint, type-check, optional npm test, and build. Manual GitHub branch protection and Railway production/staging guidance are documented in `docs/git-workflow.md`.
 
+**Obsidian workspace UI state is ignored.** `Pizza Logs HQ/.obsidian/workspace.json` is no longer tracked and is listed in `.gitignore`; the rest of the committed vault remains project context.
+
 **Local test server is running correctly on this machine.** The app is on `http://127.0.0.1:3001`, matching `.env.local`'s `NEXT_PUBLIC_APP_URL`; the Python parser is on `http://127.0.0.1:8000`; PostgreSQL 16 is running on `localhost:5432`. Stale Next listeners on `3000`, `3005`, and `3006` were stopped, generated `.next/` was cleared after the known OneDrive `readlink` failure, and the full local stack was restarted cleanly.
 
 **Local server smoke checks passed.** Parser `/health`, the main public pages, `/admin/login`, `/admin`, and the database-backed APIs all returned HTTP 200. The local DB has `53` bosses, `4` realms, and `38,610` item rows, but no players, uploads, or encounters yet.

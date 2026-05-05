@@ -36,6 +36,7 @@
 - Added `npm run check:pr` to run lint, type-check, optional npm test, and build.
 - Updated `AGENTS.md` so Codex works from `codex-dev`, pushes `origin/codex-dev`, and never commits, pushes, or merges directly to `main`.
 - Updated `.gitignore` to cover local logs, venvs, and coverage output.
+- Follow-up: stopped tracking `Pizza Logs HQ/.obsidian/workspace.json` and added it to `.gitignore` because it is local Obsidian UI state, not durable project context.
 
 ### Local test server setup
 
@@ -746,6 +747,7 @@ Preserved the main-branch queue fix while merging modernization:
 - Current branch is `codex-dev`, tracking `origin/codex-dev`.
 - `main` remains production-only and was not pushed or merged by Codex.
 - Codex workflow is now `codex-dev -> PR -> main`; Railway production still deploys only from `main`.
+- `Pizza Logs HQ/.obsidian/workspace.json` is now intentionally ignored and should remain local-only.
 - Existing branch `codex/upload-cinematic-intro` still exists locally/remotely because branch deletion was explicitly disallowed in the final workflow task.
 - Local test server is running correctly on `http://127.0.0.1:3001`, with the Python parser on `http://127.0.0.1:8000` and PostgreSQL 16 running on `localhost:5432`. Windows Task Scheduler task `PizzaLogsLocalTestServer` now restarts the local test stack at logon and checks it every 5 minutes. The local database has seeded boss/realm/item metadata, but no uploads, encounters, or players yet.
 - HD cinematic intro integration now has a 4K-master responsive public asset ladder: `1920x1080`, `2560x1440`, and `3840x2160` desktop landscape plus `1080x1920` and `2160x3840` mobile portrait, all at `60fps`, `7.2s`, and `432` frames.
