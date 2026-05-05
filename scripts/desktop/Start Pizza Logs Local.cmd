@@ -1,5 +1,5 @@
 @echo off
-set "REPO=C:\Users\neil_\OneDrive\Desktop\PizzaLogs"
+set "REPO=C:\Projects\PizzaLogs"
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%REPO%\scripts\start-local-test-server.ps1" -DisableScheduledTask
 if errorlevel 1 (
   echo.

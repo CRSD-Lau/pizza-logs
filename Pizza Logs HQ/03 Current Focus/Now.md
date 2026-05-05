@@ -2,7 +2,7 @@
 
 ## Active Focus
 
-Parser reliability for uploaded `WoWCombatLog.txt` files, with Skada-aligned metric documentation, better malformed-line handling, and evidence-first difficulty segmentation.
+Local development has moved from the OneDrive Desktop checkout to the GitHub-backed checkout at `C:\Projects\PizzaLogs`, while parser reliability remains the current product focus.
 
 ## Current Branch Rule
 
@@ -23,6 +23,10 @@ Codex works on `codex-dev`, pushes `origin/codex-dev`, and opens PRs into `main`
 - Added focused parser tests for tokenization, damage, healing, malformed lines, explicit markers, heroic-to-normal fallback, and stream upload validation.
 - Updated README, parser contract docs, parser architecture notes, security checklist, decision log, and known issues.
 - Validation passed: full parser pytest suite, TypeScript type-check, ESLint, Next production build, and `git diff --check`.
+- Set up and validated `C:\Projects\PizzaLogs` as the local working checkout.
+- Copied local env files into the local checkout, installed dependencies, generated Prisma Client, and created a parser Python 3.12 virtualenv.
+- Retargeted the desktop Start/Stop launchers and `scripts/desktop/*.cmd` templates to `C:\Projects\PizzaLogs`.
+- Verified `http://127.0.0.1:3001/` and `http://127.0.0.1:8000/health` from the new checkout.
 
 ## Next Actions
 
@@ -38,7 +42,8 @@ Codex works on `codex-dev`, pushes `origin/codex-dev`, and opens PRs into `main`
 | Heroic-to-normal regression | DONE | Later normal kills stay normal without direct heroic evidence |
 | Documentation update | DONE | README, parser contract, vault parser docs, security, decision log, known issues |
 | Validation | DONE | Parser tests, type-check, lint, build, diff check |
-| Branch publication | NEXT | Commit and push `codex-dev` |
+| Local checkout migration | DONE | `C:\Projects\PizzaLogs` validated; launchers retargeted |
+| Branch publication | DONE | Local checkout migration committed and ready to push on `codex-dev` |
 | PR update | NEXT | Open or update PR into `main` after push |
 
 ## Open Follow-Ups
@@ -51,6 +56,7 @@ Codex works on `codex-dev`, pushes `origin/codex-dev`, and opens PRs into `main`
 - Add anonymized larger upload fixtures if Neil can provide safe samples.
 - If the laptop port changes from `3001`, add matching local roster/gear userscript variants or update the local constants.
 - If the Desktop launcher copies drift, update `scripts/desktop/*.cmd` and copy them back to `C:\Users\neil_\OneDrive\Desktop`.
+- If DB-backed local routes return 500, start PostgreSQL service `postgresql-x64-16` from an elevated shell or by running the Start launcher as administrator.
 
 ## Reference
 
