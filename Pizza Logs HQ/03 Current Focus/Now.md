@@ -13,6 +13,7 @@ Codex works on `codex-dev`, pushes `origin/codex-dev`, and opens PRs into `main`
 - Added a GitHub Actions PR Slack notification workflow for `opened`, `reopened`, and `ready_for_review` pull request events.
 - The Slack message includes PR metadata, description markdown, changed-file summary, and direct links to the PR and file diff.
 - Documented that GitHub needs a `PR_SLACK_WEBHOOK_URL` repository secret pointing at the Codex Slack server's `#pull-requests` incoming webhook.
+- Opened PR #12 from `codex-dev` into `main` for the Slack notification workflow.
 - Created `docs/parser-audit.md` before changing parser behavior.
 - Audited parser and upload code paths, including `/parse-stream`, parser core, persistence contracts, docs, and current tests.
 - Studied local checkouts of `Ridepad/uwu-logs` and `bkader/Skada-WoTLK`; audit notes cite the relevant files/functions.
@@ -50,7 +51,7 @@ Codex works on `codex-dev`, pushes `origin/codex-dev`, and opens PRs into `main`
 | Validation | DONE | Parser tests, type-check, lint, build, diff check |
 | Local checkout migration | DONE | `C:\Projects\PizzaLogs` validated; launchers live in repo root |
 | Codex chat import | DONE | 17 readable vault digests under `Pizza Logs HQ/08 AI Control Center/Imported Codex Chats/` |
-| PR Slack notification | DONE | Workflow added; waits on `PR_SLACK_WEBHOOK_URL` repository secret |
+| PR Slack notification | DONE | Workflow added in PR #12; waits on `PR_SLACK_WEBHOOK_URL` repository secret |
 | Branch publication | DONE | Local checkout migration committed and ready to push on `codex-dev` |
 | PR update | DONE | Draft PR #11 opened from `codex-dev` into `main` |
 

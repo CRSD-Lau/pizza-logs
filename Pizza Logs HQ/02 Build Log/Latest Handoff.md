@@ -97,6 +97,7 @@ PowerShell/npm shims in `node_modules/.bin` hit OneDrive reparse-point `Access i
 - Slack messages include the PR title, author, draft/ready state, source/target branches, changed-file count, PR description, changed-file summary, and buttons linking to the PR and diff.
 - Documented the required `PR_SLACK_WEBHOOK_URL` repository secret in `docs/git-workflow.md`.
 - The secret must contain a Slack incoming webhook configured for the Codex Slack server's `#pull-requests` channel.
+- Opened PR #12 from `codex-dev` into `main` for this workflow.
 
 ## Remaining Risks
 
@@ -108,4 +109,4 @@ PowerShell/npm shims in `node_modules/.bin` hit OneDrive reparse-point `Access i
 
 ## Exact Next Step
 
-Add the `PR_SLACK_WEBHOOK_URL` repository secret for the Codex Slack `#pull-requests` incoming webhook, then review the PR from `codex-dev` into `main`. Neil merges into `main` only after review; Codex does not merge or push `main` directly.
+Add the `PR_SLACK_WEBHOOK_URL` repository secret for the Codex Slack `#pull-requests` incoming webhook, then review PR #12 from `codex-dev` into `main`. Neil merges into `main` only after review; Codex does not merge or push `main` directly.
