@@ -44,7 +44,7 @@ Codex works on `codex-dev`, pushes `origin/codex-dev`, and opens PRs into `main`
 | Validation | DONE | Parser tests, type-check, lint, build, diff check |
 | Local checkout migration | DONE | `C:\Projects\PizzaLogs` validated; launchers retargeted |
 | Branch publication | DONE | Local checkout migration committed and ready to push on `codex-dev` |
-| PR update | NEXT | Open or update PR into `main` after push |
+| PR update | DONE | Draft PR #11 opened from `codex-dev` into `main` |
 
 ## Open Follow-Ups
 

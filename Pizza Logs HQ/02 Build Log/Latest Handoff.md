@@ -90,4 +90,4 @@ PowerShell/npm shims in `node_modules/.bin` hit OneDrive reparse-point `Access i
 
 ## Exact Next Step
 
-Open or update the PR from `codex-dev` into `main` for the local checkout migration. Do not merge or push `main` directly.
+Review draft PR #11 from `codex-dev` into `main` for the local checkout migration. Neil merges into `main` only after review; Codex does not merge or push `main` directly.
