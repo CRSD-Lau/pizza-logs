@@ -13,14 +13,17 @@
 - Pizza Logs is Codex-first: work happens on `codex-dev`, then PRs go into `main`.
 - Railway production deploys from `main` after Neil merges a PR.
 - Live app: https://pizza-logs-production.up.railway.app
+- Local working checkout for Neil's laptop: `C:\Projects\PizzaLogs`
 - Local app target for Neil's laptop: http://127.0.0.1:3001
 - Local Git executable fallback: `C:\Program Files\Git\cmd\git.exe`
 - GitHub CLI executable: `C:\Program Files\GitHub CLI\gh.exe`
 - Parser correctness remains the highest-risk area.
-- Local desktop launchers:
-  - `C:\Users\neil_\OneDrive\Desktop\Start Pizza Logs Local.cmd`
-  - `C:\Users\neil_\OneDrive\Desktop\Stop Pizza Logs Local.cmd`
-- The repeating `PizzaLogsLocalTestServer` scheduled task is disabled; use the desktop launchers instead.
+- Local repo-root launchers:
+  - `C:\Projects\PizzaLogs\Start Pizza Logs Local.cmd`
+  - `C:\Projects\PizzaLogs\Stop Pizza Logs Local.cmd`
+- The old Desktop launcher copies were moved into the repo root; the old OneDrive checkout can stay as a temporary fallback.
+- The repeating `PizzaLogsLocalTestServer` scheduled task is disabled; use the repo-root launchers instead.
+- Imported local Codex discussion history now lives under `Pizza Logs HQ/08 AI Control Center/Imported Codex Chats/`.
 
 ## Current Implementation Snapshot
 
@@ -69,6 +72,23 @@ PowerShell/npm shims in `node_modules/.bin` hit OneDrive reparse-point `Access i
 | Next production build via bundled Node | Passed |
 | `git diff --check` | Passed |
 
+## Local Checkout Migration This Session
+
+- Set up and validated the GitHub-backed checkout at `C:\Projects\PizzaLogs`.
+- Copied local-only `.env.local` and `.env.sync-agent` from the OneDrive checkout into `C:\Projects\PizzaLogs`.
+- Installed web dependencies and generated Prisma Client in the local checkout.
+- Created the parser virtualenv with bundled Python 3.12 because system Python 3.14 could not install pinned `pydantic-core` without MSVC build tools.
+- Moved the Start/Stop launcher files from the Desktop into `C:\Projects\PizzaLogs` and made them resolve the repo path from their own location.
+- Verified the local web server returned 200 at `http://127.0.0.1:3001/` and parser health returned 200 at `http://127.0.0.1:8000/health`.
+- PostgreSQL service `postgresql-x64-16` was stopped and could not be started from the non-admin Codex process; run the Start launcher as administrator if DB-backed routes return 500 locally.
+
+## Chat History Import This Session
+
+- Imported 17 local Codex chats from `C:\Users\neil_\.codex\sessions` into the committed vault.
+- Index file: `Pizza Logs HQ/08 AI Control Center/Imported Codex Chats/Imported Codex Chats Index.md`.
+- Imported notes keep user messages and assistant final replies, while omitting raw JSONL, tool payloads, encrypted reasoning payloads, and `.env*` contents.
+- Secret-like values were redacted during import, and the imported vault notes were checked with `git grep --untracked` for obvious database URLs, tokens, and private-key patterns.
+
 ## Remaining Risks
 
 - Absorbs are still not implemented as healing; Skada treats them separately.
@@ -78,4 +98,4 @@ PowerShell/npm shims in `node_modules/.bin` hit OneDrive reparse-point `Access i
 
 ## Exact Next Step
 
-Push the parser refactor commit to `origin/codex-dev`, then open or update the PR into `main` for review. Do not merge or push `main` directly.
+Review draft PR #11 from `codex-dev` into `main` for the local checkout migration. Neil merges into `main` only after review; Codex does not merge or push `main` directly.
