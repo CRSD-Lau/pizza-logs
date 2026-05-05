@@ -12,6 +12,82 @@
 
 ## What Was Done This Session
 
+### Codex branch workflow setup
+
+- Stopped using `codex/upload-cinematic-intro` as the active working branch.
+- Updated local `main` with `git pull --ff-only origin main`.
+- Created local branch `codex-dev` from the current checked-out work, preserving the local test-server setup commits that keep `http://127.0.0.1:3001` alive.
+- Pushed `codex-dev` and set upstream tracking to `origin/codex-dev`.
+- Did not push to `main`.
+- Did not merge into `main`.
+- Did not delete `codex/upload-cinematic-intro` because the final task instructions explicitly said not to delete branches.
+- Preserved the pre-existing unstaged `Pizza Logs HQ/.obsidian/workspace.json` change across branch setup.
+- Added Codex branch workflow docs:
+  - `docs/git-workflow.md`
+  - `docs/pr-readiness.md`
+- Added GitHub PR template:
+  - `.github/pull_request_template.md`
+- Added GitHub Actions CI:
+  - `.github/workflows/ci.yml`
+  - runs on PRs targeting `main` and pushes to `main`,
+  - uses Node 20,
+  - installs with `npm ci --legacy-peer-deps`,
+  - runs lint, type-check, optional npm test, and build.
+- Added `npm run check:pr` to run lint, type-check, optional npm test, and build.
+- Updated `AGENTS.md` so Codex works from `codex-dev`, pushes `origin/codex-dev`, and never commits, pushes, or merges directly to `main`.
+- Updated `.gitignore` to cover local logs, venvs, and coverage output.
+- Follow-up: stopped tracking `Pizza Logs HQ/.obsidian/workspace.json` and added it to `.gitignore` because it is local Obsidian UI state, not durable project context.
+
+### Local test server setup
+
+- Corrected the local test-server state on this checkout.
+- Existing stale Next.js listeners were stopped on `127.0.0.1:3000`, `127.0.0.1:3005`, and `127.0.0.1:3006`.
+- Removed generated `.next/` after the local dev server hit the known OneDrive `readlink` failure against generated Next files.
+- Started the full local stack on the ports configured by `.env.local`:
+  - web app: `http://127.0.0.1:3001`
+  - parser service: `http://127.0.0.1:8000`
+  - PostgreSQL: `localhost:5432`
+- Parser dependencies are available through the bundled Python runtime; no parser virtualenv was required for this run.
+- Local database verification:
+  - `bosses`: `53`
+  - `realms`: `4`
+  - `wow_items`: `38,610`
+  - `players`: `0`
+  - `uploads`: `0`
+  - `encounters`: `0`
+- Local HTTP smoke checks passed:
+  - parser `/health` returned HTTP 200 with `status: ok`,
+  - `/`, `/players`, `/raids`, `/leaderboards`, `/bosses`, `/guild-roster`, `/weekly`, and `/admin/login` returned HTTP 200,
+  - `/api/bosses`, `/api/leaderboard`, `/api/weekly`, `/api/guild-roster`, and `/api/uploads` returned HTTP 200,
+  - public pages and `/admin` did not render `Database unavailable` or parser-unreachable warnings.
+- The local DB is ready but empty for raid/player data until a combat log is uploaded or sample data is imported.
+
+### Persistent local test server after reboot
+
+- Added repo-local PowerShell helpers:
+  - `scripts/start-local-test-server.ps1`
+  - `scripts/stop-local-test-server.ps1`
+- The startup helper is idempotent:
+  - starts PostgreSQL service `postgresql-x64-16` if Windows reports it stopped,
+  - starts the parser on `127.0.0.1:8000` only when that port is not already listening,
+  - starts Next.js dev on `127.0.0.1:3001` only when that port is not already listening,
+  - verifies parser `/health` and app `/` before exiting,
+  - writes local ignored logs to `.next-local-test-server.log`, `.next-parser-test-server.*.log`, and `.next-test-server-3001.*.log`.
+- Registered Windows Task Scheduler task `PizzaLogsLocalTestServer`:
+  - runs at Neil's Windows logon,
+  - repeats every 5 minutes as a watchdog,
+  - uses `StartWhenAvailable`,
+  - uses least-privileged interactive user context,
+  - runs `powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/start-local-test-server.ps1`.
+- Verification completed:
+  - manual startup helper run while servers were already running exited `0` and did not duplicate listeners,
+  - stopped parser/web with `scripts/stop-local-test-server.ps1`,
+  - triggered `PizzaLogsLocalTestServer` manually,
+  - task returned `LastTaskResult: 0`,
+  - parser and web came back on `127.0.0.1:8000` and `127.0.0.1:3001`,
+  - watchdog run at the next 5-minute interval detected existing listeners and did not duplicate them,
+  - HTTP checks returned 200 for `http://127.0.0.1:3001/`, `http://127.0.0.1:8000/health`, and `http://127.0.0.1:3001/api/bosses`.
+
 ### 4K-master responsive intro deployment
 
 - Promoted the approved continuity review ladder into `public/intro/` for deployment.
@@ -668,6 +744,12 @@ Preserved the main-branch queue fix while merging modernization:
 
 ## Current State
 
+- Current branch is `codex-dev`, tracking `origin/codex-dev`.
+- `main` remains production-only and was not pushed or merged by Codex.
+- Codex workflow is now `codex-dev -> PR -> main`; Railway production still deploys only from `main`.
+- `Pizza Logs HQ/.obsidian/workspace.json` is now intentionally ignored and should remain local-only.
+- Existing branch `codex/upload-cinematic-intro` still exists locally/remotely because branch deletion was explicitly disallowed in the final workflow task.
+- Local test server is running correctly on `http://127.0.0.1:3001`, with the Python parser on `http://127.0.0.1:8000` and PostgreSQL 16 running on `localhost:5432`. Windows Task Scheduler task `PizzaLogsLocalTestServer` now restarts the local test stack at logon and checks it every 5 minutes. The local database has seeded boss/realm/item metadata, but no uploads, encounters, or players yet.
 - HD cinematic intro integration now has a 4K-master responsive public asset ladder: `1920x1080`, `2560x1440`, and `3840x2160` desktop landscape plus `1080x1920` and `2160x3840` mobile portrait, all at `60fps`, `7.2s`, and `432` frames.
 - Intro behavior: `FrozenLogbookIntro` now plays the HD cinematic on hard page load, uses WebM with MP4 fallback, selects mobile/desktop resolutions through ordered `<source media>` entries, lasts up to `7200ms`, exits on video end, keeps `Skip`, and avoids replaying on every internal route change. Reduced-motion users get the matching poster through the same media-query ladder and a short `350ms` timeout.
 - `/bosses` now has a mobile-native boss card layout with the same shared reveal animation style used on the other table/card pages. The desktop table grid is preserved for medium-and-up screens.
@@ -692,6 +774,10 @@ Preserved the main-branch queue fix while merging modernization:
 ---
 
 ## Exact Next Step
+
+For Codex work: always start on `codex-dev`, run `git fetch origin`, then merge `origin/main` before edits. After changes, run `npm run check:pr`, push `origin/codex-dev`, and open a PR from `codex-dev` to `main`. Neil merges the PR when ready; Codex does not push or merge `main`.
+
+For local testing: use `http://127.0.0.1:3001`. The scheduled task `PizzaLogsLocalTestServer` should keep the app/parser alive after reboot/logon and restart them within 5 minutes if either exits. Upload `C:/Users/neil_/OneDrive/Desktop/PizzaLogs/WoWCombatLog/WoWCombatLog.txt` or run the relevant import/sync flow to populate the fresh local DB before judging player, raid, search, or leaderboard data.
 
 For cinematic intro: after this 4K-master asset ladder deploy, hard-refresh production in normal desktop, 1440p/4K, and phone-sized browsers to judge playback smoothness/taste and try the Skip button manually. If the asset still feels soft, the next quality step is higher-resolution key art, because the retained source key shots are still much lower resolution than the 4K output ladder.
 
