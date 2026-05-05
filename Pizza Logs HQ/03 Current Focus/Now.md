@@ -2,7 +2,7 @@
 
 ## Active Focus
 
-Retiring rendered portrait capture and standardizing player avatars on class icons through draft PR #8.
+Retiring rendered portrait capture, standardizing player avatars on class icons, and replacing the repeating local scheduled task with Desktop start/stop launchers.
 
 ## Current Branch Rule
 
@@ -21,6 +21,8 @@ Codex works on `codex-dev`, pushes `origin/codex-dev`, and opens PRs into `main`
 - Verified local endpoints on `http://127.0.0.1:3001`, including the no-op portrait compatibility endpoint.
 - Validation passed locally with bundled runtimes: focused userscript/admin/profile tests, lint, type-check, and production build.
 - Recovered the local `3001` dev server after a stale `.next` cache caused `Cannot find module './5611.js'`.
+- Added Desktop launchers for starting/stopping the local web, parser, and PostgreSQL services.
+- Disabled the repeating `PizzaLogsLocalTestServer` scheduled task that caused recurring PowerShell popups.
 
 ## Next Actions
 
@@ -36,6 +38,7 @@ Codex works on `codex-dev`, pushes `origin/codex-dev`, and opens PRs into `main`
 | Branch publication | DONE | Commit and push `codex-dev` for draft PR #8 |
 | PR creation | DONE | Draft PR #8 is open; connector still lacks PR write permission |
 | Human review | NEXT | Neil reviews class-icon behavior after PR #8 merges |
+| Replace repeating local task | DONE | Use Desktop `Start Pizza Logs Local.cmd` / `Stop Pizza Logs Local.cmd` |
 
 ## Open Follow-Ups
 
@@ -44,6 +47,7 @@ Codex works on `codex-dev`, pushes `origin/codex-dev`, and opens PRs into `main`
 - Continue using browser-assisted Warmane imports until a local automated sync agent is built.
 - Absorbs remain future parser work.
 - If the laptop port changes from `3001`, add matching local roster/gear userscript variants or update the local constants.
+- If the Desktop launcher copies drift, update `scripts/desktop/*.cmd` and copy them back to `C:\Users\neil_\OneDrive\Desktop`.
 
 ## Reference
 

@@ -17,6 +17,10 @@
 - Local Git executable fallback: `C:\Program Files\Git\cmd\git.exe`
 - GitHub CLI executable: `C:\Program Files\GitHub CLI\gh.exe`
 - Parser correctness remains the highest-risk area.
+- Local desktop launchers:
+  - `C:\Users\neil_\OneDrive\Desktop\Start Pizza Logs Local.cmd`
+  - `C:\Users\neil_\OneDrive\Desktop\Stop Pizza Logs Local.cmd`
+- The repeating `PizzaLogsLocalTestServer` scheduled task is disabled; use the desktop launchers instead.
 
 ## Current Implementation Snapshot
 
@@ -46,6 +50,17 @@
 - Added local install buttons and URL fields on the admin gear and guild roster panels.
 - Local gear and roster scripts still run on Warmane Armory pages, but they post imports into the laptop dev server instead of production.
 - Local portrait script is compatibility-only and does not mutate Pizza Logs, Warmane, or modelviewer pages.
+
+## Local Service Launcher Changes This Session
+
+- Added repo-backed Desktop launcher templates:
+  - `scripts/desktop/Start Pizza Logs Local.cmd`
+  - `scripts/desktop/Stop Pizza Logs Local.cmd`
+- Copied those launchers to Neil's Desktop root.
+- `Start Pizza Logs Local.cmd` starts PostgreSQL if needed, parser on `127.0.0.1:8000`, and Next.js on `127.0.0.1:3001`.
+- `Stop Pizza Logs Local.cmd` stops the Pizza Logs web/parser ports and tries to stop the local PostgreSQL service. If Windows blocks PostgreSQL service control, run the stop launcher as administrator.
+- Both scripts keep the old repeating `PizzaLogsLocalTestServer` scheduled task disabled.
+- Validation note: non-elevated stop successfully stops web/parser; Windows denied stopping `postgresql-x64-16`, so full three-service stop requires running the stop launcher as administrator.
 
 ## Recent Documentation Audit Changes
 
@@ -84,6 +99,10 @@ PowerShell/npm shims in `node_modules/.bin` hit OneDrive reparse-point `Access i
 | Local `3001` gear userscript endpoint | 200, contained local origin and local script name |
 | Local `3001` roster userscript endpoint | 200, contained local origin and local script name |
 | Local `3001` portrait userscript endpoint | 200, contained local origin, version `0.6.0`, deprecation text, and no active DOM/GM/canvas code |
+| Desktop launchers copied | `Start Pizza Logs Local.cmd` and `Stop Pizza Logs Local.cmd` exist on the Desktop root |
+| `PizzaLogsLocalTestServer` scheduled task | Disabled |
+| `scripts/stop-local-test-server.ps1 -DisableScheduledTask -StopPostgres` | Stopped web/parser; PostgreSQL stop denied without elevation as expected |
+| `scripts/start-local-test-server.ps1 -DisableScheduledTask` | Restarted web/parser with PostgreSQL running |
 
 ## Local Server Recovery
 

@@ -180,11 +180,22 @@ Docker compose is available for a local production-style stack:
 docker compose up --build
 ```
 
-On Neil's Windows desktop, these helpers manage the long-running local test stack on `127.0.0.1:3001` and parser on `127.0.0.1:8000`:
+On Neil's Windows desktop, the preferred local workflow is the two Desktop launchers:
 
 ```powershell
-powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\start-local-test-server.ps1
-powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\stop-local-test-server.ps1
+C:\Users\neil_\OneDrive\Desktop\Start Pizza Logs Local.cmd
+C:\Users\neil_\OneDrive\Desktop\Stop Pizza Logs Local.cmd
+```
+
+The launchers call repo scripts that manage the local web app on `127.0.0.1:3001`, the parser on `127.0.0.1:8000`, and the local PostgreSQL service. They also keep the old repeating `PizzaLogsLocalTestServer` scheduled task disabled so PowerShell does not pop up every few minutes.
+
+If Windows blocks stopping PostgreSQL, right-click `Stop Pizza Logs Local.cmd` and choose **Run as administrator**. The web and parser processes stop without elevation.
+
+The underlying scripts can be run directly:
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\start-local-test-server.ps1 -DisableScheduledTask
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\stop-local-test-server.ps1 -DisableScheduledTask -StopPostgres
 ```
 
 ## Testing And Validation
