@@ -1,6 +1,7 @@
 param(
   [int]$WebPort = 3001,
-  [int]$ParserPort = 8000
+  [int]$ParserPort = 8000,
+  [switch]$DisableScheduledTask
 )
 
 $ErrorActionPreference = "Stop"
@@ -87,6 +88,15 @@ $PythonPath = Resolve-Executable `
 
 Write-Log "Launcher starting. Repo=$RepoRoot WebPort=$WebPort ParserPort=$ParserPort"
 
+if ($DisableScheduledTask) {
+  $task = Get-ScheduledTask -TaskName "PizzaLogsLocalTestServer" -ErrorAction SilentlyContinue
+  if ($task -and $task.State -ne "Disabled") {
+    Disable-ScheduledTask -TaskName "PizzaLogsLocalTestServer" | Out-Null
+    Write-Log "Disabled scheduled task PizzaLogsLocalTestServer."
+    Write-Output "Disabled scheduled task PizzaLogsLocalTestServer."
+  }
+}
+
 $postgres = Get-Service -Name "postgresql*" -ErrorAction SilentlyContinue | Select-Object -First 1
 if ($postgres) {
   if ($postgres.Status -ne "Running") {
@@ -140,6 +150,13 @@ Write-Log "Health results: parser=$parserOk web=$webOk"
 
 if (-not $parserOk -or -not $webOk) {
   exit 1
+}
+
+Write-Output "Pizza Logs local services are running."
+Write-Output "Web:    http://127.0.0.1:$WebPort"
+Write-Output "Parser: http://127.0.0.1:$ParserPort/health"
+if ($postgres) {
+  Write-Output "DB:     PostgreSQL service $($postgres.Name) status=$((Get-Service -Name $postgres.Name).Status)"
 }
 
 exit 0

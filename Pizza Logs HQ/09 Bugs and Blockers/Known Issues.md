@@ -37,6 +37,7 @@ No confirmed app-breaking bugs are active as of the documentation audit.
 | Local dev DB outage crashed pages | Public/admin pages catch DB connection failures and show warnings |
 | Local 3001 server missing `.next` chunks | Stopped stale Next process, removed generated `.next`, restarted `PizzaLogsLocalTestServer`, and verified local page/scripts return 200 |
 | Portrait userscript stayed on class icons or caused hydration warnings | Retired active portrait capture and standardized avatars on class icons; old userscript URLs now serve no-op compatibility updates |
+| Repeating local scheduled task caused recurring PowerShell popups | Disabled `PizzaLogsLocalTestServer`; added Desktop start/stop launchers for web, parser, and PostgreSQL |
 
 ## Not Bugs
 
