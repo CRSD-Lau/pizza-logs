@@ -74,4 +74,8 @@ PowerShell/npm shims in `node_modules/.bin` hit OneDrive reparse-point `Access i
 
 ## Exact Next Step
 
-Commit and push the local userscript endpoint/UI changes on `codex-dev`, then use the local install links from `/admin` when importing into the laptop database.
+`codex-dev` is pushed to GitHub. Open the PR manually because the GitHub connector returned 403 when Codex tried to create it:
+
+https://github.com/CRSD-Lau/Pizza-Logs/compare/main...codex-dev?expand=1
+
+After the PR is open, use the local install links from `/admin` when importing into the laptop database.

@@ -24,7 +24,8 @@ Codex works on `codex-dev`, pushes `origin/codex-dev`, and opens PRs into `main`
 | Add local roster userscript | DONE | `http://127.0.0.1:3001/api/admin/guild-roster/userscript.local.user.js` |
 | Add local portrait userscript | DONE | `http://127.0.0.1:3001/api/player-portraits/userscript.local.user.js` |
 | Run validation | DONE | Focused tests, lint, type-check, build, and live local endpoint checks passed |
-| Branch publication | NEXT | Commit and push `codex-dev` |
+| Branch publication | DONE | `codex-dev` pushed to `origin/codex-dev` |
+| PR creation | NEEDS NEIL | Codex GitHub connector returned 403; open `https://github.com/CRSD-Lau/Pizza-Logs/compare/main...codex-dev?expand=1` |
 | Human review | NEXT | Neil installs local scripts from `/admin` and uses them when targeting the laptop DB |
 
 ## Open Follow-Ups
