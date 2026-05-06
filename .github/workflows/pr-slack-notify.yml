@@ -61,10 +61,15 @@ jobs:
 
             const body = (pr.body || "_No PR description provided._").trim();
             const bodyLimit = 1200;
-            const safeBody = body
+            const formatDescriptionForSlack = (text) => text
               .replace(/@(channel|here|everyone)/gi, "@\u200b$1")
-              .slice(0, bodyLimit);
-            const bodySuffix = body.length > bodyLimit
+              .replace(/^#{1,6}\s+(.+)$/gm, "*$1*")
+              .replace(/^\s*[-*]\s+/gm, "- ")
+              .replace(/\n{3,}/g, "\n\n")
+              .trim();
+            const formattedBody = formatDescriptionForSlack(body);
+            const safeBody = formattedBody.slice(0, bodyLimit);
+            const bodySuffix = formattedBody.length > bodyLimit
               ? "\n\n_Description trimmed. Open the PR for the full text._"
               : "";
 
