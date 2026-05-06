@@ -157,7 +157,20 @@
     min-height: 100vh;
     min-height: 100lvh;
     background: linear-gradient(180deg, #132435 0%, #07111a 62%, #02040a 100%);
-    animation: frozenIntroOverlay 7.2s ease both;
+    opacity: 0;
+    contain: layout paint size;
+    transform: translateZ(0);
+    transition: opacity 650ms ease;
+    will-change: opacity;
+  }
+
+  .frozen-intro-overlay--showing {
+    opacity: 1;
+  }
+
+  .frozen-intro-overlay--leaving {
+    opacity: 0;
+    pointer-events: none;
   }
 
   .frozen-intro-video,
@@ -172,6 +185,8 @@
     min-height: 100%;
     max-width: none;
     object-fit: cover;
+    transform: translateZ(0) scale(1.001);
+    will-change: opacity, transform;
   }
 
   .frozen-intro-poster {
@@ -205,7 +220,7 @@
     opacity: 0;
     text-align: center;
     pointer-events: none;
-    animation: frozenIntroBrand 7.2s ease both;
+    animation: frozenIntroBrand 8.4s ease both;
   }
 
   .frozen-intro-brand span {
@@ -256,12 +271,6 @@
   .animate-delay-300 { animation-delay: 0.3s; }
 }
 
-@keyframes frozenIntroOverlay {
-  0% { opacity: 1; }
-  86% { opacity: 1; }
-  100% { opacity: 0; }
-}
-
 @keyframes frozenIntroBrand {
   0%, 64% {
     opacity: 0;
@@ -309,14 +318,12 @@
     scroll-behavior: auto;
   }
 
-  .frozen-intro-overlay,
   .frozen-intro-brand,
   .reveal-item,
   .boss-reveal-item {
     animation: none;
   }
 
-  .frozen-intro-overlay,
   .frozen-intro-brand,
   .reveal-item,
   .boss-reveal-item {

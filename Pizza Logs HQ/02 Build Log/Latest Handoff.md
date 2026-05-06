@@ -2,7 +2,7 @@
 
 ## Date
 
-2026-05-05
+2026-05-06
 
 ## Branch
 
@@ -21,92 +21,63 @@
 - Local repo-root launchers:
   - `C:\Projects\PizzaLogs\Start Pizza Logs Local.cmd`
   - `C:\Projects\PizzaLogs\Stop Pizza Logs Local.cmd`
-- The old Desktop launcher copies were moved into the repo root; the old OneDrive checkout can stay as a temporary fallback.
-- The repeating `PizzaLogsLocalTestServer` scheduled task is disabled; use the repo-root launchers instead.
-- Imported local Codex discussion history now lives under `Pizza Logs HQ/08 AI Control Center/Imported Codex Chats/`.
+- Imported local Codex discussion history lives under `Pizza Logs HQ/08 AI Control Center/Imported Codex Chats/`.
 
 ## Current Implementation Snapshot
 
 - Next.js app has public pages for upload, raids, sessions, encounters, bosses, leaderboards, players, guild roster, and weekly stats.
-- GitHub Actions posts new, reopened, and ready-for-review PR summaries to Slack when `PR_SLACK_WEBHOOK_URL` is configured for the Codex Slack `#pull-requests` channel.
+- GitHub Actions posts new, reopened, and ready-for-review PR summaries to Slack when `PR_SLACK_WEBHOOK_URL` is configured.
 - `/uploads` and `/uploads/[id]` redirect to admin upload history; public raid/session pages use `/raids/...`.
 - `/admin`, `/admin/uploads`, cleanup actions, and admin import APIs are protected by `ADMIN_SECRET`.
 - Upload flow streams multipart data from `app/api/upload/route.ts` to parser `/parse-stream`, then writes database rows and milestones.
-- Parser supports both encounter marker and heuristic segmentation paths.
-- Warmane heroic/Gunship behavior is handled with marker/session/crew-death evidence where available, but some cases remain impossible to prove from logs alone.
+- Parser supports both encounter marker and heuristic segmentation paths, with Skada-aligned damage/healing formulas documented in `docs/parser-contract.md`.
 - Gear pages read cached Warmane snapshots, enrich from local AzerothCore `wow_items`, and attempt Warmane live fetches only as best effort.
 - Supported roster/gear refresh path is browser-assisted userscripts from `/admin`.
 - Player avatars intentionally use class icons, with initials fallback when class data or icon loading is unavailable.
 - Production userscripts still post to Railway production; local userscripts post to `http://127.0.0.1:3001`.
-- Parser tokenization and combat math are now split into small Python modules under `parser/` so line parsing and metric extraction can be tested independently.
-- Parser warnings now report malformed combat-log lines instead of silently skipping them.
-- `/parse`, `/parse-debug`, and `/parse-stream` reject unsupported upload filenames before parsing.
-- Explicit `ENCOUNTER_START` / `ENCOUNTER_END` windows are preserved even when they are shorter than the heuristic minimum-event floor.
-- Difficulty normalization is evidence-first: non-Gunship normal-looking pulls are not promoted to heroic solely because a nearby pull in the same upload was heroic.
+- The cinematic intro now uses generated video assets from `animations/source/Veo.mp4` instead of the retired `public/intro` asset set.
 
-## Parser Refactor This Session
+## Cinematic Intro Session
 
-- Added `docs/parser-audit.md` before changing parser behavior.
-- Audited the current upload path from `app/api/upload/route.ts` through parser `/parse-stream`, database persistence, player/session stats, and existing parser tests.
-- Studied local reference checkouts of `Ridepad/uwu-logs` and `bkader/Skada-WoTLK`; the audit cites the exact files/functions that influenced the refactor.
-- Added `parser/combat_log_events.py` for timestamp parsing, CSV-safe combat-log tokenization, skipped-line classification, and normalized line objects.
-- Added `parser/combat_metrics.py` for damage/healing field extraction and explicit encounter/session damage formulas.
-- Refactored `parser/parser_core.py` to use those helpers while preserving existing production-facing result shapes.
-- Kept stored encounter damage compatible with existing Pizza Logs behavior: `amount - overkill - absorbed`.
-- Kept full-session actor `sessionDamage` compatible with existing behavior: `amount + absorbed`.
-- Kept healing effective by default: gross heal minus overheal; absorbs remain separate future work.
-- Added parser warnings for malformed/truncated combat-log lines.
-- Fixed short explicit marker encounters being discarded by heuristic floors.
-- Fixed heroic-session bleed where a later normal kill could be promoted to heroic without direct evidence.
-- Added `/parse-stream` filename validation to match `/parse` and `/parse-debug`.
-- Updated README, parser contract docs, parser architecture notes, security notes, decision log, current-focus, and known-issues docs.
+- Moved the new root `Veo.mp4` into `animations/source/Veo.mp4`.
+- Added generated intro assets under:
+  - `animations/desktop/`
+  - `animations/mobile/`
+  - `animations/posters/`
+  - mirrored web-served copies in `public/animations/`
+- Rendered desktop 16:9 WebM and MP4 variants at 1080p, 1440p, and 4K.
+- Rendered mobile 9:16 WebM and MP4 variants at 720x1280, 1080x1920, and 1440x2560.
+- Generated `desktop-poster.jpg` and `mobile-poster.jpg`.
+- Added reusable render scripts:
+  - `scripts/render-intro-videos.ps1`
+  - `scripts/render-intro-videos.sh`
+- The FFmpeg pipeline removes the bottom-right Veo watermark by cropping only; no AI watermark removal is used.
+- Replaced old `/intro/pizza-logs-cinematic-*` references with responsive `/animations/...` assets.
+- Intro runtime now selects one responsive variant, prefers WebM/VP9, falls back to H.264 MP4, uses posters, and preloads the selected video.
+- Intro now respects `prefers-reduced-motion`, stores first-view completion in `localStorage`, supports skip, and can be forced locally with `?intro=1`.
+- Removed obsolete `public/intro/` generated assets.
+- Updated README, `docs/intro-animation.md`, `AGENTS.md`, `.gitignore`, source tests, and vault notes.
 
 ## Verification This Session
 
-PowerShell/npm shims in `node_modules/.bin` hit OneDrive reparse-point `Access is denied`, so equivalent bundled Node entry points were used for the same tools.
-
 | Check | Result |
 |---|---|
-| `python -m pytest tests/ -v` from `parser/` | Passed, `133 passed, 1 warning` |
-| ESLint via bundled Node | Passed |
-| TypeScript `tsc --noEmit` via bundled Node | Passed |
-| Next production build via bundled Node | Passed |
-| `git diff --check` | Passed |
-
-## Local Checkout Migration This Session
-
-- Set up and validated the GitHub-backed checkout at `C:\Projects\PizzaLogs`.
-- Copied local-only `.env.local` and `.env.sync-agent` from the OneDrive checkout into `C:\Projects\PizzaLogs`.
-- Installed web dependencies and generated Prisma Client in the local checkout.
-- Created the parser virtualenv with bundled Python 3.12 because system Python 3.14 could not install pinned `pydantic-core` without MSVC build tools.
-- Moved the Start/Stop launcher files from the Desktop into `C:\Projects\PizzaLogs` and made them resolve the repo path from their own location.
-- Verified the local web server returned 200 at `http://127.0.0.1:3001/` and parser health returned 200 at `http://127.0.0.1:8000/health`.
-- PostgreSQL service `postgresql-x64-16` was stopped and could not be started from the non-admin Codex process; run the Start launcher as administrator if DB-backed routes return 500 locally.
-
-## Chat History Import This Session
-
-- Imported 17 local Codex chats from `C:\Users\neil_\.codex\sessions` into the committed vault.
-- Index file: `Pizza Logs HQ/08 AI Control Center/Imported Codex Chats/Imported Codex Chats Index.md`.
-- Imported notes keep user messages and assistant final replies, while omitting raw JSONL, tool payloads, encrypted reasoning payloads, and `.env*` contents.
-- Secret-like values were redacted during import, and the imported vault notes were checked with `git grep --untracked` for obvious database URLs, tokens, and private-key patterns.
-
-## PR Slack Notification This Session
-
-- Added `.github/workflows/pr-slack-notify.yml`.
-- The workflow uses `pull_request_target` for `opened`, `reopened`, and `ready_for_review` events without checking out or executing PR branch code.
-- Slack messages include the PR title, author, draft/ready state, source/target branches, changed-file count, PR description, changed-file summary, and buttons linking to the PR and diff.
-- Documented the required `PR_SLACK_WEBHOOK_URL` repository secret in `docs/git-workflow.md`.
-- The secret must contain a Slack incoming webhook configured for the Codex Slack server's `#pull-requests` channel.
-- Opened PR #12 from `codex-dev` into `main` for this workflow.
+| FFmpeg render script | Passed; all root and public animation variants generated |
+| Rendered frame inspection | Passed; watermark absent in desktop and mobile preview frames |
+| In-app browser preview at `http://127.0.0.1:3001/?intro=1` | Passed; video paints, skip fades out, localStorage prevents replay |
+| `node node_modules\ts-node\dist\bin.js --project tsconfig.seed.json tests\frozen-intro-source.test.ts` | Passed |
+| `node node_modules\typescript\bin\tsc --noEmit` | Passed |
+| `node node_modules\eslint\bin\eslint.js . --max-warnings=0` | Passed |
+| `npm run build` from clean `.next` | Passed |
 
 ## Remaining Risks
 
-- Absorbs are still not implemented as healing; Skada treats them separately.
-- Some Warmane heroic/Gunship evidence is not present in every log, so ambiguous attempts stay conservative rather than guessed heroic.
-- Useful damage is documented and test-covered through existing encounter rules, but needs more encounter-specific exclusions over time.
-- Upload route still lacks hard server-side size enforcement; this remains the highest practical upload-flow follow-up.
-- PR Slack notifications will fail until `PR_SLACK_WEBHOOK_URL` is added as a GitHub repository secret for `#pull-requests`.
+- Source `Veo.mp4` is 1280x720, so 1440p/4K variants are upscale derivatives rather than native high-resolution renders.
+- Local visual validation covered desktop in the in-app browser plus extracted mobile frames; test devices should still smoke-check iPhone Safari and Android Chrome after deployment.
+- Upload route still lacks hard server-side size enforcement.
+- PR Slack notifications still require `PR_SLACK_WEBHOOK_URL` in GitHub repository secrets.
+- Absorbs remain future parser work.
 
 ## Exact Next Step
 
-Add the `PR_SLACK_WEBHOOK_URL` repository secret for the Codex Slack `#pull-requests` incoming webhook, then review PR #12 from `codex-dev` into `main`. Neil merges into `main` only after review; Codex does not merge or push `main` directly.
+Review the intro diff and rendered assets, then push `codex-dev` and open/update a PR into `main`. Neil merges into `main` only after review; Codex does not merge or push `main` directly.
