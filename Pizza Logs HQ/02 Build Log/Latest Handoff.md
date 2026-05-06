@@ -75,6 +75,7 @@
 - Railway CLI is present, but this checkout is not linked; no Railway deploy or link was performed.
 - Added a tiny docs-only PR notification test note to `docs/dev/TOOLING.md` after Neil configured `PR_SLACK_WEBHOOK_URL`, so a fresh pull request can trigger the Slack workflow.
 - Cleaned up `.github/workflows/pr-slack-notify.yml` Slack blocks after the test message proved too raw: compact header/context, metadata fields, trimmed description, shorter changed-file list, and ASCII-safe separators.
+- Normalized GitHub PR description markdown for Slack by converting markdown headings to bold labels and collapsing noisy whitespace.
 
 ## Verification This Session
 
@@ -98,6 +99,7 @@
 - Local visual validation covered desktop in the in-app browser plus extracted mobile frames; test devices should still smoke-check iPhone Safari and Android Chrome after deployment.
 - Upload route still lacks hard server-side size enforcement.
 - PR Slack notifications still require `PR_SLACK_WEBHOOK_URL` in GitHub repository secrets, but missing configuration no longer fails PR checks.
+- `pull_request_target` runs the Slack workflow from `main`, so Slack formatting changes only affect fresh PR events after the workflow update is merged.
 - Absorbs remain future parser work.
 - Railway CLI is installed locally but this checkout remains unlinked until Neil intentionally runs `railway link`.
 
