@@ -73,6 +73,7 @@
   - `scripts/dev/verify-tooling.ps1`
 - Added `docs/dev/TOOLING.md` and linked it from the README Local Development section.
 - Railway CLI is present, but this checkout is not linked; no Railway deploy or link was performed.
+- Added a tiny docs-only PR notification test note to `docs/dev/TOOLING.md` after Neil configured `PR_SLACK_WEBHOOK_URL`, so a fresh pull request can trigger the Slack workflow.
 
 ## Verification This Session
 
@@ -100,4 +101,4 @@
 
 ## Exact Next Step
 
-Review PR #13 from `codex-dev` into `main`. Neil merges into `main` only after review; Codex does not merge or push `main` directly.
+Open/review the docs-only PR notification test from `codex-dev` into `main` and confirm the Slack webhook posts to the configured channel. Neil merges into `main` only after review; Codex does not merge or push `main` directly.

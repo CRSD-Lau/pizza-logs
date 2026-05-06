@@ -10,6 +10,7 @@ Codex works on `codex-dev`, pushes `origin/codex-dev`, and opens PRs into `main`
 
 ## This Session
 
+- Added a tiny docs-only PR notification test note after Neil configured `PR_SLACK_WEBHOOK_URL`, so opening a fresh `codex-dev` to `main` PR can test the Slack webhook.
 - Audited local Windows tooling for PowerShell, WinGet, Git/GitHub, Node/npm/npx, pnpm/yarn, Python/pip, search/JSON tools, curl/tar/ssh, Railway, Vercel, Codex CLI, VS Code CLI, Windows Terminal, repo scripts, GitHub auth, and Railway link state.
 - Installed PowerShell 7.6.1 with WinGet.
 - Installed standalone `ripgrep`, `fd`, and `jq` with WinGet.
@@ -53,11 +54,12 @@ Codex works on `codex-dev`, pushes `origin/codex-dev`, and opens PRs into `main`
 | Slack notification fail-open | DONE | Missing webhook secret now warns and exits successfully |
 | Windows tooling setup docs/scripts | DONE | `scripts/dev/setup-tooling.ps1`, `scripts/dev/verify-tooling.ps1`, `docs/dev/TOOLING.md` |
 | Tooling verification | DONE | Passed with 0 failures; Railway remains unlinked by design |
+| Slack webhook test PR | IN PROGRESS | Docs-only change prepared for a fresh PR event |
 
 ## Open Follow-Ups
 
 - Smoke-check the intro on real iPhone Safari and Android Chrome after the PR is deployed.
-- Add the GitHub repository secret `PR_SLACK_WEBHOOK_URL` with a Slack incoming webhook configured for `#pull-requests` if Slack notifications are desired.
+- Confirm the fresh docs-only PR posts to Slack now that `PR_SLACK_WEBHOOK_URL` is configured.
 - Add hard server-side upload size enforcement.
 - Decide whether app-level upload rate limiting is needed or Railway-level controls are enough.
 - Continue using browser-assisted Warmane imports until a local automated sync agent is built.

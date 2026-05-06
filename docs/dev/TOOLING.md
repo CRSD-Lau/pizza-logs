@@ -105,3 +105,5 @@ C:\Projects\PizzaLogs\Stop Pizza Logs Local.cmd
 The verification script may run `railway status`, but it never deploys. Do not run deploy commands unless Neil explicitly asks.
 
 Production deploys from `origin/main` after Neil merges a PR. Codex works on `codex-dev`, opens PRs into `main`, and does not push or merge `main` directly.
+
+GitHub PR Slack notifications are tested by opening a normal `codex-dev` to `main` pull request after `PR_SLACK_WEBHOOK_URL` is configured as a repository Actions secret.
