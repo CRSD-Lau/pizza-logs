@@ -11,6 +11,7 @@ Codex works on `codex-dev`, pushes `origin/codex-dev`, and opens PRs into `main`
 ## This Session
 
 - Added a tiny docs-only PR notification test note after Neil configured `PR_SLACK_WEBHOOK_URL`, so opening a fresh `codex-dev` to `main` PR can test the Slack webhook.
+- Cleaned up the PR Slack message formatting after the test notification was too dense/raw.
 - Audited local Windows tooling for PowerShell, WinGet, Git/GitHub, Node/npm/npx, pnpm/yarn, Python/pip, search/JSON tools, curl/tar/ssh, Railway, Vercel, Codex CLI, VS Code CLI, Windows Terminal, repo scripts, GitHub auth, and Railway link state.
 - Installed PowerShell 7.6.1 with WinGet.
 - Installed standalone `ripgrep`, `fd`, and `jq` with WinGet.
@@ -55,6 +56,7 @@ Codex works on `codex-dev`, pushes `origin/codex-dev`, and opens PRs into `main`
 | Windows tooling setup docs/scripts | DONE | `scripts/dev/setup-tooling.ps1`, `scripts/dev/verify-tooling.ps1`, `docs/dev/TOOLING.md` |
 | Tooling verification | DONE | Passed with 0 failures; Railway remains unlinked by design |
 | Slack webhook test PR | IN PROGRESS | Docs-only change prepared for a fresh PR event |
+| Slack message formatting cleanup | DONE | Workflow now uses compact Slack blocks and cleaner changed-file formatting |
 
 ## Open Follow-Ups
 

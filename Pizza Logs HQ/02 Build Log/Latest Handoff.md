@@ -74,6 +74,7 @@
 - Added `docs/dev/TOOLING.md` and linked it from the README Local Development section.
 - Railway CLI is present, but this checkout is not linked; no Railway deploy or link was performed.
 - Added a tiny docs-only PR notification test note to `docs/dev/TOOLING.md` after Neil configured `PR_SLACK_WEBHOOK_URL`, so a fresh pull request can trigger the Slack workflow.
+- Cleaned up `.github/workflows/pr-slack-notify.yml` Slack blocks after the test message proved too raw: compact header/context, metadata fields, trimmed description, shorter changed-file list, and ASCII-safe separators.
 
 ## Verification This Session
 
@@ -89,6 +90,7 @@
 | `node node_modules\eslint\bin\eslint.js . --max-warnings=0` | Passed |
 | `npm run build` from clean `.next` | Passed |
 | `powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\dev\verify-tooling.ps1` | Passed with 0 failures; 1 expected Railway-unlinked warning |
+| `git diff --check` after Slack workflow formatting cleanup | Passed |
 
 ## Remaining Risks
 
