@@ -2,7 +2,7 @@
 
 ## Active Focus
 
-The current session added repeatable Windows development tooling setup and verification. Parser reliability remains the highest-risk product area, but no parser code changed in this session.
+The current session added guild roster pagination so the public roster shows 20 members per page inside a contained table panel. Parser reliability remains the highest-risk product area, but no parser code changed in this session.
 
 ## Current Branch Rule
 
@@ -10,6 +10,15 @@ Codex works on `codex-dev`, pushes `origin/codex-dev`, and opens PRs into `main`
 
 ## This Session
 
+- Added URL-backed `?page=` handling on `/guild-roster`.
+- Updated `GuildRosterTable` to show 20 members per page.
+- Added a contained table panel footer with bottom-right previous/next page navigation.
+- Updated `tests/guild-roster-table-render.test.ts` to cover 25-member pagination across page 1 and page 2.
+- Ran the focused guild roster render test with JSX-aware `ts-node` registration; it passed.
+- Ran `node node_modules\typescript\bin\tsc --noEmit`; it passed.
+- Ran `node node_modules\eslint\bin\eslint.js . --max-warnings=0`; it passed.
+- Ran `npm run build`; it passed.
+- Confirmed the existing local dev server at `http://127.0.0.1:3001` served `/guild-roster?page=2` with HTTP 200 after compiling.
 - Added a tiny docs-only PR notification test note after Neil configured `PR_SLACK_WEBHOOK_URL`, so opening a fresh `codex-dev` to `main` PR can test the Slack webhook.
 - Cleaned up the PR Slack message formatting after the test notification was too dense/raw.
 - Adjusted PR description formatting for Slack so GitHub headings render as bold section labels instead of unsupported raw markdown.
@@ -59,6 +68,9 @@ Codex works on `codex-dev`, pushes `origin/codex-dev`, and opens PRs into `main`
 | Slack webhook test PR | IN PROGRESS | Docs-only change prepared for a fresh PR event |
 | Slack message formatting cleanup | DONE | Workflow now uses compact Slack blocks and cleaner changed-file formatting |
 | Slack markdown normalization | DONE | PR description headings convert to Slack-friendly bold labels |
+| Guild roster 20-member pages | DONE | `/guild-roster?page=N` controls the visible roster slice |
+| Roster table footer navigator | DONE | Previous/next icon links render in the table container footer |
+| Guild roster render coverage | DONE | Test covers page 1 and page 2 slicing |
 
 ## Open Follow-Ups
 
