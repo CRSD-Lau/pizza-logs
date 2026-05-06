@@ -26,7 +26,7 @@
 ## Current Implementation Snapshot
 
 - Next.js app has public pages for upload, raids, sessions, encounters, bosses, leaderboards, players, guild roster, and weekly stats.
-- GitHub Actions posts new, reopened, and ready-for-review PR summaries to Slack when `PR_SLACK_WEBHOOK_URL` is configured.
+- GitHub Actions posts new, reopened, and ready-for-review PR summaries to Slack when `PR_SLACK_WEBHOOK_URL` is configured; if the secret is missing, the workflow warns and exits successfully.
 - `/uploads` and `/uploads/[id]` redirect to admin upload history; public raid/session pages use `/raids/...`.
 - `/admin`, `/admin/uploads`, cleanup actions, and admin import APIs are protected by `ADMIN_SECRET`.
 - Upload flow streams multipart data from `app/api/upload/route.ts` to parser `/parse-stream`, then writes database rows and milestones.
@@ -75,9 +75,9 @@
 - Source `Veo.mp4` is 1280x720, so 1440p/4K variants are upscale derivatives rather than native high-resolution renders.
 - Local visual validation covered desktop in the in-app browser plus extracted mobile frames; test devices should still smoke-check iPhone Safari and Android Chrome after deployment.
 - Upload route still lacks hard server-side size enforcement.
-- PR Slack notifications still require `PR_SLACK_WEBHOOK_URL` in GitHub repository secrets.
+- PR Slack notifications still require `PR_SLACK_WEBHOOK_URL` in GitHub repository secrets, but missing configuration no longer fails PR checks.
 - Absorbs remain future parser work.
 
 ## Exact Next Step
 
-Review the intro diff and rendered assets, then push `codex-dev` and open/update a PR into `main`. Neil merges into `main` only after review; Codex does not merge or push `main` directly.
+Review PR #13 from `codex-dev` into `main`. Neil merges into `main` only after review; Codex does not merge or push `main` directly.

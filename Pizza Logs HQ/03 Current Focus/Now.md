@@ -21,6 +21,7 @@ Codex works on `codex-dev`, pushes `origin/codex-dev`, and opens PRs into `main`
 - Fixed a visual QA bug where Tailwind purged a dynamically composed overlay phase class; the component now uses static class strings.
 - Updated README, `docs/intro-animation.md`, `AGENTS.md`, `.gitignore`, and `tests/frozen-intro-source.test.ts`.
 - Updated `Pizza Logs HQ/09 Bugs and Blockers/Known Issues.md` with the resolved intro overlay purge issue.
+- Updated `.github/workflows/pr-slack-notify.yml` so missing `PR_SLACK_WEBHOOK_URL` warns instead of failing PR checks.
 
 ## Next Actions
 
@@ -38,11 +39,12 @@ Codex works on `codex-dev`, pushes `origin/codex-dev`, and opens PRs into `main`
 | ESLint | DONE | Passed |
 | Production build | DONE | Passed from clean `.next` |
 | Browser visual preview | DONE | Desktop in-app browser passed; mobile frame extraction passed |
+| Slack notification fail-open | DONE | Missing webhook secret now warns and exits successfully |
 
 ## Open Follow-Ups
 
 - Smoke-check the intro on real iPhone Safari and Android Chrome after the PR is deployed.
-- Add the GitHub repository secret `PR_SLACK_WEBHOOK_URL` with a Slack incoming webhook configured for `#pull-requests`.
+- Add the GitHub repository secret `PR_SLACK_WEBHOOK_URL` with a Slack incoming webhook configured for `#pull-requests` if Slack notifications are desired.
 - Add hard server-side upload size enforcement.
 - Decide whether app-level upload rate limiting is needed or Railway-level controls are enough.
 - Continue using browser-assisted Warmane imports until a local automated sync agent is built.
