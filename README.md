@@ -44,6 +44,24 @@ Railway has two app services:
 - `Web Service`: Next.js standalone app.
 - `parser-py`: FastAPI parser service.
 
+## Cinematic Intro Assets
+
+The site intro is rendered from `animations/source/Veo.mp4` with FFmpeg. The canonical generated assets live in `animations/desktop`, `animations/mobile`, and `animations/posters`; matching web-served copies are mirrored to `public/animations`.
+
+Render all responsive variants after replacing the source video:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts/render-intro-videos.ps1
+```
+
+On macOS/Linux:
+
+```bash
+bash scripts/render-intro-videos.sh
+```
+
+The scripts crop the bottom-right Veo watermark out of the frame, preserve 16:9 desktop and 9:16 mobile aspect ratios, remove audio, encode WebM/VP9 primary assets plus H.264 MP4 fallbacks, and regenerate posters. To preview the intro after it has been marked viewed in the browser, open the local app with `?intro=1`, for example `http://127.0.0.1:3001/?intro=1`.
+
 ## Main Routes
 
 | Route | Purpose |

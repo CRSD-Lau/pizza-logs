@@ -75,7 +75,7 @@ Open a PR:
 codex-dev -> main
 ```
 
-GitHub Actions posts new, reopened, and ready-for-review pull requests to the Codex Slack server's `#pull-requests` channel through `.github/workflows/pr-slack-notify.yml`. The repository must have a `PR_SLACK_WEBHOOK_URL` secret whose Slack incoming webhook is configured for `#pull-requests`; do not commit the webhook URL to the repo.
+GitHub Actions posts new, reopened, and ready-for-review pull requests to the Codex Slack server's `#pull-requests` channel through `.github/workflows/pr-slack-notify.yml` when the repository has a `PR_SLACK_WEBHOOK_URL` secret configured. If the secret is missing, the workflow warns and exits successfully so PR checks are not blocked. Do not commit the webhook URL to the repo.
 
 ## After Merge
 

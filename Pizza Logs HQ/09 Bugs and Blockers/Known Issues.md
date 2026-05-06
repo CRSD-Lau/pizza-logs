@@ -42,6 +42,8 @@ No confirmed app-breaking bugs are active as of the documentation audit.
 | Parser `/parse-stream` accepted unsupported filenames | Added `.txt`/`.log` filename validation before temp-file handling |
 | Short explicit marker pulls could be discarded | Marker-based encounters now bypass the heuristic minimum-event floor |
 | Heroic wipes could promote later normal kills | Non-Gunship `25N` pulls no longer inherit heroic solely from same-session evidence |
+| Cinematic intro overlay existed but stayed invisible | Replaced dynamically composed Tailwind phase class with static class strings so `frozen-intro-overlay--showing` is emitted |
+| Missing PR Slack webhook failed PR checks | Workflow now warns and exits successfully when `PR_SLACK_WEBHOOK_URL` is absent |
 
 ## Not Bugs
 

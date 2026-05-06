@@ -133,7 +133,7 @@ Update docs when behavior, commands, deployment, parser rules, or workflows chan
 - Review every modified, deleted, and untracked file before staging.
 - Stage source, tests, docs, config, fixtures, and lockfiles that belong to the change.
 - Do not stage `.env*`, logs, build outputs, caches, local screenshots, `node_modules`, `uploads`, combat logs, or personal machine state.
-- Expected local-only noise may include `.env.local`, `.env.sync-agent`, `.next/`, `.pytest_cache/`, `.sync-agent-logs/`, `WoWCombatLog/`, `tmp-mobile-check/`, and `animations/`.
+- Expected local-only noise may include `.env.local`, `.env.sync-agent`, `.next/`, `.pytest_cache/`, `.sync-agent-logs/`, `WoWCombatLog/`, `tmp-mobile-check/`, `tmp-intro-preview/`, and `tools/`.
 
 ## Secret Handling
 

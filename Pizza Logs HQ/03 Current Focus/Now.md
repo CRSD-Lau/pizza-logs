@@ -2,7 +2,7 @@
 
 ## Active Focus
 
-Local development has moved from the OneDrive Desktop checkout to the GitHub-backed checkout at `C:\Projects\PizzaLogs`, while parser reliability remains the current product focus.
+The current session replaced the old intro asset set with a proper Veo-based cinematic video pipeline. Parser reliability remains the highest-risk product area, but no parser code changed in this session.
 
 ## Current Branch Rule
 
@@ -10,68 +10,52 @@ Codex works on `codex-dev`, pushes `origin/codex-dev`, and opens PRs into `main`
 
 ## This Session
 
-- Added a GitHub Actions PR Slack notification workflow for `opened`, `reopened`, and `ready_for_review` pull request events.
-- The Slack message includes PR metadata, description markdown, changed-file summary, and direct links to the PR and file diff.
-- Documented that GitHub needs a `PR_SLACK_WEBHOOK_URL` repository secret pointing at the Codex Slack server's `#pull-requests` incoming webhook.
-- Opened PR #12 from `codex-dev` into `main` for the Slack notification workflow.
-- Created `docs/parser-audit.md` before changing parser behavior.
-- Audited parser and upload code paths, including `/parse-stream`, parser core, persistence contracts, docs, and current tests.
-- Studied local checkouts of `Ridepad/uwu-logs` and `bkader/Skada-WoTLK`; audit notes cite the relevant files/functions.
-- Split combat-log tokenization into `parser/combat_log_events.py`.
-- Split damage/healing extraction formulas into `parser/combat_metrics.py`.
-- Refactored `parser/parser_core.py` to use those helpers while preserving existing result shapes.
-- Added skipped-line accounting and aggregate parser warnings for malformed/truncated combat-log lines.
-- Added `/parse-stream` filename validation for `.txt` and `.log` uploads.
-- Preserved short explicit marker encounters that previously could be discarded by heuristic minimum-event filtering.
-- Narrowed session difficulty normalization so heroic wipes do not promote a later normal kill unless there is direct evidence.
-- Added focused parser tests for tokenization, damage, healing, malformed lines, explicit markers, heroic-to-normal fallback, and stream upload validation.
-- Updated README, parser contract docs, parser architecture notes, security checklist, decision log, and known issues.
-- Validation passed: full parser pytest suite, TypeScript type-check, ESLint, Next production build, and `git diff --check`.
-- Set up and validated `C:\Projects\PizzaLogs` as the local working checkout.
-- Copied local env files into the local checkout, installed dependencies, generated Prisma Client, and created a parser Python 3.12 virtualenv.
-- Moved the Start/Stop launchers into `C:\Projects\PizzaLogs` and made them path-relative to the repo root.
-- Verified `http://127.0.0.1:3001/` and `http://127.0.0.1:8000/health` from the new checkout.
-- Imported 17 local Codex chats into `Pizza Logs HQ/08 AI Control Center/Imported Codex Chats/` so the new `C:\Projects\PizzaLogs` checkout carries the prior discussion history.
-- Kept the import as readable vault digests, not raw JSONL; tool logs, encrypted reasoning payloads, and `.env*` contents were omitted.
-- Ran an untracked secret-pattern scan against the imported notes after redaction.
+- Moved `Veo.mp4` into `animations/source/Veo.mp4`.
+- Added FFmpeg render scripts for PowerShell and bash.
+- Rendered desktop intro assets at 1920x1080, 2560x1440, and 3840x2160 in WebM/VP9 and MP4/H.264.
+- Rendered mobile intro assets at 720x1280, 1080x1920, and 1440x2560 in WebM/VP9 and MP4/H.264.
+- Generated desktop and mobile posters.
+- Mirrored generated assets into `public/animations/` for Next.js static delivery.
+- Removed the obsolete `public/intro/` asset set.
+- Updated `FrozenLogbookIntro` to choose responsive video assets, preload the selected variant, prefer WebM, fall back to MP4, respect reduced motion, support skip, persist first-view completion in localStorage, and allow forced preview with `?intro=1`.
+- Fixed a visual QA bug where Tailwind purged a dynamically composed overlay phase class; the component now uses static class strings.
+- Updated README, `docs/intro-animation.md`, `AGENTS.md`, `.gitignore`, and `tests/frozen-intro-source.test.ts`.
+- Updated `Pizza Logs HQ/09 Bugs and Blockers/Known Issues.md` with the resolved intro overlay purge issue.
+- Updated `.github/workflows/pr-slack-notify.yml` so missing `PR_SLACK_WEBHOOK_URL` warns instead of failing PR checks.
 
 ## Next Actions
 
 | Task | Status | Notes |
 |---|---|---|
-| Parser audit doc | DONE | `docs/parser-audit.md` |
-| Tokenizer module | DONE | `parser/combat_log_events.py` |
-| Metric extraction module | DONE | `parser/combat_metrics.py` |
-| Parser core refactor | DONE | Existing response shape preserved |
-| Malformed-line reporting | DONE | Parser warning plus skipped-line counters |
-| Stream upload validation | DONE | `/parse-stream` now validates filename extension |
-| Explicit marker regression | DONE | Marker encounters bypass heuristic minimum-event floor |
-| Heroic-to-normal regression | DONE | Later normal kills stay normal without direct heroic evidence |
-| Documentation update | DONE | README, parser contract, vault parser docs, security, decision log, known issues |
-| Validation | DONE | Parser tests, type-check, lint, build, diff check |
-| Local checkout migration | DONE | `C:\Projects\PizzaLogs` validated; launchers live in repo root |
-| Codex chat import | DONE | 17 readable vault digests under `Pizza Logs HQ/08 AI Control Center/Imported Codex Chats/` |
-| PR Slack notification | DONE | Workflow added in PR #12; waits on `PR_SLACK_WEBHOOK_URL` repository secret |
-| Branch publication | DONE | Local checkout migration committed and ready to push on `codex-dev` |
-| PR update | DONE | Draft PR #11 opened from `codex-dev` into `main` |
+| Source video moved | DONE | `animations/source/Veo.mp4` |
+| Render scripts | DONE | `scripts/render-intro-videos.ps1`, `scripts/render-intro-videos.sh` |
+| Responsive assets | DONE | Root `animations/` plus `public/animations/` mirror |
+| Watermark crop validation | DONE | FFmpeg frame inspection passed |
+| Intro integration | DONE | Responsive video, preload, fallback, reduced motion, first-view persistence |
+| Obsolete still/old intro removal | DONE | Removed `public/intro/` |
+| Documentation update | DONE | README, docs, AGENTS, vault |
+| Source test | DONE | `tests/frozen-intro-source.test.ts` passed |
+| TypeScript | DONE | `tsc --noEmit` passed |
+| ESLint | DONE | Passed |
+| Production build | DONE | Passed from clean `.next` |
+| Browser visual preview | DONE | Desktop in-app browser passed; mobile frame extraction passed |
+| Slack notification fail-open | DONE | Missing webhook secret now warns and exits successfully |
 
 ## Open Follow-Ups
 
-- Add the GitHub repository secret `PR_SLACK_WEBHOOK_URL` with a Slack incoming webhook configured for `#pull-requests`.
+- Smoke-check the intro on real iPhone Safari and Android Chrome after the PR is deployed.
+- Add the GitHub repository secret `PR_SLACK_WEBHOOK_URL` with a Slack incoming webhook configured for `#pull-requests` if Slack notifications are desired.
 - Add hard server-side upload size enforcement.
 - Decide whether app-level upload rate limiting is needed or Railway-level controls are enough.
 - Continue using browser-assisted Warmane imports until a local automated sync agent is built.
 - Absorbs remain future parser work.
 - Add more encounter-specific useful-damage exclusions as real Skada comparison data becomes available.
-- Add anonymized larger upload fixtures if Neil can provide safe samples.
-- If the laptop port changes from `3001`, add matching local roster/gear userscript variants or update the local constants.
-- If the local launchers need edits, update `C:\Projects\PizzaLogs\Start Pizza Logs Local.cmd` and `C:\Projects\PizzaLogs\Stop Pizza Logs Local.cmd`.
-- If DB-backed local routes return 500, start PostgreSQL service `postgresql-x64-16` from an elevated shell or by running the Start launcher as administrator.
 
 ## Reference
 
 - Live app: https://pizza-logs-production.up.railway.app
 - GitHub: https://github.com/CRSD-Lau/Pizza-Logs
+- Intro pipeline docs: `docs/intro-animation.md`
 - Parser contract: `docs/parser-contract.md`
 - Gear cache table: `armory_gear_cache`
 - Guild roster table: `guild_roster_members`

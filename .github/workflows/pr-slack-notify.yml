@@ -22,7 +22,7 @@ jobs:
           script: |
             const webhookUrl = process.env.SLACK_WEBHOOK_URL;
             if (!webhookUrl) {
-              core.setFailed("Missing PR_SLACK_WEBHOOK_URL repository secret for the #pull-requests Slack webhook.");
+              core.warning("Skipping Slack PR notification because PR_SLACK_WEBHOOK_URL is not configured.");
               return;
             }
 
