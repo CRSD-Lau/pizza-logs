@@ -204,11 +204,23 @@
     pointer-events: none;
   }
 
-  .frozen-intro-skip {
+  .frozen-intro-skip,
+  .frozen-intro-sound {
     position: absolute;
     z-index: 2;
+  }
+
+  .frozen-intro-skip {
     right: 1rem;
     top: 1rem;
+  }
+
+  .frozen-intro-sound {
+    right: 1rem;
+    top: 3.75rem;
+    width: 2rem;
+    height: 2rem;
+    padding: 0;
   }
 
   .frozen-intro-brand {
@@ -239,6 +251,11 @@
     .frozen-intro-skip {
       right: 0.75rem;
       top: 0.75rem;
+    }
+
+    .frozen-intro-sound {
+      right: 0.75rem;
+      top: 3.5rem;
     }
 
     .frozen-intro-brand {

@@ -17,7 +17,8 @@ Codex works on `codex-dev`, pushes `origin/codex-dev`, and opens PRs into `main`
 - Generated desktop and mobile posters.
 - Mirrored generated assets into `public/animations/` for Next.js static delivery.
 - Removed the obsolete `public/intro/` asset set.
-- Updated `FrozenLogbookIntro` to choose responsive video assets, preload the selected variant, prefer WebM, fall back to MP4, respect reduced motion, support skip, play on full load/browser refresh, and stay dismissed during normal in-app navigation.
+- Updated the render pipeline to preserve audio tracks as WebM/Opus and MP4/AAC.
+- Updated `FrozenLogbookIntro` to choose responsive video assets, preload the selected variant, prefer WebM, fall back to MP4, respect reduced motion, support skip and sound toggling, play on full load/browser refresh, and stay dismissed during normal in-app navigation.
 - Removed the localStorage intro-viewed gate so refreshes can replay the intro while client-side navigation stays quiet.
 - Fixed a visual QA bug where Tailwind purged a dynamically composed overlay phase class; the component now uses static class strings.
 - Updated README, `docs/intro-animation.md`, `AGENTS.md`, `.gitignore`, and `tests/frozen-intro-source.test.ts`.
@@ -32,14 +33,14 @@ Codex works on `codex-dev`, pushes `origin/codex-dev`, and opens PRs into `main`
 | Render scripts | DONE | `scripts/render-intro-videos.ps1`, `scripts/render-intro-videos.sh` |
 | Responsive assets | DONE | Root `animations/` plus `public/animations/` mirror |
 | Watermark crop validation | DONE | FFmpeg frame inspection passed |
-| Intro integration | DONE | Responsive video, preload, fallback, reduced motion, refresh replay with quiet in-app navigation |
+| Intro integration | DONE | Responsive video, preload, fallback, audio toggle, reduced motion, refresh replay with quiet in-app navigation |
 | Obsolete still/old intro removal | DONE | Removed `public/intro/` |
 | Documentation update | DONE | README, docs, AGENTS, vault |
 | Source test | DONE | `tests/frozen-intro-source.test.ts` passed |
 | TypeScript | DONE | `tsc --noEmit` passed |
 | ESLint | DONE | Passed |
 | Production build | DONE | Passed from clean `.next` |
-| Browser visual preview | DONE | Desktop in-app browser passed; mobile frame extraction passed |
+| Browser visual preview | DONE | Desktop in-app browser passed; audio toggle verified; mobile frame extraction passed |
 | Slack notification fail-open | DONE | Missing webhook secret now warns and exits successfully |
 
 ## Open Follow-Ups

@@ -6,6 +6,8 @@ const root = process.cwd();
 const component = readFileSync(path.join(root, "components", "intro", "FrozenLogbookIntro.tsx"), "utf8");
 const globals = readFileSync(path.join(root, "app", "globals.css"), "utf8");
 const layout = readFileSync(path.join(root, "app", "layout.tsx"), "utf8");
+const renderPs1 = readFileSync(path.join(root, "scripts", "render-intro-videos.ps1"), "utf8");
+const renderSh = readFileSync(path.join(root, "scripts", "render-intro-videos.sh"), "utf8");
 
 const expectedAssets = [
   "animations/source/Veo.mp4",
@@ -59,6 +61,12 @@ assert.match(component, /\/animations\/mobile\/intro-mobile-1440x2560\.mp4/);
 assert.match(component, /\/animations\/posters\/desktop-poster\.jpg/);
 assert.match(component, /\/animations\/posters\/mobile-poster\.jpg/);
 assert.match(component, /canPlayType\("video\/webm; codecs=vp9"\)/);
+assert.match(component, /Volume2, VolumeX/);
+assert.match(component, /useRef<HTMLVideoElement>/);
+assert.match(component, /soundEnabled/);
+assert.match(component, /muted=\{!soundEnabled\}/);
+assert.match(component, /aria-label=\{soundEnabled \? "Mute intro audio" : "Play intro audio"\}/);
+assert.match(component, /className="frozen-intro-sound/);
 assert.doesNotMatch(component, /localStorage/);
 assert.doesNotMatch(component, /sessionStorage/);
 assert.doesNotMatch(component, /INTRO_STORAGE_KEY/);
@@ -83,6 +91,7 @@ assert.match(globals, /\.frozen-intro-overlay/);
 assert.match(globals, /\.frozen-intro-overlay--showing/);
 assert.match(globals, /\.frozen-intro-overlay--leaving/);
 assert.match(globals, /\.frozen-intro-video/);
+assert.match(globals, /\.frozen-intro-sound/);
 assert.match(globals, /\.frozen-intro-vignette/);
 assert.match(globals, /\.frozen-intro-brand/);
 assert.match(globals, /100lvh/);
@@ -95,5 +104,14 @@ assert.doesNotMatch(globals, /\.frozen-intro-particle/);
 assert.match(globals, /\.reveal-item/);
 assert.match(globals, /\.boss-reveal-item/);
 assert.match(globals, /prefers-reduced-motion: reduce/);
+
+assert.match(renderPs1, /"-map", "0:a:0\?"/);
+assert.match(renderPs1, /"-c:a", "libopus"/);
+assert.match(renderPs1, /"-c:a", "aac"/);
+assert.doesNotMatch(renderPs1, /"-an"/);
+assert.match(renderSh, /-map '0:a:0\?'/);
+assert.match(renderSh, /-c:a libopus/);
+assert.match(renderSh, /-c:a aac/);
+assert.doesNotMatch(renderSh, / -an\b/);
 
 console.log("frozen-intro source tests passed");

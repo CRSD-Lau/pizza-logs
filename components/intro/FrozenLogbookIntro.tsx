@@ -1,6 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { Volume2, VolumeX } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 
 export const INTRO_DURATION_MS = 8400;
@@ -76,8 +77,10 @@ function canPreferWebM() {
 }
 
 export function FrozenLogbookIntro() {
+  const videoRef = useRef<HTMLVideoElement>(null);
   const [phase, setPhase] = useState<IntroPhase>("hidden");
   const [reducedMotion, setReducedMotion] = useState(false);
+  const [soundEnabled, setSoundEnabled] = useState(false);
   const [variant, setVariant] = useState<IntroVariant>(INTRO_VARIANTS[INTRO_VARIANTS.length - 1]);
   const [preferWebM, setPreferWebM] = useState(true);
 
@@ -89,6 +92,23 @@ export function FrozenLogbookIntro() {
   const finishIntro = useCallback(() => {
     setPhase(current => current === "hidden" ? current : "leaving");
   }, []);
+
+  const toggleSound = useCallback(() => {
+    const next = !soundEnabled;
+    const video = videoRef.current;
+
+    setSoundEnabled(next);
+
+    if (video) {
+      video.muted = !next;
+      if (next) {
+        void video.play().catch(() => {
+          video.muted = true;
+          setSoundEnabled(false);
+        });
+      }
+    }
+  }, [soundEnabled]);
 
   useEffect(() => {
     const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -149,9 +169,10 @@ export function FrozenLogbookIntro() {
         />
       ) : (
         <video
+          ref={videoRef}
           className="frozen-intro-video"
           autoPlay
-          muted
+          muted={!soundEnabled}
           playsInline
           preload="auto"
           poster={variant.poster}
@@ -167,6 +188,20 @@ export function FrozenLogbookIntro() {
       )}
 
       <div className="frozen-intro-vignette" aria-hidden="true" />
+
+      {!reducedMotion && (
+        <Button
+          type="button"
+          size="sm"
+          variant="ghost"
+          className="frozen-intro-sound border-white/15 bg-black/45 text-white/80 backdrop-blur-md hover:border-school-frost/45 hover:text-white"
+          onClick={toggleSound}
+          aria-label={soundEnabled ? "Mute intro audio" : "Play intro audio"}
+          title={soundEnabled ? "Mute intro audio" : "Play intro audio"}
+        >
+          {soundEnabled ? <Volume2 size={16} aria-hidden="true" /> : <VolumeX size={16} aria-hidden="true" />}
+        </Button>
+      )}
 
       <Button
         type="button"

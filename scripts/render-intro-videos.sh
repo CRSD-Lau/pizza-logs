@@ -80,7 +80,8 @@ render_webm() {
   local crf="$3"
 
   "$FFMPEG_BIN" -y -i "$SOURCE_PATH" \
-    -an \
+    -map 0:v:0 \
+    -map '0:a:0?' \
     -vf "$filter" \
     -r 24 \
     -c:v libvpx-vp9 \
@@ -92,6 +93,10 @@ render_webm() {
     -row-mt 1 \
     -g 48 \
     -tile-columns 2 \
+    -c:a libopus \
+    -b:a 96k \
+    -ac 2 \
+    -shortest \
     "$ROOT/$output"
 }
 
@@ -101,7 +106,8 @@ render_mp4() {
   local crf="$3"
 
   "$FFMPEG_BIN" -y -i "$SOURCE_PATH" \
-    -an \
+    -map 0:v:0 \
+    -map '0:a:0?' \
     -vf "$filter" \
     -r 24 \
     -c:v libx264 \
@@ -113,6 +119,10 @@ render_mp4() {
     -g 48 \
     -keyint_min 48 \
     -sc_threshold 0 \
+    -c:a aac \
+    -b:a 128k \
+    -ac 2 \
+    -shortest \
     -movflags +faststart \
     "$ROOT/$output"
 }
