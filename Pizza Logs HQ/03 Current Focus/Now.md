@@ -17,7 +17,8 @@ Codex works on `codex-dev`, pushes `origin/codex-dev`, and opens PRs into `main`
 - Generated desktop and mobile posters.
 - Mirrored generated assets into `public/animations/` for Next.js static delivery.
 - Removed the obsolete `public/intro/` asset set.
-- Updated `FrozenLogbookIntro` to choose responsive video assets, preload the selected variant, prefer WebM, fall back to MP4, respect reduced motion, support skip, persist first-view completion in localStorage, and allow forced preview with `?intro=1`.
+- Updated `FrozenLogbookIntro` to choose responsive video assets, preload the selected variant, prefer WebM, fall back to MP4, respect reduced motion, support skip, play on full load/browser refresh, and stay dismissed during normal in-app navigation.
+- Removed the localStorage intro-viewed gate so refreshes can replay the intro while client-side navigation stays quiet.
 - Fixed a visual QA bug where Tailwind purged a dynamically composed overlay phase class; the component now uses static class strings.
 - Updated README, `docs/intro-animation.md`, `AGENTS.md`, `.gitignore`, and `tests/frozen-intro-source.test.ts`.
 - Updated `Pizza Logs HQ/09 Bugs and Blockers/Known Issues.md` with the resolved intro overlay purge issue.
@@ -31,7 +32,7 @@ Codex works on `codex-dev`, pushes `origin/codex-dev`, and opens PRs into `main`
 | Render scripts | DONE | `scripts/render-intro-videos.ps1`, `scripts/render-intro-videos.sh` |
 | Responsive assets | DONE | Root `animations/` plus `public/animations/` mirror |
 | Watermark crop validation | DONE | FFmpeg frame inspection passed |
-| Intro integration | DONE | Responsive video, preload, fallback, reduced motion, first-view persistence |
+| Intro integration | DONE | Responsive video, preload, fallback, reduced motion, refresh replay with quiet in-app navigation |
 | Obsolete still/old intro removal | DONE | Removed `public/intro/` |
 | Documentation update | DONE | README, docs, AGENTS, vault |
 | Source test | DONE | `tests/frozen-intro-source.test.ts` passed |

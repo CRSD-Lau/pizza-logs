@@ -44,7 +44,6 @@ for (const asset of expectedAssets) {
 }
 
 assert.match(component, /INTRO_DURATION_MS = 8400/);
-assert.match(component, /INTRO_STORAGE_KEY = "pizza-logs:intro-viewed:veo-v1"/);
 assert.match(component, /\/animations\/desktop\/intro-1080p\.webm/);
 assert.match(component, /\/animations\/desktop\/intro-1440p\.webm/);
 assert.match(component, /\/animations\/desktop\/intro-4k\.webm/);
@@ -60,9 +59,10 @@ assert.match(component, /\/animations\/mobile\/intro-mobile-1440x2560\.mp4/);
 assert.match(component, /\/animations\/posters\/desktop-poster\.jpg/);
 assert.match(component, /\/animations\/posters\/mobile-poster\.jpg/);
 assert.match(component, /canPlayType\("video\/webm; codecs=vp9"\)/);
-assert.match(component, /window\.localStorage\.setItem\(INTRO_STORAGE_KEY/);
-assert.match(component, /window\.localStorage\.getItem\(INTRO_STORAGE_KEY/);
-assert.match(component, /params\.get\("intro"\) === "1"/);
+assert.doesNotMatch(component, /localStorage/);
+assert.doesNotMatch(component, /sessionStorage/);
+assert.doesNotMatch(component, /INTRO_STORAGE_KEY/);
+assert.doesNotMatch(component, /params\.get\("intro"\)/);
 assert.match(component, /prefers-reduced-motion: reduce/);
 assert.match(component, /document\.createElement\("link"\)/);
 assert.match(component, /preload\.as = "video"/);

@@ -6,7 +6,6 @@ import { Button } from "@/components/ui/Button";
 export const INTRO_DURATION_MS = 8400;
 const INTRO_EXIT_MS = 650;
 const REDUCED_MOTION_DURATION_MS = 350;
-const INTRO_STORAGE_KEY = "pizza-logs:intro-viewed:veo-v1";
 const DESKTOP_POSTER = "/animations/posters/desktop-poster.jpg";
 const MOBILE_POSTER = "/animations/posters/mobile-poster.jpg";
 
@@ -76,27 +75,6 @@ function canPreferWebM() {
   return video.canPlayType("video/webm; codecs=vp9") !== "";
 }
 
-function markIntroViewed() {
-  try {
-    window.localStorage.setItem(INTRO_STORAGE_KEY, "1");
-  } catch {
-    // Storage can be unavailable in hardened browser modes. The intro still exits normally.
-  }
-}
-
-function hasViewedIntro() {
-  try {
-    return window.localStorage.getItem(INTRO_STORAGE_KEY) === "1";
-  } catch {
-    return false;
-  }
-}
-
-function shouldForceIntro() {
-  const params = new URLSearchParams(window.location.search);
-  return params.get("intro") === "1";
-}
-
 export function FrozenLogbookIntro() {
   const [phase, setPhase] = useState<IntroPhase>("hidden");
   const [reducedMotion, setReducedMotion] = useState(false);
@@ -109,16 +87,11 @@ export function FrozenLogbookIntro() {
     : "frozen-intro-overlay frozen-intro-overlay--leaving";
 
   const finishIntro = useCallback(() => {
-    markIntroViewed();
     setPhase(current => current === "hidden" ? current : "leaving");
   }, []);
 
   useEffect(() => {
     const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    const forceIntro = shouldForceIntro();
-
-    if (!forceIntro && hasViewedIntro()) return;
-
     const variantMedia = INTRO_VARIANTS
       .filter((source): source is IntroVariant & { media: string } => Boolean(source.media))
       .map(source => window.matchMedia(source.media));

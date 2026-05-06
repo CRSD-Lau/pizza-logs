@@ -60,7 +60,7 @@ On macOS/Linux:
 bash scripts/render-intro-videos.sh
 ```
 
-The scripts crop the bottom-right Veo watermark out of the frame, preserve 16:9 desktop and 9:16 mobile aspect ratios, remove audio, encode WebM/VP9 primary assets plus H.264 MP4 fallbacks, and regenerate posters. To preview the intro after it has been marked viewed in the browser, open the local app with `?intro=1`, for example `http://127.0.0.1:3001/?intro=1`.
+The scripts crop the bottom-right Veo watermark out of the frame, preserve 16:9 desktop and 9:16 mobile aspect ratios, remove audio, encode WebM/VP9 primary assets plus H.264 MP4 fallbacks, and regenerate posters. The intro plays on full page load or refresh, then stays dismissed during normal in-app link navigation.
 
 ## Main Routes
 

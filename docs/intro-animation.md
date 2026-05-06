@@ -52,4 +52,4 @@ No AI watermark removal is used.
 
 `components/intro/FrozenLogbookIntro.tsx` selects one responsive variant at runtime, prefers WebM/VP9 when supported, and falls back to MP4/H.264. The intro is muted, autoplaying, inline, and uses a poster while loading.
 
-The component respects `prefers-reduced-motion`, stores first-view completion in `localStorage`, and can be forced for preview with `?intro=1`.
+The component respects `prefers-reduced-motion`. It plays when the root layout mounts on a full page load or browser refresh, then stays dismissed during normal Next.js in-app link navigation because the root layout is not remounted.

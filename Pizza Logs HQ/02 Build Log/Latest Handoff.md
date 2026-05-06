@@ -54,7 +54,7 @@
 - The FFmpeg pipeline removes the bottom-right Veo watermark by cropping only; no AI watermark removal is used.
 - Replaced old `/intro/pizza-logs-cinematic-*` references with responsive `/animations/...` assets.
 - Intro runtime now selects one responsive variant, prefers WebM/VP9, falls back to H.264 MP4, uses posters, and preloads the selected video.
-- Intro now respects `prefers-reduced-motion`, stores first-view completion in `localStorage`, supports skip, and can be forced locally with `?intro=1`.
+- Intro now respects `prefers-reduced-motion`, supports skip, plays on full page load or browser refresh, and stays dismissed during normal in-app link navigation.
 - Removed obsolete `public/intro/` generated assets.
 - Updated README, `docs/intro-animation.md`, `AGENTS.md`, `.gitignore`, source tests, and vault notes.
 
@@ -64,7 +64,8 @@
 |---|---|
 | FFmpeg render script | Passed; all root and public animation variants generated |
 | Rendered frame inspection | Passed; watermark absent in desktop and mobile preview frames |
-| In-app browser preview at `http://127.0.0.1:3001/?intro=1` | Passed; video paints, skip fades out, localStorage prevents replay |
+| In-app browser preview | Passed; video paints and skip fades out |
+| Intro replay behavior | Passed; initial load shows intro, site link navigation does not replay it, browser refresh replays it |
 | `node node_modules\ts-node\dist\bin.js --project tsconfig.seed.json tests\frozen-intro-source.test.ts` | Passed |
 | `node node_modules\typescript\bin\tsc --noEmit` | Passed |
 | `node node_modules\eslint\bin\eslint.js . --max-warnings=0` | Passed |
