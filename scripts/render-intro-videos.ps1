@@ -98,7 +98,8 @@ function Render-WebM {
 
   Invoke-FFmpeg -Arguments @(
     "-y", "-i", $SourcePath,
-    "-an",
+    "-map", "0:v:0",
+    "-map", "0:a:0?",
     "-vf", $Filter,
     "-r", "24",
     "-c:v", "libvpx-vp9",
@@ -110,6 +111,10 @@ function Render-WebM {
     "-row-mt", "1",
     "-g", "48",
     "-tile-columns", "2",
+    "-c:a", "libopus",
+    "-b:a", "96k",
+    "-ac", "2",
+    "-shortest",
     (Join-Path $Root $Output)
   )
 }
@@ -123,7 +128,8 @@ function Render-Mp4 {
 
   Invoke-FFmpeg -Arguments @(
     "-y", "-i", $SourcePath,
-    "-an",
+    "-map", "0:v:0",
+    "-map", "0:a:0?",
     "-vf", $Filter,
     "-r", "24",
     "-c:v", "libx264",
@@ -135,6 +141,10 @@ function Render-Mp4 {
     "-g", "48",
     "-keyint_min", "48",
     "-sc_threshold", "0",
+    "-c:a", "aac",
+    "-b:a", "128k",
+    "-ac", "2",
+    "-shortest",
     "-movflags", "+faststart",
     (Join-Path $Root $Output)
   )

@@ -1,12 +1,12 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { Volume2, VolumeX } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 
 export const INTRO_DURATION_MS = 8400;
 const INTRO_EXIT_MS = 650;
 const REDUCED_MOTION_DURATION_MS = 350;
-const INTRO_STORAGE_KEY = "pizza-logs:intro-viewed:veo-v1";
 const DESKTOP_POSTER = "/animations/posters/desktop-poster.jpg";
 const MOBILE_POSTER = "/animations/posters/mobile-poster.jpg";
 
@@ -76,30 +76,11 @@ function canPreferWebM() {
   return video.canPlayType("video/webm; codecs=vp9") !== "";
 }
 
-function markIntroViewed() {
-  try {
-    window.localStorage.setItem(INTRO_STORAGE_KEY, "1");
-  } catch {
-    // Storage can be unavailable in hardened browser modes. The intro still exits normally.
-  }
-}
-
-function hasViewedIntro() {
-  try {
-    return window.localStorage.getItem(INTRO_STORAGE_KEY) === "1";
-  } catch {
-    return false;
-  }
-}
-
-function shouldForceIntro() {
-  const params = new URLSearchParams(window.location.search);
-  return params.get("intro") === "1";
-}
-
 export function FrozenLogbookIntro() {
+  const videoRef = useRef<HTMLVideoElement>(null);
   const [phase, setPhase] = useState<IntroPhase>("hidden");
   const [reducedMotion, setReducedMotion] = useState(false);
+  const [soundEnabled, setSoundEnabled] = useState(false);
   const [variant, setVariant] = useState<IntroVariant>(INTRO_VARIANTS[INTRO_VARIANTS.length - 1]);
   const [preferWebM, setPreferWebM] = useState(true);
 
@@ -109,16 +90,28 @@ export function FrozenLogbookIntro() {
     : "frozen-intro-overlay frozen-intro-overlay--leaving";
 
   const finishIntro = useCallback(() => {
-    markIntroViewed();
     setPhase(current => current === "hidden" ? current : "leaving");
   }, []);
 
+  const toggleSound = useCallback(() => {
+    const next = !soundEnabled;
+    const video = videoRef.current;
+
+    setSoundEnabled(next);
+
+    if (video) {
+      video.muted = !next;
+      if (next) {
+        void video.play().catch(() => {
+          video.muted = true;
+          setSoundEnabled(false);
+        });
+      }
+    }
+  }, [soundEnabled]);
+
   useEffect(() => {
     const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    const forceIntro = shouldForceIntro();
-
-    if (!forceIntro && hasViewedIntro()) return;
-
     const variantMedia = INTRO_VARIANTS
       .filter((source): source is IntroVariant & { media: string } => Boolean(source.media))
       .map(source => window.matchMedia(source.media));
@@ -176,9 +169,10 @@ export function FrozenLogbookIntro() {
         />
       ) : (
         <video
+          ref={videoRef}
           className="frozen-intro-video"
           autoPlay
-          muted
+          muted={!soundEnabled}
           playsInline
           preload="auto"
           poster={variant.poster}
@@ -194,6 +188,20 @@ export function FrozenLogbookIntro() {
       )}
 
       <div className="frozen-intro-vignette" aria-hidden="true" />
+
+      {!reducedMotion && (
+        <Button
+          type="button"
+          size="sm"
+          variant="ghost"
+          className="frozen-intro-sound border-white/15 bg-black/45 text-white/80 backdrop-blur-md hover:border-school-frost/45 hover:text-white"
+          onClick={toggleSound}
+          aria-label={soundEnabled ? "Mute intro audio" : "Play intro audio"}
+          title={soundEnabled ? "Mute intro audio" : "Play intro audio"}
+        >
+          {soundEnabled ? <Volume2 size={16} aria-hidden="true" /> : <VolumeX size={16} aria-hidden="true" />}
+        </Button>
+      )}
 
       <Button
         type="button"

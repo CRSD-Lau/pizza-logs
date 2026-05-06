@@ -60,7 +60,7 @@ On macOS/Linux:
 bash scripts/render-intro-videos.sh
 ```
 
-The scripts crop the bottom-right Veo watermark out of the frame, preserve 16:9 desktop and 9:16 mobile aspect ratios, remove audio, encode WebM/VP9 primary assets plus H.264 MP4 fallbacks, and regenerate posters. To preview the intro after it has been marked viewed in the browser, open the local app with `?intro=1`, for example `http://127.0.0.1:3001/?intro=1`.
+The scripts crop the bottom-right Veo watermark out of the frame, preserve 16:9 desktop and 9:16 mobile aspect ratios, retain source audio as WebM/Opus and MP4/AAC, encode WebM/VP9 primary assets plus H.264 MP4 fallbacks, and regenerate posters. The intro starts muted for autoplay compatibility, exposes a sound toggle, plays on full page load or refresh, then stays dismissed during normal in-app link navigation.
 
 ## Main Routes
 
@@ -141,6 +141,8 @@ npm run db:import-items
 No runtime Wowhead API dependency is used. Icons are loaded from static `wow.zamimg.com` URLs when an icon slug is available.
 
 ## Local Development
+
+For Windows CLI prerequisites, PATH repair, and repeatable local tooling checks, see [`docs/dev/TOOLING.md`](docs/dev/TOOLING.md).
 
 Prerequisites:
 

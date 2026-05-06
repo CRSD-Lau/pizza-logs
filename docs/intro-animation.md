@@ -39,6 +39,8 @@ bash scripts/render-intro-videos.sh
 
 Both scripts are safe to re-run. They remove only the known generated intro outputs, leave `animations/source/Veo.mp4` intact, and then regenerate all variants.
 
+The encoded videos preserve the source audio track. WebM outputs use Opus audio and MP4 outputs use AAC audio, while the runtime still starts muted so browsers allow autoplay.
+
 ## Framing
 
 The source video contains a Veo watermark in the bottom-right corner. The render pipeline removes it with cropping only:
@@ -50,6 +52,6 @@ No AI watermark removal is used.
 
 ## Runtime Behavior
 
-`components/intro/FrozenLogbookIntro.tsx` selects one responsive variant at runtime, prefers WebM/VP9 when supported, and falls back to MP4/H.264. The intro is muted, autoplaying, inline, and uses a poster while loading.
+`components/intro/FrozenLogbookIntro.tsx` selects one responsive variant at runtime, prefers WebM/VP9 when supported, and falls back to MP4/H.264. The intro is autoplaying, inline, starts muted for browser compatibility, offers a sound toggle, and uses a poster while loading.
 
-The component respects `prefers-reduced-motion`, stores first-view completion in `localStorage`, and can be forced for preview with `?intro=1`.
+The component respects `prefers-reduced-motion`. It plays when the root layout mounts on a full page load or browser refresh, then stays dismissed during normal Next.js in-app link navigation because the root layout is not remounted.

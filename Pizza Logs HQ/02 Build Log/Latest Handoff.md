@@ -54,9 +54,25 @@
 - The FFmpeg pipeline removes the bottom-right Veo watermark by cropping only; no AI watermark removal is used.
 - Replaced old `/intro/pizza-logs-cinematic-*` references with responsive `/animations/...` assets.
 - Intro runtime now selects one responsive variant, prefers WebM/VP9, falls back to H.264 MP4, uses posters, and preloads the selected video.
-- Intro now respects `prefers-reduced-motion`, stores first-view completion in `localStorage`, supports skip, and can be forced locally with `?intro=1`.
+- Intro videos now preserve audio tracks: Opus for WebM and AAC for MP4.
+- Intro now respects `prefers-reduced-motion`, supports skip and sound toggling, plays on full page load or browser refresh, and stays dismissed during normal in-app link navigation.
+- Intro brand text is larger and positioned about 15% down from the top while remaining horizontally centered.
 - Removed obsolete `public/intro/` generated assets.
 - Updated README, `docs/intro-animation.md`, `AGENTS.md`, `.gitignore`, source tests, and vault notes.
+
+## Windows Tooling Session
+
+- Audited Neil's local Windows development tooling from `C:\Projects\PizzaLogs`.
+- Confirmed GitHub CLI auth succeeds for `CRSD-Lau`; `origin` points to `https://github.com/CRSD-Lau/Pizza-Logs.git`; `codex-dev` tracks `origin/codex-dev`.
+- Confirmed the repo uses `package-lock.json`; clean installs should use `npm ci --legacy-peer-deps`.
+- Installed PowerShell 7.6.1 with WinGet.
+- Installed standalone `ripgrep`, `fd`, and `jq` with WinGet.
+- Prioritized WinGet package directories in User PATH so `rg` no longer resolves to the Codex app bundle that failed with `Access is denied`.
+- Added repeatable tooling scripts:
+  - `scripts/dev/setup-tooling.ps1`
+  - `scripts/dev/verify-tooling.ps1`
+- Added `docs/dev/TOOLING.md` and linked it from the README Local Development section.
+- Railway CLI is present, but this checkout is not linked; no Railway deploy or link was performed.
 
 ## Verification This Session
 
@@ -64,11 +80,14 @@
 |---|---|
 | FFmpeg render script | Passed; all root and public animation variants generated |
 | Rendered frame inspection | Passed; watermark absent in desktop and mobile preview frames |
-| In-app browser preview at `http://127.0.0.1:3001/?intro=1` | Passed; video paints, skip fades out, localStorage prevents replay |
+| FFprobe audio stream inspection | Passed; generated WebM and MP4 variants include audio streams |
+| In-app browser preview | Passed; video paints, skip fades out, and the audio toggle changes from play to mute |
+| Intro replay behavior | Passed; initial load shows intro, site link navigation does not replay it, browser refresh replays it |
 | `node node_modules\ts-node\dist\bin.js --project tsconfig.seed.json tests\frozen-intro-source.test.ts` | Passed |
 | `node node_modules\typescript\bin\tsc --noEmit` | Passed |
 | `node node_modules\eslint\bin\eslint.js . --max-warnings=0` | Passed |
 | `npm run build` from clean `.next` | Passed |
+| `powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\dev\verify-tooling.ps1` | Passed with 0 failures; 1 expected Railway-unlinked warning |
 
 ## Remaining Risks
 
@@ -77,6 +96,7 @@
 - Upload route still lacks hard server-side size enforcement.
 - PR Slack notifications still require `PR_SLACK_WEBHOOK_URL` in GitHub repository secrets, but missing configuration no longer fails PR checks.
 - Absorbs remain future parser work.
+- Railway CLI is installed locally but this checkout remains unlinked until Neil intentionally runs `railway link`.
 
 ## Exact Next Step
 
