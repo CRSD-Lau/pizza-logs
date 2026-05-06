@@ -60,6 +60,20 @@
 - Removed obsolete `public/intro/` generated assets.
 - Updated README, `docs/intro-animation.md`, `AGENTS.md`, `.gitignore`, source tests, and vault notes.
 
+## Windows Tooling Session
+
+- Audited Neil's local Windows development tooling from `C:\Projects\PizzaLogs`.
+- Confirmed GitHub CLI auth succeeds for `CRSD-Lau`; `origin` points to `https://github.com/CRSD-Lau/Pizza-Logs.git`; `codex-dev` tracks `origin/codex-dev`.
+- Confirmed the repo uses `package-lock.json`; clean installs should use `npm ci --legacy-peer-deps`.
+- Installed PowerShell 7.6.1 with WinGet.
+- Installed standalone `ripgrep`, `fd`, and `jq` with WinGet.
+- Prioritized WinGet package directories in User PATH so `rg` no longer resolves to the Codex app bundle that failed with `Access is denied`.
+- Added repeatable tooling scripts:
+  - `scripts/dev/setup-tooling.ps1`
+  - `scripts/dev/verify-tooling.ps1`
+- Added `docs/dev/TOOLING.md` and linked it from the README Local Development section.
+- Railway CLI is present, but this checkout is not linked; no Railway deploy or link was performed.
+
 ## Verification This Session
 
 | Check | Result |
@@ -73,6 +87,7 @@
 | `node node_modules\typescript\bin\tsc --noEmit` | Passed |
 | `node node_modules\eslint\bin\eslint.js . --max-warnings=0` | Passed |
 | `npm run build` from clean `.next` | Passed |
+| `powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\dev\verify-tooling.ps1` | Passed with 0 failures; 1 expected Railway-unlinked warning |
 
 ## Remaining Risks
 
@@ -81,6 +96,7 @@
 - Upload route still lacks hard server-side size enforcement.
 - PR Slack notifications still require `PR_SLACK_WEBHOOK_URL` in GitHub repository secrets, but missing configuration no longer fails PR checks.
 - Absorbs remain future parser work.
+- Railway CLI is installed locally but this checkout remains unlinked until Neil intentionally runs `railway link`.
 
 ## Exact Next Step
 

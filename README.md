@@ -142,6 +142,8 @@ No runtime Wowhead API dependency is used. Icons are loaded from static `wow.zam
 
 ## Local Development
 
+For Windows CLI prerequisites, PATH repair, and repeatable local tooling checks, see [`docs/dev/TOOLING.md`](docs/dev/TOOLING.md).
+
 Prerequisites:
 
 - Node.js 22+
