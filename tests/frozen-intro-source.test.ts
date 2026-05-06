@@ -94,6 +94,8 @@ assert.match(globals, /\.frozen-intro-video/);
 assert.match(globals, /\.frozen-intro-sound/);
 assert.match(globals, /\.frozen-intro-vignette/);
 assert.match(globals, /\.frozen-intro-brand/);
+assert.match(globals, /top: 15%/);
+assert.match(globals, /font-size: clamp\(2\.7rem, calc\(6vw \+ 0\.5rem\), 5\.65rem\)/);
 assert.match(globals, /100lvh/);
 assert.match(globals, /transition: opacity 650ms ease/);
 assert.match(globals, /frozenIntroBrand 8\.4s/);

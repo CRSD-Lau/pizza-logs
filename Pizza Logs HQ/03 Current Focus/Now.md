@@ -19,6 +19,7 @@ Codex works on `codex-dev`, pushes `origin/codex-dev`, and opens PRs into `main`
 - Removed the obsolete `public/intro/` asset set.
 - Updated the render pipeline to preserve audio tracks as WebM/Opus and MP4/AAC.
 - Updated `FrozenLogbookIntro` to choose responsive video assets, preload the selected variant, prefer WebM, fall back to MP4, respect reduced motion, support skip and sound toggling, play on full load/browser refresh, and stay dismissed during normal in-app navigation.
+- Adjusted the intro brand text to render larger and sit about 15% down from the top, centered horizontally.
 - Removed the localStorage intro-viewed gate so refreshes can replay the intro while client-side navigation stays quiet.
 - Fixed a visual QA bug where Tailwind purged a dynamically composed overlay phase class; the component now uses static class strings.
 - Updated README, `docs/intro-animation.md`, `AGENTS.md`, `.gitignore`, and `tests/frozen-intro-source.test.ts`.

@@ -56,6 +56,7 @@
 - Intro runtime now selects one responsive variant, prefers WebM/VP9, falls back to H.264 MP4, uses posters, and preloads the selected video.
 - Intro videos now preserve audio tracks: Opus for WebM and AAC for MP4.
 - Intro now respects `prefers-reduced-motion`, supports skip and sound toggling, plays on full page load or browser refresh, and stays dismissed during normal in-app link navigation.
+- Intro brand text is larger and positioned about 15% down from the top while remaining horizontally centered.
 - Removed obsolete `public/intro/` generated assets.
 - Updated README, `docs/intro-animation.md`, `AGENTS.md`, `.gitignore`, source tests, and vault notes.
 
