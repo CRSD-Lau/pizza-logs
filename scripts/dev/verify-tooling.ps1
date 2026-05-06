@@ -70,7 +70,8 @@ function Test-Tool {
     [string]$CommandName,
     [string[]]$VersionArgs = @("--version"),
     [switch]$Critical,
-    [switch]$Native
+    [switch]$Native,
+    [switch]$PresenceOnly
   )
 
   if (-not $CommandName) {
@@ -87,7 +88,7 @@ function Test-Tool {
     return [pscustomobject]@{ Name = $Name; Found = $false; Source = $null; Version = $null; Critical = [bool]$Critical }
   }
 
-  $version = Get-VersionText -Command $CommandName -Arguments $VersionArgs
+  $version = if ($PresenceOnly) { "present" } else { Get-VersionText -Command $CommandName -Arguments $VersionArgs }
   Add-Ok "$Name -> $($cmd.Source) :: $version"
   return [pscustomobject]@{ Name = $Name; Found = $true; Source = $cmd.Source; Version = $version; Critical = [bool]$Critical }
 }
@@ -120,7 +121,7 @@ $toolResults += Test-Tool -Name "yarn"
 $toolResults += Test-Tool -Name "vercel"
 $toolResults += Test-Tool -Name "codex"
 $toolResults += Test-Tool -Name "code"
-$toolResults += Test-Tool -Name "wt"
+$toolResults += Test-Tool -Name "wt" -PresenceOnly
 
 Write-Host ""
 Write-Host "Package managers"

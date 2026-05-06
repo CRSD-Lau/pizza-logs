@@ -59,6 +59,8 @@ Optional but useful tools checked by verification:
 - `code`
 - `wt`
 
+`wt` is verified by PATH presence only. Windows Terminal opens a GUI Help/About dialog for some version-style invocations, so the verification script intentionally does not run `wt --version`.
+
 ## Current Audit Snapshot
 
 As of the local audit on 2026-05-06:
