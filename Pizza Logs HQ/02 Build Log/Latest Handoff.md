@@ -26,6 +26,7 @@
 ## Current Implementation Snapshot
 
 - Next.js app has public pages for upload, raids, sessions, encounters, bosses, leaderboards, players, guild roster, and weekly stats.
+- `/guild-roster` now keeps the roster table contained to 20 members per page, with URL-backed page navigation in the table footer.
 - GitHub Actions posts new, reopened, and ready-for-review PR summaries to Slack when `PR_SLACK_WEBHOOK_URL` is configured; if the secret is missing, the workflow warns and exits successfully.
 - `/uploads` and `/uploads/[id]` redirect to admin upload history; public raid/session pages use `/raids/...`.
 - `/admin`, `/admin/uploads`, cleanup actions, and admin import APIs are protected by `ADMIN_SECRET`.
@@ -60,6 +61,14 @@
 - Removed obsolete `public/intro/` generated assets.
 - Updated README, `docs/intro-animation.md`, `AGENTS.md`, `.gitignore`, source tests, and vault notes.
 
+## Guild Roster Pagination Session
+
+- Updated the public guild roster page to read `?page=` and pass the current page into the roster table.
+- Limited the roster table to 20 visible members per page.
+- Kept the table inside a bordered panel with a footer navigator in the bottom-right area.
+- Added previous/next icon navigation with accessible labels and stable `/guild-roster?page=N` links.
+- Updated the guild roster render test to prove page 1 shows rows 1-20 and page 2 shows rows 21-25 for a 25-member roster.
+
 ## Windows Tooling Session
 
 - Audited Neil's local Windows development tooling from `C:\Projects\PizzaLogs`.
@@ -92,6 +101,11 @@
 | `npm run build` from clean `.next` | Passed |
 | `powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\dev\verify-tooling.ps1` | Passed with 0 failures; 1 expected Railway-unlinked warning |
 | `git diff --check` after Slack workflow formatting cleanup | Passed |
+| Guild roster render test with JSX-aware `ts-node` registration | Passed |
+| `node node_modules\typescript\bin\tsc --noEmit` | Passed |
+| `node node_modules\eslint\bin\eslint.js . --max-warnings=0` | Passed |
+| `npm run build` | Passed |
+| Local `GET http://127.0.0.1:3001/guild-roster?page=2` | Passed with HTTP 200 after dev server compile |
 
 ## Remaining Risks
 
@@ -105,4 +119,4 @@
 
 ## Exact Next Step
 
-Open/review the docs-only PR notification test from `codex-dev` into `main` and confirm the Slack webhook posts to the configured channel. Neil merges into `main` only after review; Codex does not merge or push `main` directly.
+Review the `codex-dev` to `main` PR after the guild roster pagination commit is pushed. Neil merges into `main` only after review; Codex does not merge or push `main` directly.
