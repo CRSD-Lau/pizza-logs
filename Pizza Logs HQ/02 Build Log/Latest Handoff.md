@@ -19,6 +19,7 @@
 - GitHub CLI executable: `C:\Program Files\GitHub CLI\gh.exe`
 - Parser correctness remains the highest-risk area.
 - README now includes a high-resolution app preview captured from a fresh local Next server on `http://127.0.0.1:3004`.
+- README now links to the GitHub wiki, and the wiki has been refreshed for current upload, roster, gear, parser, roadmap, and branch workflow details.
 - Local repo-root launchers:
   - `C:\Projects\PizzaLogs\Start Pizza Logs Local.cmd`
   - `C:\Projects\PizzaLogs\Stop Pizza Logs Local.cmd`
@@ -91,6 +92,7 @@
 
 | Check | Result |
 |---|---|
+| README and wiki wording scan | Passed for updated public docs; no em dashes or AI-obvious wording patterns found |
 | Local README screenshot capture | Passed from fresh Next dev server on `http://127.0.0.1:3004`; parser service was listening on `127.0.0.1:8000` |
 | FFmpeg render script | Passed; all root and public animation variants generated |
 | Rendered frame inspection | Passed; watermark absent in desktop and mobile preview frames |
