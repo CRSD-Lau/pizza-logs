@@ -4,6 +4,8 @@
 
 The current session added guild roster pagination so the public roster shows 20 members per page inside a contained table panel. Parser reliability remains the highest-risk product area, but no parser code changed in this session.
 
+README visual refresh: added a high-resolution `docs/assets/readme-screenshot.png` preview to the public README. The screenshot was captured from a fresh local Next dev server on `http://127.0.0.1:3004` while the parser service was listening on `127.0.0.1:8000`.
+
 ## Current Branch Rule
 
 Codex works on `codex-dev`, pushes `origin/codex-dev`, and opens PRs into `main`. Codex does not push or merge `main` directly.
@@ -71,6 +73,7 @@ Codex works on `codex-dev`, pushes `origin/codex-dev`, and opens PRs into `main`
 | Guild roster 20-member pages | DONE | `/guild-roster?page=N` controls the visible roster slice |
 | Roster table footer navigator | DONE | Previous/next icon links render in the table container footer |
 | Guild roster render coverage | DONE | Test covers page 1 and page 2 slicing |
+| README app preview | DONE | Added `docs/assets/readme-screenshot.png` and linked it from `README.md` |
 
 ## Open Follow-Ups
 
