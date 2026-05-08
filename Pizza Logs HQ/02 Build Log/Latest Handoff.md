@@ -2,7 +2,7 @@
 
 ## Date
 
-2026-05-06
+2026-05-08
 
 ## Branch
 
@@ -18,6 +18,7 @@
 - Local Git executable fallback: `C:\Program Files\Git\cmd\git.exe`
 - GitHub CLI executable: `C:\Program Files\GitHub CLI\gh.exe`
 - Parser correctness remains the highest-risk area.
+- README now includes a high-resolution app preview captured from a fresh local Next server on `http://127.0.0.1:3004`.
 - Local repo-root launchers:
   - `C:\Projects\PizzaLogs\Start Pizza Logs Local.cmd`
   - `C:\Projects\PizzaLogs\Stop Pizza Logs Local.cmd`
@@ -90,6 +91,7 @@
 
 | Check | Result |
 |---|---|
+| Local README screenshot capture | Passed from fresh Next dev server on `http://127.0.0.1:3004`; parser service was listening on `127.0.0.1:8000` |
 | FFmpeg render script | Passed; all root and public animation variants generated |
 | Rendered frame inspection | Passed; watermark absent in desktop and mobile preview frames |
 | FFprobe audio stream inspection | Passed; generated WebM and MP4 variants include audio streams |
