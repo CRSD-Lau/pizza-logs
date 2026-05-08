@@ -4,6 +4,8 @@ Pizza Logs is a Warmane / WotLK 3.3.5a combat-log parser and leaderboard app for
 
 Live app: https://pizza-logs-production.up.railway.app
 
+Wiki: https://github.com/CRSD-Lau/Pizza-Logs/wiki
+
 ## App Preview
 
 ![Pizza Logs upload dashboard screenshot](docs/assets/readme-screenshot.png)

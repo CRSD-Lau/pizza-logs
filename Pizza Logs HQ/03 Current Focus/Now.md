@@ -6,6 +6,8 @@ The current session added guild roster pagination so the public roster shows 20 
 
 README visual refresh: added a high-resolution `docs/assets/readme-screenshot.png` preview to the public README. The screenshot was captured from a fresh local Next dev server on `http://127.0.0.1:3004` while the parser service was listening on `127.0.0.1:8000`.
 
+Documentation metadata refresh: the README now links to the GitHub wiki, and the wiki has been rewritten with current upload, roster, gear, parser, roadmap, and branch workflow details.
+
 ## Current Branch Rule
 
 Codex works on `codex-dev`, pushes `origin/codex-dev`, and opens PRs into `main`. Codex does not push or merge `main` directly.
@@ -74,6 +76,7 @@ Codex works on `codex-dev`, pushes `origin/codex-dev`, and opens PRs into `main`
 | Roster table footer navigator | DONE | Previous/next icon links render in the table container footer |
 | Guild roster render coverage | DONE | Test covers page 1 and page 2 slicing |
 | README app preview | DONE | Added `docs/assets/readme-screenshot.png` and linked it from `README.md` |
+| README and wiki metadata refresh | DONE | Updated public README link and GitHub wiki content |
 
 ## Open Follow-Ups
 
