@@ -48,6 +48,7 @@ No confirmed app-breaking bugs are active as of the documentation audit.
 | Local `rg` resolved to Codex app bundle and failed with Access denied | Installed standalone `ripgrep` with WinGet and prioritized its package directory in User PATH via `scripts/dev/setup-tooling.ps1` |
 | PR Slack message read like a raw dump | Reworked Slack blocks into a compact header, metadata fields, trimmed description, and cleaner changed-file list |
 | PR description headings showed unsupported Slack markdown | Added markdown normalization so GitHub headings become Slack bold labels |
+| Local and production Warmane userscripts shared the same saved admin secret | Gear `1.7.1` and roster `1.0.5` now use target-specific localStorage keys, show the target host, and clear the legacy shared key on unauthorized responses |
 
 ## Not Bugs
 

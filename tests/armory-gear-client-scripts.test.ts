@@ -34,9 +34,15 @@ assert.match(localUserscript, new RegExp(`// @downloadURL\\s+${LOCAL_USERSCRIPT_
 assert.match(localUserscript, new RegExp(`// @updateURL\\s+${LOCAL_USERSCRIPT_URL.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}`));
 assert.match(localUserscript, new RegExp(`const pizzaLogsOrigin = "${PIZZA_LOGS_LOCAL_ORIGIN.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}";`));
 assert.match(localUserscript, /\/api\/admin\/armory-gear\/import/);
-assert.match(userscript, /\/\/ @version\s+1\.7\.0/);
+assert.match(userscript, /\/\/ @version\s+1\.7\.1/);
 assert.match(userscript, /\/\/ @match\s+https:\/\/armory\.warmane\.com\/character\/\*/);
 assert.match(userscript, /\/\/ @match\s+http:\/\/armory\.warmane\.com\/character\/\*/);
+assert.match(userscript, new RegExp(`pizzaLogsAdminSecret:${PIZZA_LOGS_ORIGIN.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}`));
+assert.match(localUserscript, new RegExp(`pizzaLogsAdminSecret:${PIZZA_LOGS_LOCAL_ORIGIN.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}`));
+assert.doesNotMatch(localUserscript, new RegExp(`pizzaLogsAdminSecret:${PIZZA_LOGS_ORIGIN.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}`));
+assert.match(localUserscript, /const targetLabel = "127\.0\.0\.1:3001"/);
+assert.match(localUserscript, /target\.textContent = `Target: \$\{targetLabel\}`/);
+assert.match(localUserscript, /Admin secret rejected by \$\{targetLabel\}/);
 assert.match(userscript, /isCharacterPage/);
 assert.match(userscript, /mergePageIconsIntoWarmaneData/);
 assert.match(userscript, /readPageItemIcons/);
@@ -60,8 +66,8 @@ async function verifyUserscriptMergesDomIconFallback() {
   const pending: Promise<unknown>[] = [];
   const importBodies: Array<{ equipment?: Array<{ item?: string; iconUrl?: string }> }> = [];
   const storage = new Map<string, string>([
-    ["pizzaLogsAdminSecret", "secret"],
-    ["pizzaLogsLastGearSyncAt", "0"],
+    [`pizzaLogsAdminSecret:${PIZZA_LOGS_ORIGIN}`, "secret"],
+    [`pizzaLogsLastGearSyncAt:${PIZZA_LOGS_ORIGIN}`, "0"],
   ]);
 
   const context = {
@@ -137,8 +143,8 @@ async function verifyUserscriptFetchesQueuedPlayerPageIcons() {
   const pending: Promise<unknown>[] = [];
   const importBodies: Array<{ equipment?: Array<{ item?: string; iconUrl?: string }> }> = [];
   const storage = new Map<string, string>([
-    ["pizzaLogsAdminSecret", "secret"],
-    ["pizzaLogsLastGearSyncAt", "0"],
+    [`pizzaLogsAdminSecret:${PIZZA_LOGS_ORIGIN}`, "secret"],
+    [`pizzaLogsLastGearSyncAt:${PIZZA_LOGS_ORIGIN}`, "0"],
   ]);
 
   const makeIconDocument = () => ({

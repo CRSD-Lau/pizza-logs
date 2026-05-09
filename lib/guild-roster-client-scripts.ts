@@ -15,12 +15,15 @@ type GuildRosterUserscriptOptions = {
 };
 
 function buildRosterScriptBody(autoRun: boolean, pizzaLogsOrigin = PIZZA_LOGS_ORIGIN): string {
+  const targetLabel = new URL(pizzaLogsOrigin).host;
   const script = function pizzaLogsRosterSync() {
     const pizzaLogsOrigin = "__PIZZA_LOGS_ORIGIN__";
+    const targetLabel = "__PIZZA_LOGS_TARGET__";
     const guildName = "__DISPLAY_GUILD_NAME__";
     const warmaneGuildName = "__WARMANE_GUILD_NAME__";
     const realm = "__WARMANE_REALM__";
-    const secretKey = "pizzaLogsAdminSecret";
+    const legacySecretKey = "pizzaLogsAdminSecret";
+    const secretKey = "pizzaLogsAdminSecret:__PIZZA_LOGS_ORIGIN__";
 
     if (location.hostname !== "armory.warmane.com") {
       alert("Pizza Logs: open Warmane Armory first, then run the roster importer.");
@@ -114,8 +117,13 @@ function buildRosterScriptBody(autoRun: boolean, pizzaLogsOrigin = PIZZA_LOGS_OR
         setStatus(`Imported ${result.count} roster ${result.count === 1 ? "member" : "members"}.`);
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error);
-        if (message === "Unauthorized.") localStorage.removeItem(secretKey);
-        setStatus(`Roster sync failed: ${message}`);
+        if (message === "Unauthorized.") {
+          localStorage.removeItem(secretKey);
+          localStorage.removeItem(legacySecretKey);
+          setStatus(`Admin secret rejected by ${targetLabel}. Click Sync roster and enter the matching secret.`);
+        } else {
+          setStatus(`Roster sync failed: ${message}`);
+        }
       } finally {
         state.running = false;
         if (state.button) state.button.disabled = false;
@@ -149,6 +157,10 @@ function buildRosterScriptBody(autoRun: boolean, pizzaLogsOrigin = PIZZA_LOGS_OR
       title.textContent = "Pizza Logs Roster Sync";
       title.style.cssText = "font-weight:700;color:#f1d36b;margin-bottom:6px";
 
+      const target = document.createElement("div");
+      target.textContent = `Target: ${targetLabel}`;
+      target.style.cssText = "font-size:11px;color:#8f836b;margin-bottom:8px";
+
       const status = document.createElement("div");
       status.textContent = "Open the Pizza Warriors guild page, then click Sync roster.";
       status.style.cssText = "line-height:1.35;color:#b8aa8c;margin-bottom:10px";
@@ -173,10 +185,11 @@ function buildRosterScriptBody(autoRun: boolean, pizzaLogsOrigin = PIZZA_LOGS_OR
       reset.style.cssText = "margin-top:8px;width:100%;border:0;background:transparent;color:#8f836b;cursor:pointer";
       reset.addEventListener("click", () => {
         localStorage.removeItem(secretKey);
+        localStorage.removeItem(legacySecretKey);
         setStatus("Secret cleared. Click Sync roster to enter it again.");
       });
 
-      panel.append(title, status, button, reset);
+      panel.append(title, target, status, button, reset);
       document.body.appendChild(panel);
       state.panel = panel;
       state.status = status;
@@ -192,7 +205,8 @@ function buildRosterScriptBody(autoRun: boolean, pizzaLogsOrigin = PIZZA_LOGS_OR
   };
 
   return `(${script.toString()
-    .replace("__PIZZA_LOGS_ORIGIN__", pizzaLogsOrigin)
+    .replaceAll("__PIZZA_LOGS_ORIGIN__", pizzaLogsOrigin)
+    .replaceAll("__PIZZA_LOGS_TARGET__", targetLabel)
     .replaceAll("__DISPLAY_GUILD_NAME__", DISPLAY_GUILD_NAME)
     .replaceAll("__WARMANE_GUILD_NAME__", WARMANE_GUILD_NAME)
     .replaceAll("__WARMANE_REALM__", WARMANE_REALM)
@@ -215,7 +229,7 @@ export function buildGuildRosterUserscript(options: GuildRosterUserscriptOptions
     "// ==UserScript==",
     `// @name         Pizza Logs Warmane Guild Roster Sync${nameSuffix}`,
     `// @namespace    ${pizzaLogsOrigin}`,
-    "// @version      1.0.4",
+    "// @version      1.0.5",
     "// @description  Sync Pizza Logs guild roster from Warmane Armory in-browser.",
     "// @match        https://armory.warmane.com/guild/*",
     "// @match        http://armory.warmane.com/guild/*",
