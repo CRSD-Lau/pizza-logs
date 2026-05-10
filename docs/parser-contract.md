@@ -99,17 +99,19 @@ Warmane may emit difficultyID=4 (25N) for heroic runs. Proceed to Step 2.
 
 ### Step 2: Heroic spell markers (applied even when ENCOUNTER_START present)
 
-If any of the following spell names appear in the segment AND difficulty is currently
-`10N` or `25N`, upgrade to `10H` or `25H`:
+If any of the following boss-specific spell names or spell IDs appear in the
+segment AND difficulty is currently `10N` or `25N`, upgrade to `10H` or `25H`:
 
-| Spell | Boss | Source |
+| Marker | Boss | Source |
 |---|---|---|
 | Bone Slice | Lord Marrowgar (ICC) | Skada — heroic-only multi-target cleave |
-| Rune of Blood | Deathbringer Saurfang (ICC) | Skada — heroic-only debuff |
+| Scent of Blood spell IDs 72769 / 72771 | Deathbringer Saurfang (ICC) | Heroic-only Blood Beast mechanic; ID-based to avoid Death Knight spell-name collisions |
+| Twisted Nightmares spell IDs 71940 / 71941 or name | Valithria Dreamwalker (ICC) | Heroic replacement for Emerald Vigor |
 | Pact of the Darkfallen | Blood-Queen Lana'thel (ICC) | Skada — heroic-only group link |
 | Unbound Plague | Professor Putricide (ICC) | Skada — heroic-only spreading debuff |
 
 **Excluded markers** (appear in 10N on Warmane, cannot be used as heroic indicators):
+- Rune of Blood (Deathbringer Saurfang)
 - Backlash (Sindragosa)
 - Empowered Shock Vortex / Empowered Shadow Lance / Empowered Blood (Blood Prince Council)
 

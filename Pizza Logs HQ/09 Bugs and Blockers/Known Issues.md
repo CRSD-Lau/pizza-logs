@@ -42,6 +42,7 @@ No confirmed app-breaking bugs are active as of the documentation audit.
 | Parser `/parse-stream` accepted unsupported filenames | Added `.txt`/`.log` filename validation before temp-file handling |
 | Short explicit marker pulls could be discarded | Marker-based encounters now bypass the heuristic minimum-event floor |
 | Heroic wipes could promote later normal kills | Non-Gunship `25N` pulls no longer inherit heroic solely from same-session evidence |
+| Saurfang/Valithria heroic labels drifted on mixed ICC raids | Removed normal-mode `Rune of Blood` as a Saurfang heroic marker, added ID-based Saurfang `Scent of Blood`, and added Valithria `Twisted Nightmares` heroic detection |
 | Cinematic intro overlay existed but stayed invisible | Replaced dynamically composed Tailwind phase class with static class strings so `frozen-intro-overlay--showing` is emitted |
 | Cinematic intro audio was missing | Render scripts preserve audio tracks, and the intro overlay now has a sound toggle while still starting muted for autoplay |
 | Missing PR Slack webhook failed PR checks | Workflow now warns and exits successfully when `PR_SLACK_WEBHOOK_URL` is absent |

@@ -28,24 +28,34 @@ from combat_metrics import (
 
 # ── Constants ─────────────────────────────────────────────────────
 
-# Spell names that only appear in heroic difficulty encounters.
+# Spell names that only appear in heroic difficulty encounters, keyed by boss.
 # Used to upgrade "25N"/"10N" to "25H"/"10H" — runs regardless of whether
 # ENCOUNTER_START is present, because Warmane emits difficultyID=4 (25N) for heroic runs.
-HEROIC_SPELL_MARKERS: frozenset[str] = frozenset({
+HEROIC_SPELL_NAME_MARKERS_BY_BOSS: dict[str, frozenset[str]] = {
     # Lord Marrowgar (ICC) — multi-target cleave only present in heroic
-    "bone slice",
-    # Deathbringer Saurfang (ICC) — heroic debuff DoT
-    "rune of blood",
+    "lord marrowgar": frozenset({"bone slice"}),
+    # Valithria Dreamwalker (ICC) — heroic replacement for Emerald Vigor
+    "valithria dreamwalker": frozenset({"twisted nightmares"}),
     # Blood-Queen Lana'thel (ICC) — heroic group link mechanic
-    "pact of the darkfallen",
+    "blood-queen lana'thel": frozenset({"pact of the darkfallen"}),
     # Professor Putricide (ICC) — spreads between players in heroic only
-    "unbound plague",
+    "professor putricide": frozenset({"unbound plague"}),
     # NOTE: "backlash" (Sindragosa) and "empowered shock vortex" / "empowered shadow lance" /
     # "empowered blood" (Blood Prince Council) are intentionally EXCLUDED here.
     # On Warmane these spells also appear in 10N, so they cannot be used as heroic-exclusive
     # markers.  Sindragosa and BPC without direct heroic evidence stay normal rather
     # than inheriting heroic state from another pull in the same session.
-})
+}
+
+# Spell IDs for heroic markers where name-only matching is unsafe. Death Knights
+# also have a "Scent of Blood" talent/proc, so Saurfang detection uses boss spell
+# IDs instead of the shared spell name.
+HEROIC_SPELL_ID_MARKERS_BY_BOSS: dict[str, frozenset[int]] = {
+    # Deathbringer Saurfang (ICC) — heroic Blood Beast raid slow/damage buff
+    "deathbringer saurfang": frozenset({72769, 72771}),
+    # Valithria Dreamwalker (ICC) — aura plus triggered periodic damage
+    "valithria dreamwalker": frozenset({71940, 71941}),
+}
 
 # Gunship Battle: Warmane emits ENCOUNTER_END success=0 even on a genuine kill
 # (the fight ends via scripted ship destruction, not a boss UNIT_DIED).
@@ -731,20 +741,13 @@ class CombatLogParser:
 
         # Heroic upgrade: run even when ENCOUNTER_START was present, because Warmane
         # (and many WotLK private servers) emit difficultyID=4 (25N) for heroic runs.
-        # HEROIC_SPELL_MARKERS contains spells that only appear in heroic difficulty.
+        # Heroic marker constants contain spells that only appear in heroic difficulty.
         # If the difficulty was correctly set to H via difficultyID, the replace() is a no-op.
-        if difficulty in ("10N", "25N") and self._detect_heroic(segment):
+        heroic_markers_found = self._find_heroic_markers(segment, boss_name)
+        if difficulty in ("10N", "25N") and heroic_markers_found:
             difficulty = difficulty.replace("N", "H")
             if debug and difficulty != _debug_difficulty_raw:
-                for _, _mp, _ in segment:
-                    if _mp[0] == "SWING_DAMAGE" or _mp[0] == UNIT_DIED_EVENT:
-                        continue
-                    if len(_mp) > 8:
-                        spell = _mp[8].strip('"').strip().lower()
-                        if spell in HEROIC_SPELL_MARKERS:
-                            marker = _mp[8].strip('"').strip()
-                            if marker not in _debug_markers:
-                                _debug_markers.append(marker)
+                _debug_markers = heroic_markers_found
 
         if not boss_name:
             if debug:
@@ -1106,16 +1109,38 @@ class CombatLogParser:
             return 10, "10N"
         return 25, "25N"
 
-    def _detect_heroic(self, segment: list[tuple[str, list[str], float]]) -> bool:
-        """Return True if any heroic-only spell marker appears in the segment."""
+    def _find_heroic_markers(
+        self,
+        segment: list[tuple[str, list[str], float]],
+        boss_name: Optional[str],
+    ) -> list[str]:
+        """Return heroic-only marker names found in a boss-specific segment."""
+        if not boss_name:
+            return []
+        boss_key = boss_name.lower()
+        name_markers: set[str] = set()
+        id_markers: set[int] = set()
+        for marker_boss, markers in HEROIC_SPELL_NAME_MARKERS_BY_BOSS.items():
+            if marker_boss in boss_key:
+                name_markers.update(markers)
+        for marker_boss, markers in HEROIC_SPELL_ID_MARKERS_BY_BOSS.items():
+            if marker_boss in boss_key:
+                id_markers.update(markers)
+        if not name_markers and not id_markers:
+            return []
+
+        found: list[str] = []
         for _, parts, _ in segment:
             if parts[0] == "SWING_DAMAGE" or parts[0] == UNIT_DIED_EVENT:
                 continue
             if len(parts) > 8:
+                spell_id = _safe_int(parts[7])
                 spell = parts[8].strip('"').strip().lower()
-                if spell in HEROIC_SPELL_MARKERS:
-                    return True
-        return False
+                if spell in name_markers or spell_id in id_markers:
+                    marker = parts[8].strip('"').strip()
+                    if marker and marker not in found:
+                        found.append(marker)
+        return found
 
     def _infer_outcome(
         self, segment: list[tuple[str, list[str], float]], boss_name: Optional[str]

@@ -2,7 +2,7 @@
 
 ## Active Focus
 
-The current session fixed Warmane Tampermonkey admin-secret confusion. Gear userscript `1.7.1` and roster userscript `1.0.5` now store secrets per Pizza Logs target origin and show the target host in the Warmane panel. Parser reliability remains the highest-risk product area, but no parser code changed in this session.
+The current session fixed latest mixed-ICC difficulty drift. Deathbringer Saurfang no longer upgrades to heroic from normal-mode `Rune of Blood`, and Valithria Dreamwalker now upgrades to heroic from `Twisted Nightmares` evidence. Parser reliability remains the highest-risk product area.
 
 README visual refresh: added a high-resolution `docs/assets/readme-screenshot.png` preview to the public README. The screenshot was captured from a fresh local Next dev server on `http://127.0.0.1:3004` while the parser service was listening on `127.0.0.1:8000`.
 
@@ -14,6 +14,17 @@ Codex works on `codex-dev`, pushes `origin/codex-dev`, and opens PRs into `main`
 
 ## This Session
 
+- Investigated the latest raid report where Deathbringer Saurfang was normal but displayed heroic, and Valithria Dreamwalker was heroic but displayed normal.
+- Confirmed the parser treated `Rune of Blood` as heroic evidence even though it appears in normal Saurfang.
+- Confirmed Valithria had no heroic marker for `Twisted Nightmares`.
+- Added failing parser tests for Saurfang `Rune of Blood`, Saurfang `Scent of Blood`, and Valithria `Twisted Nightmares`.
+- Replaced global heroic marker matching with boss-scoped marker matching.
+- Removed Saurfang `Rune of Blood` from heroic evidence.
+- Added Saurfang heroic `Scent of Blood` spell IDs `72769` and `72771`.
+- Added Valithria heroic `Twisted Nightmares` spell IDs `71940` and `71941`, plus name matching.
+- Updated `docs/parser-contract.md`, `Latest Handoff.md`, and `Known Issues.md`.
+- Ran focused parser difficulty tests; they failed before the fix and passed after the fix.
+- Ran `python -m pytest tests/ -v` from `parser/`; it passed with 136 tests and 1 existing Pydantic deprecation warning.
 - Investigated the Warmane userscript status `Sync failed: Unauthorized.`
 - Confirmed this was a Pizza Logs admin-secret rejection, not a Warmane verification failure.
 - Fixed gear and roster userscripts so production and local installs no longer share the same `pizzaLogsAdminSecret` localStorage key on `armory.warmane.com`.
@@ -92,6 +103,7 @@ Codex works on `codex-dev`, pushes `origin/codex-dev`, and opens PRs into `main`
 | README app preview | DONE | Added `docs/assets/readme-screenshot.png` and linked it from `README.md` |
 | README and wiki metadata refresh | DONE | Updated public README link and GitHub wiki content |
 | Userscript target-specific secrets | DONE | Gear `1.7.1`, roster `1.0.5`; local/prod secrets no longer collide |
+| ICC difficulty marker fix | DONE | Saurfang `Rune of Blood` stays normal-capable; Saurfang `Scent of Blood` IDs and Valithria `Twisted Nightmares` now mark heroic |
 
 ## Open Follow-Ups
 
@@ -101,6 +113,7 @@ Codex works on `codex-dev`, pushes `origin/codex-dev`, and opens PRs into `main`
 - Decide whether app-level upload rate limiting is needed or Railway-level controls are enough.
 - Continue using browser-assisted Warmane imports until a local automated sync agent is built.
 - After the userscript auth PR deploys, reinstall/update the production gear and roster userscripts from `/admin`; local `3001` variants are already serving the new scripts while the local server is running.
+- After this parser fix deploys, reprocess or re-upload the affected latest raid so stored Saurfang and Valithria difficulties are regenerated.
 - Absorbs remain future parser work.
 - Add more encounter-specific useful-damage exclusions as real Skada comparison data becomes available.
 - Link Railway with `railway link` only when intentionally working on Railway configuration; do not deploy without explicit instruction.
