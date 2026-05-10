@@ -2,7 +2,7 @@
 
 ## Date
 
-2026-05-08
+2026-05-09
 
 ## Branch
 
@@ -38,7 +38,23 @@
 - Supported roster/gear refresh path is browser-assisted userscripts from `/admin`.
 - Player avatars intentionally use class icons, with initials fallback when class data or icon loading is unavailable.
 - Production userscripts still post to Railway production; local userscripts post to `http://127.0.0.1:3001`.
+- Gear userscript v1.7.1 and roster userscript v1.0.5 store admin secrets per Pizza Logs target origin and show their target in the Warmane panel, so local and production secrets no longer overwrite each other on `armory.warmane.com`.
 - The cinematic intro now uses generated video assets from `animations/source/Veo.mp4` instead of the retired `public/intro` asset set.
+
+## Tampermonkey Auth Session
+
+- Investigated `Pizza Logs Gear Sync` showing `Sync failed: Unauthorized.` on Warmane.
+- Root cause: the production and local Warmane userscripts both stored the admin secret under the same `armory.warmane.com` localStorage key, so switching between production and local scripts could reuse the wrong secret.
+- Updated gear and roster userscripts to use target-specific keys:
+  - `pizzaLogsAdminSecret:https://pizza-logs-production.up.railway.app`
+  - `pizzaLogsAdminSecret:http://127.0.0.1:3001`
+- Updated gear last-run storage to be target-specific as well.
+- Unauthorized responses now clear both the new target key and the old shared legacy key, then tell the admin which target rejected the secret.
+- Injected panels now show `Target: <host>` under the title.
+- Bumped userscript versions:
+  - Gear: `1.7.1`
+  - Roster: `1.0.5`
+- Local endpoints verified on `http://127.0.0.1:3001` after the local stack was started.
 
 ## Cinematic Intro Session
 
@@ -110,6 +126,15 @@
 | `node node_modules\eslint\bin\eslint.js . --max-warnings=0` | Passed |
 | `npm run build` | Passed |
 | Local `GET http://127.0.0.1:3001/guild-roster?page=2` | Passed with HTTP 200 after dev server compile |
+| `node node_modules\ts-node\dist\bin.js --project tsconfig.seed.json tests\armory-gear-client-scripts.test.ts` | Passed |
+| `node node_modules\ts-node\dist\bin.js --project tsconfig.seed.json tests\guild-roster-client-scripts.test.ts` | Passed |
+| `node node_modules\ts-node\dist\bin.js --project tsconfig.seed.json tests\local-userscript-routes.test.ts` | Passed |
+| Gear/admin panel JSX-aware `ts-node` test | Passed |
+| Guild roster/admin panel JSX-aware `ts-node` test | Passed |
+| Local userscript endpoint version/key check | Passed for gear `1.7.1` and roster `1.0.5` |
+| `node node_modules\typescript\bin\tsc --noEmit` | Passed |
+| `node node_modules\eslint\bin\eslint.js . --max-warnings=0` | Passed |
+| `npm run build` | Passed |
 
 ## Remaining Risks
 
@@ -123,4 +148,4 @@
 
 ## Exact Next Step
 
-Review the `codex-dev` to `main` PR after the guild roster pagination commit is pushed. Neil merges into `main` only after review; Codex does not merge or push `main` directly.
+Review the `codex-dev` to `main` PR after the Tampermonkey auth fix is pushed. After deployment, reinstall/update the gear and roster userscripts from `/admin` so Tampermonkey receives gear `1.7.1` and roster `1.0.5`, then enter the admin secret that matches the shown target. Neil merges into `main` only after review; Codex does not merge or push `main` directly.

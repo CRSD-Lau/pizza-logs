@@ -15,9 +15,10 @@ const localUserscript = buildGuildRosterUserscript({
 });
 assert.match(userscript, /Pizza Logs Warmane Guild Roster Sync/);
 assert.match(userscript, /api\/admin\/guild-roster\/import/);
-assert.match(userscript, /\/\/ @version\s+1\.0\.4/);
+assert.match(userscript, /\/\/ @version\s+1\.0\.5/);
 assert.match(userscript, /\/\/ @match\s+https:\/\/armory\.warmane\.com\/guild\/\*/);
 assert.match(userscript, /\/\/ @match\s+http:\/\/armory\.warmane\.com\/guild\/\*/);
+assert.match(userscript, /pizzaLogsAdminSecret:https:\/\/pizza-logs-production\.up\.railway\.app/);
 assert.match(userscript, /isGuildPage/);
 assert.match(userscript, /api\/guild\/Pizza\+Warriors\/Lordaeron\/summary/);
 assert.match(userscript, /guild\/Pizza\+Warriors\/Lordaeron\/summary/);
@@ -29,6 +30,11 @@ assert.match(userscript, new RegExp(GUILD_ROSTER_USERSCRIPT_URL.replace(/[.*+?^$
 assert.match(localUserscript, /Pizza Logs Warmane Guild Roster Sync \(Local\)/);
 assert.match(localUserscript, new RegExp(LOCAL_GUILD_ROSTER_USERSCRIPT_URL.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
 assert.match(localUserscript, new RegExp(`const pizzaLogsOrigin = "${PIZZA_LOGS_LOCAL_ORIGIN.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}";`));
+assert.match(localUserscript, new RegExp(`pizzaLogsAdminSecret:${PIZZA_LOGS_LOCAL_ORIGIN.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}`));
+assert.doesNotMatch(localUserscript, /pizzaLogsAdminSecret:https:\/\/pizza-logs-production\.up\.railway\.app/);
+assert.match(localUserscript, /const targetLabel = "127\.0\.0\.1:3001"/);
+assert.match(localUserscript, /target\.textContent = `Target: \$\{targetLabel\}`/);
+assert.match(localUserscript, /Admin secret rejected by \$\{targetLabel\}/);
 assert.match(localUserscript, /\/api\/admin\/guild-roster\/import/);
 
 const bookmarklet = buildGuildRosterBookmarklet();

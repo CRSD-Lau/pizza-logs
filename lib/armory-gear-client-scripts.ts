@@ -317,10 +317,13 @@ export function buildUserscript(options: UserscriptOptions = {}): string {
   const pizzaLogsOrigin = options.pizzaLogsOrigin ?? PIZZA_LOGS_ORIGIN;
   const userscriptUrl = options.userscriptUrl ?? USERSCRIPT_URL;
   const nameSuffix = options.nameSuffix ?? "";
+  const targetLabel = new URL(pizzaLogsOrigin).host;
   const script = function pizzaLogsWarmaneAutoSync() {
     const pizzaLogsOrigin = "__PIZZA_LOGS_ORIGIN__";
-    const secretKey = "pizzaLogsAdminSecret";
-    const lastRunKey = "pizzaLogsLastGearSyncAt";
+    const targetLabel = "__PIZZA_LOGS_TARGET__";
+    const legacySecretKey = "pizzaLogsAdminSecret";
+    const secretKey = "pizzaLogsAdminSecret:__PIZZA_LOGS_ORIGIN__";
+    const lastRunKey = "pizzaLogsLastGearSyncAt:__PIZZA_LOGS_ORIGIN__";
     const autoIntervalMs = 60 * 60 * 1000;
 
     console.info("Pizza Logs userscript starting", {
@@ -376,6 +379,10 @@ export function buildUserscript(options: UserscriptOptions = {}): string {
       title.textContent = "Pizza Logs Gear Sync";
       title.style.cssText = "font-weight:700;color:#f1d36b;margin-bottom:6px";
 
+      const target = document.createElement("div");
+      target.textContent = `Target: ${targetLabel}`;
+      target.style.cssText = "font-size:11px;color:#8f836b;margin-bottom:8px";
+
       const status = document.createElement("div");
       status.textContent = "Ready";
       status.style.cssText = "line-height:1.35;color:#b8aa8c;margin-bottom:10px";
@@ -400,11 +407,12 @@ export function buildUserscript(options: UserscriptOptions = {}): string {
       reset.style.cssText = "margin-top:8px;width:100%;border:0;background:transparent;color:#8f836b;cursor:pointer";
       reset.addEventListener("click", () => {
         localStorage.removeItem(secretKey);
+        localStorage.removeItem(legacySecretKey);
         localStorage.removeItem(lastRunKey);
         setStatus("Secret cleared. Click Sync now to enter it again.");
       });
 
-      panel.append(title, status, button, reset);
+      panel.append(title, target, status, button, reset);
       document.body.appendChild(panel);
       state.panel = panel;
       state.status = status;
@@ -585,8 +593,13 @@ export function buildUserscript(options: UserscriptOptions = {}): string {
         setStatus(`Imported ${imported}; failed ${failed.length}${failed.length ? `. ${failed.slice(0, 3).join("; ")}` : "."}`);
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error);
-        if (message === "Unauthorized.") localStorage.removeItem(secretKey);
-        setStatus(`Sync failed: ${message}`);
+        if (message === "Unauthorized.") {
+          localStorage.removeItem(secretKey);
+          localStorage.removeItem(legacySecretKey);
+          setStatus(`Admin secret rejected by ${targetLabel}. Click Sync now and enter the matching secret.`);
+        } else {
+          setStatus(`Sync failed: ${message}`);
+        }
       } finally {
         state.running = false;
         if (state.button) state.button.disabled = false;
@@ -610,7 +623,7 @@ export function buildUserscript(options: UserscriptOptions = {}): string {
     "// ==UserScript==",
     `// @name         Pizza Logs Warmane Gear Auto Sync${nameSuffix}`,
     `// @namespace    ${pizzaLogsOrigin}`,
-    "// @version      1.7.0",
+    "// @version      1.7.1",
     "// @description  Automatically sync Pizza Logs gear cache from Warmane Armory pages.",
     "// @match        https://armory.warmane.com/character/*",
     "// @match        http://armory.warmane.com/character/*",
@@ -620,6 +633,8 @@ export function buildUserscript(options: UserscriptOptions = {}): string {
     "// @grant        GM_xmlhttpRequest",
     "// ==/UserScript==",
     "",
-    `(${script.toString().replace("__PIZZA_LOGS_ORIGIN__", pizzaLogsOrigin)})();`,
+    `(${script.toString()
+      .replaceAll("__PIZZA_LOGS_ORIGIN__", pizzaLogsOrigin)
+      .replaceAll("__PIZZA_LOGS_TARGET__", targetLabel)})();`,
   ].join("\n");
 }
