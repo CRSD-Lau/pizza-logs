@@ -21,6 +21,8 @@
 - ICC heroic difficulty detection now uses boss-scoped markers. `Rune of Blood`
   no longer promotes Deathbringer Saurfang; Saurfang heroic uses `Scent of Blood`
   spell IDs, and Valithria heroic uses `Twisted Nightmares`.
+- Session player comparison charts now graph kills only, so wipe pulls no longer
+  clutter the DPS/HPS by encounter trend.
 - README now includes a high-resolution app preview captured from a fresh local Next server on `http://127.0.0.1:3004`.
 - README now links to the GitHub wiki, and the wiki has been refreshed for current upload, roster, gear, parser, roadmap, and branch workflow details.
 - Local repo-root launchers:
@@ -41,6 +43,8 @@
   Saurfang `Rune of Blood` is normal-capable, Saurfang `Scent of Blood`
   IDs `72769`/`72771` are heroic evidence, and Valithria `Twisted Nightmares`
   IDs `71940`/`71941` or name are heroic evidence.
+- `/raids/[id]/sessions/[sessionIdx]/players/[playerName]` still lists all pulls
+  in Encounter Breakdown, but its line chart now builds from kill encounters only.
 - Gear pages read cached Warmane snapshots, enrich from local AzerothCore `wow_items`, and attempt Warmane live fetches only as best effort.
 - Supported roster/gear refresh path is browser-assisted userscripts from `/admin`.
 - Player avatars intentionally use class icons, with initials fallback when class data or icon loading is unavailable.
@@ -102,6 +106,15 @@
   `Scent of Blood`, and Valithria `Twisted Nightmares`.
 - Updated `docs/parser-contract.md` and known-issues notes.
 
+## Session Player Chart Session
+
+- Updated the session player comparison line chart to exclude wipe pulls.
+- Added `lib/session-player-chart.ts` as the chart-data builder so kill-only
+  filtering is covered outside the page component.
+- Added `tests/session-player-chart.test.ts` proving wipe-only bosses do not
+  appear in chart data and missing classmates remain `null` on kill pulls.
+- The Encounter Breakdown list remains unchanged and still shows wipes.
+
 ## Guild Roster Pagination Session
 
 - Updated the public guild roster page to read `?page=` and pass the current page into the roster table.
@@ -161,6 +174,12 @@
 | `python -m pytest tests/test_parser_core.py -k "saurfang_rune_of_blood or saurfang_scent_of_blood or valithria_twisted_nightmares" -v` | Failed before fix with the expected three difficulty assertions |
 | `python -m pytest tests/test_parser_core.py -k "saurfang_rune_of_blood or saurfang_scent_of_blood or valithria_twisted_nightmares or heroic_detected_with_encounter_start" -v` | Passed |
 | `python -m pytest tests/ -v` from `parser/` | Passed: 136 passed, 1 existing Pydantic deprecation warning |
+| `node node_modules\ts-node\dist\bin.js --project tsconfig.seed.json tests\session-player-chart.test.ts` | Failed before helper existed, then passed after implementation |
+| `node node_modules\typescript\bin\tsc --noEmit` | Passed |
+| `node node_modules\eslint\bin\eslint.js . --max-warnings=0` | Passed |
+| `npm run build` | Passed |
+| Local `GET http://127.0.0.1:3001/raids/chart-fixture-upload/sessions/0/players/Lausudo` | Passed with HTTP 200 against a local-only chart fixture |
+| In-app browser route load for local chart fixture | Passed page identity and console checks; screenshot capture timed out in the browser runtime |
 
 ## Remaining Risks
 
@@ -174,8 +193,8 @@
 
 ## Exact Next Step
 
-Review the `codex-dev` to `main` PR for the ICC difficulty marker fix. After
-deployment, reprocess or re-upload the affected latest raid so the stored
-Deathbringer Saurfang and Valithria Dreamwalker rows are regenerated with the
-correct difficulties. Neil merges into `main` only after review; Codex does not
-merge or push `main` directly.
+Review the `codex-dev` to `main` PR for the ICC difficulty marker fix and the
+session player chart kill-only update. After deployment, reprocess or re-upload
+the affected latest raid so the stored Deathbringer Saurfang and Valithria
+Dreamwalker rows are regenerated with the correct difficulties. Neil merges into
+`main` only after review; Codex does not merge or push `main` directly.
