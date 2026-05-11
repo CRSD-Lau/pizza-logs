@@ -6,7 +6,8 @@ param(
 $ErrorActionPreference = "Stop"
 
 $schtasks = "schtasks.exe"
-$startupCommandPath = Join-Path ([Environment]::GetFolderPath("Startup")) "PizzaLogsGearSyncAtLogon.cmd"
+$startupScriptPath = Join-Path ([Environment]::GetFolderPath("Startup")) "PizzaLogsGearSyncAtLogon.vbs"
+$legacyStartupCommandPath = Join-Path ([Environment]::GetFolderPath("Startup")) "PizzaLogsGearSyncAtLogon.cmd"
 $removed = 0
 $found = 0
 
@@ -30,15 +31,17 @@ if ($queryExitCode -eq 0) {
   }
 }
 
-if (Test-Path -LiteralPath $startupCommandPath) {
-  $found++
-  if ($PSCmdlet.ShouldProcess($startupCommandPath, "Remove Pizza Logs Gear Sync startup launcher")) {
-    Remove-Item -LiteralPath $startupCommandPath -Force
-    Write-Host "Removed startup launcher '$startupCommandPath'."
-    $removed++
+foreach ($startupPath in @($startupScriptPath, $legacyStartupCommandPath)) {
+  if (Test-Path -LiteralPath $startupPath) {
+    $found++
+    if ($PSCmdlet.ShouldProcess($startupPath, "Remove Pizza Logs Gear Sync startup launcher")) {
+      Remove-Item -LiteralPath $startupPath -Force
+      Write-Host "Removed startup launcher '$startupPath'."
+      $removed++
+    }
   }
 }
 
 if ($found -eq 0) {
-  Write-Host "No scheduled task named '$TaskName' or startup launcher '$startupCommandPath' exists."
+  Write-Host "No scheduled task named '$TaskName' or startup launcher exists."
 }

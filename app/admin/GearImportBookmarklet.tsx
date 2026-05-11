@@ -8,15 +8,16 @@ export function GearImportBookmarklet() {
         <p className="text-sm text-text-secondary mt-1">
           Install the hosted userscript with Tampermonkey, then open Warmane Armory. It adds a
           small Pizza Logs sync panel and refreshes every known Pizza Logs character once per
-          hour through Warmane&apos;s browser-accessible API. The admin secret is stored in
-          browser localStorage on Warmane so auto-sync can run.
+          hour through Warmane&apos;s browser-accessible API. Keep one Warmane character tab open;
+          it will reuse that tab for hourly sync instead of relying on Windows to open new tabs.
+          The admin secret is stored in browser localStorage on Warmane so auto-sync can run.
         </p>
       </div>
       <ol className="list-decimal space-y-1 pl-5 text-sm text-text-secondary">
         <li>Install Tampermonkey or another userscript manager.</li>
         <li>Open the hosted gear install URL below and accept the install/update prompt.</li>
         <li>Open any Warmane Armory character page and click Sync now once to save the admin secret.</li>
-        <li>After that, visiting Warmane Armory will auto-sync at most once per hour.</li>
+        <li>After that, leaving that Warmane tab open will auto-sync at most once per hour.</li>
       </ol>
       <div className="space-y-2">
         <div className="flex flex-wrap gap-2">

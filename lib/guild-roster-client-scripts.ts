@@ -39,6 +39,7 @@ function buildRosterScriptBody(autoRun: boolean, pizzaLogsOrigin = PIZZA_LOGS_OR
       panel: null as HTMLDivElement | null,
       status: null as HTMLDivElement | null,
       button: null as HTMLButtonElement | null,
+      autoTimer: null as ReturnType<typeof setTimeout> | null,
     };
 
     const setStatus = function setStatus(message: string) {
@@ -180,7 +181,9 @@ function buildRosterScriptBody(autoRun: boolean, pizzaLogsOrigin = PIZZA_LOGS_OR
         "color:#f1d36b",
         "cursor:pointer",
       ].join(";");
-      button.addEventListener("click", runRosterSync);
+      button.addEventListener("click", () => {
+        runRosterSync().finally(scheduleNextAutoSync);
+      });
 
       const reset = document.createElement("button");
       reset.type = "button";
@@ -190,6 +193,8 @@ function buildRosterScriptBody(autoRun: boolean, pizzaLogsOrigin = PIZZA_LOGS_OR
         localStorage.removeItem(secretKey);
         localStorage.removeItem(legacySecretKey);
         localStorage.removeItem(lastRunKey);
+        if (state.autoTimer !== null) clearTimeout(state.autoTimer);
+        state.autoTimer = null;
         setStatus("Secret cleared. Click Sync roster to enter it again.");
       });
 
@@ -202,19 +207,41 @@ function buildRosterScriptBody(autoRun: boolean, pizzaLogsOrigin = PIZZA_LOGS_OR
 
     buildPanel();
 
+    const scheduleNextAutoSync = function scheduleNextAutoSync() {
+      if (state.autoTimer !== null) {
+        clearTimeout(state.autoTimer);
+        state.autoTimer = null;
+      }
+
+      const hasSecret = Boolean(localStorage.getItem(secretKey));
+      if (!hasSecret) {
+        setStatus("Click Sync roster once to save the admin secret and enable auto-sync.");
+        return;
+      }
+
+      const lastRun = Number(localStorage.getItem(lastRunKey) || "0");
+      const elapsed = Date.now() - lastRun;
+      const delay = lastRun > 0 ? Math.max(5000, autoIntervalMs - elapsed) : 2500;
+
+      state.autoTimer = setTimeout(() => {
+        state.autoTimer = null;
+        return runRosterSync().finally(scheduleNextAutoSync);
+      }, delay);
+
+      if (delay <= 5000) {
+        setStatus("Roster auto-sync will run in this Warmane tab.");
+      } else {
+        setStatus("Roster auto-sync armed in this Warmane tab. Click Sync roster to force a refresh.");
+      }
+    };
+
     const autoRunFlag: string = "__AUTO_RUN__";
     if (autoRunFlag === "true") {
-      setTimeout(runRosterSync, 500);
+      setTimeout(() => {
+        return runRosterSync().finally(scheduleNextAutoSync);
+      }, 500);
     } else {
-      const lastRun = Number(localStorage.getItem(lastRunKey) || "0");
-      const hasSecret = Boolean(localStorage.getItem(secretKey));
-      if (hasSecret && Date.now() - lastRun > autoIntervalMs) {
-        setTimeout(runRosterSync, 2500);
-      } else if (!hasSecret) {
-        setStatus("Click Sync roster once to save the admin secret and enable auto-sync.");
-      } else {
-        setStatus("Roster auto-sync armed. Click Sync roster to force a refresh.");
-      }
+      scheduleNextAutoSync();
     }
   };
 
@@ -243,7 +270,7 @@ export function buildGuildRosterUserscript(options: GuildRosterUserscriptOptions
     "// ==UserScript==",
     `// @name         Pizza Logs Warmane Guild Roster Sync${nameSuffix}`,
     `// @namespace    ${pizzaLogsOrigin}`,
-    "// @version      1.1.0",
+    "// @version      1.1.1",
     "// @description  Hourly sync Pizza Logs guild roster from Warmane Armory in-browser.",
     "// @match        https://armory.warmane.com/guild/*",
     "// @match        http://armory.warmane.com/guild/*",
