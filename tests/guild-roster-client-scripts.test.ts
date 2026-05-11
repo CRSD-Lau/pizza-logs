@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import vm from "node:vm";
 import {
   LOCAL_GUILD_ROSTER_USERSCRIPT_URL,
   GUILD_ROSTER_USERSCRIPT_URL,
@@ -15,10 +16,12 @@ const localUserscript = buildGuildRosterUserscript({
 });
 assert.match(userscript, /Pizza Logs Warmane Guild Roster Sync/);
 assert.match(userscript, /api\/admin\/guild-roster\/import/);
-assert.match(userscript, /\/\/ @version\s+1\.0\.5/);
+assert.match(userscript, /\/\/ @version\s+1\.1\.0/);
 assert.match(userscript, /\/\/ @match\s+https:\/\/armory\.warmane\.com\/guild\/\*/);
 assert.match(userscript, /\/\/ @match\s+http:\/\/armory\.warmane\.com\/guild\/\*/);
 assert.match(userscript, /pizzaLogsAdminSecret:https:\/\/pizza-logs-production\.up\.railway\.app/);
+assert.match(userscript, /pizzaLogsLastRosterSyncAt:https:\/\/pizza-logs-production\.up\.railway\.app/);
+assert.match(userscript, /autoIntervalMs = 60 \* 60 \* 1000/);
 assert.match(userscript, /isGuildPage/);
 assert.match(userscript, /api\/guild\/Pizza\+Warriors\/Lordaeron\/summary/);
 assert.match(userscript, /guild\/Pizza\+Warriors\/Lordaeron\/summary/);
@@ -42,4 +45,76 @@ assert.match(bookmarklet, /^javascript:/);
 assert.match(bookmarklet, /api\/admin\/guild-roster\/import/);
 assert.match(bookmarklet, /Pizza\+Warriors/);
 
-console.log("guild-roster-client-scripts tests passed");
+async function verifyUserscriptAutoRunsWithSavedSecret() {
+  const pending: Promise<unknown>[] = [];
+  const importBodies: Array<{ secret?: string; guild?: string; realm?: string; html?: string }> = [];
+  const storage = new Map<string, string>([
+    ["pizzaLogsAdminSecret:https://pizza-logs-production.up.railway.app", "secret"],
+    ["pizzaLogsLastRosterSyncAt:https://pizza-logs-production.up.railway.app", "0"],
+  ]);
+
+  const context = {
+    console: { warn() {} },
+    Date,
+    location: {
+      hostname: "armory.warmane.com",
+      pathname: "/guild/Pizza+Warriors/Lordaeron/summary",
+    },
+    localStorage: {
+      getItem: (key: string) => storage.get(key) ?? null,
+      setItem: (key: string, value: string) => storage.set(key, value),
+      removeItem: (key: string) => storage.delete(key),
+    },
+    prompt: () => {
+      throw new Error("Auto-sync should use the saved secret");
+    },
+    setTimeout: (callback: () => unknown) => {
+      const result = callback();
+      if (result && typeof (result as Promise<unknown>).then === "function") {
+        pending.push(result as Promise<unknown>);
+      }
+      return 1;
+    },
+    document: {
+      body: { appendChild() {} },
+      addEventListener() {},
+      createElement: () => ({
+        style: { cssText: "" },
+        append() {},
+        addEventListener() {},
+        textContent: "",
+        type: "",
+        disabled: false,
+      }),
+    },
+    fetch: async (url: string, init?: { body?: string }) => {
+      if (url === "/guild/Pizza+Warriors/Lordaeron/summary") {
+        return { ok: true, text: async () => "<html>roster</html>" };
+      }
+      if (url.endsWith("/api/admin/guild-roster/import")) {
+        importBodies.push(JSON.parse(init?.body ?? "{}"));
+        return { ok: true, json: async () => ({ ok: true, count: 25 }) };
+      }
+      throw new Error(`Unexpected fetch: ${url}`);
+    },
+  };
+
+  vm.runInNewContext(userscript, context);
+  while (pending.length > 0) {
+    await Promise.all(pending.splice(0));
+  }
+
+  assert.equal(importBodies.length, 1);
+  assert.equal(importBodies[0].secret, "secret");
+  assert.equal(importBodies[0].guild, "PizzaWarriors");
+  assert.equal(importBodies[0].realm, "Lordaeron");
+  assert.equal(importBodies[0].html, "<html>roster</html>");
+  assert.notEqual(storage.get("pizzaLogsLastRosterSyncAt:https://pizza-logs-production.up.railway.app"), "0");
+}
+
+verifyUserscriptAutoRunsWithSavedSecret()
+  .then(() => console.log("guild-roster-client-scripts tests passed"))
+  .catch((error) => {
+    console.error(error);
+    process.exit(1);
+  });
