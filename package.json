@@ -15,7 +15,9 @@
     "db:generate": "prisma generate",
     "type-check": "tsc --noEmit",
     "db:seed-items": "ts-node --project tsconfig.seed.json scripts/seed-wow-items.ts",
-    "db:import-items": "ts-node --project tsconfig.seed.json scripts/import-item-template.ts"
+    "db:import-items": "ts-node --project tsconfig.seed.json scripts/import-item-template.ts",
+    "gear-sync:install-task": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/gear-sync/install-windows-task.ps1",
+    "gear-sync:uninstall-task": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/gear-sync/uninstall-windows-task.ps1"
   },
   "dependencies": {
     "@prisma/client": "^5.22.0",
