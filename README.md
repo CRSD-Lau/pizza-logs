@@ -133,7 +133,7 @@ Player profiles merge:
 
 Warmane live server fetches are best-effort and may fail from Railway or local scripts because of Cloudflare/403 behavior. The supported operational path is browser-assisted import from `/admin`:
 
-- Warmane Gear Sync userscript for character equipment and icon backfill.
+- Warmane Gear Sync userscript for hourly current-equipment refreshes and icon backfill.
 - Warmane Guild Roster userscript for roster rank, class, race, professions, and member rows.
 
 Player avatars intentionally use class icons instead of Warmane-rendered character portraits. The old portrait userscript URL remains only as a no-op compatibility update for existing installs.

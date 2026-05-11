@@ -183,7 +183,7 @@ export default async function AdminPage() {
           <p className="text-sm text-text-secondary max-w-3xl">
             Player pages read gear from this database cache. Railway cannot reliably fetch
             Warmane directly, so use the browser importer below from a Warmane Armory
-            character page to fill missing snapshots.
+            character page to refresh known characters with their current equipment.
           </p>
           <GearImportBookmarklet />
         </div>

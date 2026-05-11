@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import vm from "node:vm";
 import { buildGuildRosterUserscript } from "../lib/guild-roster-client-scripts";
 import {
+  buildBookmarklet,
   buildUserscript,
   LOCAL_USERSCRIPT_PATH,
   LOCAL_USERSCRIPT_URL,
@@ -11,6 +12,7 @@ import {
   USERSCRIPT_URL,
 } from "../lib/armory-gear-client-scripts";
 
+const bookmarklet = buildBookmarklet();
 const userscript = buildUserscript();
 const localUserscript = buildUserscript({
   pizzaLogsOrigin: PIZZA_LOGS_LOCAL_ORIGIN,
@@ -34,7 +36,7 @@ assert.match(localUserscript, new RegExp(`// @downloadURL\\s+${LOCAL_USERSCRIPT_
 assert.match(localUserscript, new RegExp(`// @updateURL\\s+${LOCAL_USERSCRIPT_URL.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}`));
 assert.match(localUserscript, new RegExp(`const pizzaLogsOrigin = "${PIZZA_LOGS_LOCAL_ORIGIN.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}";`));
 assert.match(localUserscript, /\/api\/admin\/armory-gear\/import/);
-assert.match(userscript, /\/\/ @version\s+1\.7\.1/);
+assert.match(userscript, /\/\/ @version\s+1\.8\.0/);
 assert.match(userscript, /\/\/ @match\s+https:\/\/armory\.warmane\.com\/character\/\*/);
 assert.match(userscript, /\/\/ @match\s+http:\/\/armory\.warmane\.com\/character\/\*/);
 assert.match(userscript, new RegExp(`pizzaLogsAdminSecret:${PIZZA_LOGS_ORIGIN.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}`));
@@ -54,6 +56,10 @@ assert.match(userscript, /DOMContentLoaded/);
 assert.match(userscript, /Pizza Logs userscript starting/);
 assert.match(userscript, /Pizza Logs panel injection failed/);
 assert.match(userscript, /Pizza Logs Gear Sync/);
+assert.match(userscript, /Refreshing known Pizza Logs players/);
+assert.match(userscript, /mode: "refresh-all"/);
+assert.match(bookmarklet, /mode: "refresh-all"/);
+assert.match(bookmarklet, /no Pizza Logs players found to refresh/i);
 
 const rosterUserscript = buildGuildRosterUserscript();
 const gearBottom = userscript.match(/"bottom:([^"]+)"/)?.[1];
@@ -65,6 +71,7 @@ assert.notEqual(gearBottom, rosterBottom);
 async function verifyUserscriptMergesDomIconFallback() {
   const pending: Promise<unknown>[] = [];
   const importBodies: Array<{ equipment?: Array<{ item?: string; iconUrl?: string }> }> = [];
+  const queueBodies: Array<{ mode?: string }> = [];
   const storage = new Map<string, string>([
     [`pizzaLogsAdminSecret:${PIZZA_LOGS_ORIGIN}`, "secret"],
     [`pizzaLogsLastGearSyncAt:${PIZZA_LOGS_ORIGIN}`, "0"],
@@ -114,6 +121,7 @@ async function verifyUserscriptMergesDomIconFallback() {
     },
     fetch: async (url: string, init?: { body?: string }) => {
       if (url.endsWith("/api/admin/armory-gear/missing")) {
+        queueBodies.push(JSON.parse(init?.body ?? "{}"));
         return { ok: true, json: async () => ({ ok: true, players: [{ characterName: "Lausudo", realm: "Lordaeron" }] }) };
       }
       if (url.includes("/api/character/Lausudo/Lordaeron/summary")) {
@@ -133,6 +141,7 @@ async function verifyUserscriptMergesDomIconFallback() {
   }
 
   assert.equal(importBodies.length, 1);
+  assert.equal(queueBodies[0]?.mode, "refresh-all");
   assert.equal(
     importBodies[0].equipment?.[0]?.iconUrl,
     "https://wow.zamimg.com/images/wow/icons/large/inv_chest_plate_26.jpg",
@@ -142,6 +151,7 @@ async function verifyUserscriptMergesDomIconFallback() {
 async function verifyUserscriptFetchesQueuedPlayerPageIcons() {
   const pending: Promise<unknown>[] = [];
   const importBodies: Array<{ equipment?: Array<{ item?: string; iconUrl?: string }> }> = [];
+  const queueBodies: Array<{ mode?: string }> = [];
   const storage = new Map<string, string>([
     [`pizzaLogsAdminSecret:${PIZZA_LOGS_ORIGIN}`, "secret"],
     [`pizzaLogsLastGearSyncAt:${PIZZA_LOGS_ORIGIN}`, "0"],
@@ -200,6 +210,7 @@ async function verifyUserscriptFetchesQueuedPlayerPageIcons() {
     },
     fetch: async (url: string, init?: { body?: string }) => {
       if (url.endsWith("/api/admin/armory-gear/missing")) {
+        queueBodies.push(JSON.parse(init?.body ?? "{}"));
         return { ok: true, json: async () => ({ ok: true, players: [{ characterName: "Maxximusboom", realm: "Lordaeron" }] }) };
       }
       if (url.includes("/api/character/Maxximusboom/Lordaeron/summary")) {
@@ -222,6 +233,7 @@ async function verifyUserscriptFetchesQueuedPlayerPageIcons() {
   }
 
   assert.equal(importBodies.length, 1);
+  assert.equal(queueBodies[0]?.mode, "refresh-all");
   assert.equal(
     importBodies[0].equipment?.[0]?.iconUrl,
     "https://wow.zamimg.com/images/wow/icons/large/inv_helmet_158.jpg",

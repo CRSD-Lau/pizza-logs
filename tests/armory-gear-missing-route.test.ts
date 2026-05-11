@@ -32,7 +32,8 @@ const dbCalls: {
   players?: FindManyArgs;
   rosterMembers?: FindManyArgs;
   cachedRows?: FindManyArgs;
-} = {};
+  cachedRowsCount: number;
+} = { cachedRowsCount: 0 };
 
 function applyTake<T>(rows: T[], args: FindManyArgs): T[] {
   return typeof args.take === "number" ? rows.slice(0, args.take) : rows;
@@ -57,6 +58,7 @@ const db = {
   armoryGearCache: {
     findMany: async (args: FindManyArgs) => {
       dbCalls.cachedRows = args;
+      dbCalls.cachedRowsCount++;
       return freshCachedRows;
     },
   },
@@ -116,8 +118,30 @@ async function main() {
     assert.deepEqual(payload.players, [
       { characterName: "Maxximusboom", realm: "Lordaeron" },
     ]);
+    assert.equal(payload.mode, "missing");
     assert.equal(dbCalls.players?.take, undefined);
     assert.equal(dbCalls.rosterMembers?.take, undefined);
+
+    dbCalls.cachedRowsCount = 0;
+    const refreshResponse = await POST(new Request("https://pizza-logs.test/api/admin/armory-gear/missing", {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        origin: "https://armory.warmane.com",
+      },
+      body: JSON.stringify({ secret: "test-secret", mode: "refresh-all" }),
+    }) as never);
+    const refreshPayload = await refreshResponse.json();
+
+    assert.equal(refreshResponse.status, 200);
+    assert.equal(refreshPayload.mode, "refresh-all");
+    assert.equal(refreshPayload.players.length, 121);
+    assert.deepEqual(refreshPayload.players.slice(0, 2), [
+      { characterName: "Fresh000", realm: "Lordaeron" },
+      { characterName: "Fresh001", realm: "Lordaeron" },
+    ]);
+    assert.deepEqual(refreshPayload.players.at(-1), { characterName: "Maxximusboom", realm: "Lordaeron" });
+    assert.equal(dbCalls.cachedRowsCount, 0);
   } finally {
     moduleLoader._resolveFilename = originalResolve;
     delete require.cache[dbMockPath];
