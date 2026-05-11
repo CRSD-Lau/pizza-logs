@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { DEFAULT_GUILD_NAME, DEFAULT_GUILD_REALM } from "@/lib/warmane-guild-roster";
-import { getMissingArmoryGearPlayers } from "@/lib/armory-gear-queue";
+import { getArmoryGearRefreshPlayers, getMissingArmoryGearPlayers } from "@/lib/armory-gear-queue";
 import { verifyAdminSecretValue } from "@/lib/admin-auth";
 
 const MAX_PLAYERS = 100;
@@ -50,6 +50,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   if (!verifyAdmin(payload.secret)) {
     return NextResponse.json({ ok: false, error: "Unauthorized." }, { status: 401, headers });
   }
+  const mode = payload.mode === "refresh-all" ? "refresh-all" : "missing";
 
   const players = await db.player.findMany({
     orderBy: { name: "asc" },
@@ -72,6 +73,12 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       realm: true,
     },
   });
+
+  if (mode === "refresh-all") {
+    const refreshPlayers = getArmoryGearRefreshPlayers({ players, rosterMembers });
+    return NextResponse.json({ ok: true, mode, players: refreshPlayers }, { headers });
+  }
+
   const queueKeys = Array.from(new Set([
     ...players.map(player => player.name.toLowerCase()),
     ...rosterMembers.map(member => member.normalizedCharacterName),
@@ -89,5 +96,5 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   });
   const missing = getMissingArmoryGearPlayers({ players, rosterMembers, cachedRows }).slice(0, MAX_PLAYERS);
 
-  return NextResponse.json({ ok: true, players: missing }, { headers });
+  return NextResponse.json({ ok: true, mode, players: missing }, { headers });
 }

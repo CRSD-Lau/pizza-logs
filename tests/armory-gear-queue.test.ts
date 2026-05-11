@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { getMissingArmoryGearPlayers } from "../lib/armory-gear-queue";
+import { getArmoryGearRefreshPlayers, getMissingArmoryGearPlayers } from "../lib/armory-gear-queue";
 
 const missing = getMissingArmoryGearPlayers({
   players: [
@@ -102,6 +102,23 @@ const lateMissing = getMissingArmoryGearPlayers({
 
 assert.deepEqual(lateMissing, [
   { characterName: "Maxximusboom", realm: "Lordaeron" },
+]);
+
+const refreshPlayers = getArmoryGearRefreshPlayers({
+  players: [
+    { name: "Lausudo", realm: { name: "Lordaeron" } },
+    { name: "Behemouth", realm: { name: "Lordaeron" } },
+  ],
+  rosterMembers: [
+    { characterName: "Maximusboom", normalizedCharacterName: "maximusboom", realm: "Lordaeron" },
+    { characterName: "Lausudo", normalizedCharacterName: "lausudo", realm: "Lordaeron" },
+  ],
+});
+
+assert.deepEqual(refreshPlayers, [
+  { characterName: "Behemouth", realm: "Lordaeron" },
+  { characterName: "Lausudo", realm: "Lordaeron" },
+  { characterName: "Maximusboom", realm: "Lordaeron" },
 ]);
 
 console.log("armory-gear-queue tests passed");

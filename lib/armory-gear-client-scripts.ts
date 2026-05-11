@@ -147,11 +147,11 @@ export function buildBookmarklet(): string {
       throw new Error(lastError);
     };
 
-    postJson(`${pizzaLogsOrigin}/api/admin/armory-gear/missing`, { secret })
+    postJson(`${pizzaLogsOrigin}/api/admin/armory-gear/missing`, { secret, mode: "refresh-all" })
       .then(async (queue) => {
         const players = queue.players || [];
         if (players.length === 0) {
-          alert("Pizza Logs: no players need gear import or enrichment.");
+          alert("Pizza Logs: no Pizza Logs players found to refresh.");
           return;
         }
 
@@ -174,7 +174,7 @@ export function buildBookmarklet(): string {
         const suffix = failed.length > 0
           ? `\n\nFailed after retries (${failed.length}):\n${failedPreview}${failed.length > 8 ? "\n..." : ""}`
           : "";
-        alert(`Pizza Logs: imported ${cached}; failed ${failed.length}.${suffix}`);
+        alert(`Pizza Logs: refreshed ${cached}; failed ${failed.length}.${suffix}`);
       })
       .catch((error) => {
         alert(`Pizza Logs import failed: ${error.message}`);
@@ -566,20 +566,20 @@ export function buildUserscript(options: UserscriptOptions = {}): string {
       if (state.button) state.button.disabled = true;
 
       try {
-        setStatus("Checking Pizza Logs queue...");
-        const queue = await postJson(`${pizzaLogsOrigin}/api/admin/armory-gear/missing`, { secret });
+        setStatus("Refreshing known Pizza Logs players...");
+        const queue = await postJson(`${pizzaLogsOrigin}/api/admin/armory-gear/missing`, { secret, mode: "refresh-all" });
         const players = queue.players || [];
 
         if (players.length === 0) {
           localStorage.setItem(lastRunKey, String(Date.now()));
-          setStatus("No players need import or enrichment.");
+          setStatus("No Pizza Logs players found to refresh.");
           return;
         }
 
         let imported = 0;
         const failed: string[] = [];
         for (const player of players) {
-          setStatus(`Importing ${player.characterName} (${imported + failed.length + 1}/${players.length})...`);
+          setStatus(`Refreshing ${player.characterName} (${imported + failed.length + 1}/${players.length})...`);
           try {
             await importPlayer(player, secret);
             imported++;
@@ -590,7 +590,7 @@ export function buildUserscript(options: UserscriptOptions = {}): string {
         }
 
         localStorage.setItem(lastRunKey, String(Date.now()));
-        setStatus(`Imported ${imported}; failed ${failed.length}${failed.length ? `. ${failed.slice(0, 3).join("; ")}` : "."}`);
+        setStatus(`Refreshed ${imported}; failed ${failed.length}${failed.length ? `. ${failed.slice(0, 3).join("; ")}` : "."}`);
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error);
         if (message === "Unauthorized.") {
@@ -623,8 +623,8 @@ export function buildUserscript(options: UserscriptOptions = {}): string {
     "// ==UserScript==",
     `// @name         Pizza Logs Warmane Gear Auto Sync${nameSuffix}`,
     `// @namespace    ${pizzaLogsOrigin}`,
-    "// @version      1.7.1",
-    "// @description  Automatically sync Pizza Logs gear cache from Warmane Armory pages.",
+    "// @version      1.8.0",
+    "// @description  Hourly refresh Pizza Logs gear cache from Warmane Armory pages.",
     "// @match        https://armory.warmane.com/character/*",
     "// @match        http://armory.warmane.com/character/*",
     `// @downloadURL   ${userscriptUrl}`,

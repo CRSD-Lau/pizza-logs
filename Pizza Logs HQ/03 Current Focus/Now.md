@@ -2,7 +2,7 @@
 
 ## Active Focus
 
-The current session fixed latest mixed-ICC difficulty drift and removed wipe pulls from the session player DPS/HPS by encounter chart. Deathbringer Saurfang no longer upgrades to heroic from normal-mode `Rune of Blood`, and Valithria Dreamwalker now upgrades to heroic from `Twisted Nightmares` evidence. Parser reliability remains the highest-risk product area.
+The current session updated Warmane Gear Sync so hourly runs refresh every known Pizza Logs character from Warmane instead of only importing missing or incomplete gear rows. Gear Sync is now `1.8.0` and sends `mode: "refresh-all"` to the admin gear queue endpoint. Parser reliability remains the highest-risk product area.
 
 README visual refresh: added a high-resolution `docs/assets/readme-screenshot.png` preview to the public README. The screenshot was captured from a fresh local Next dev server on `http://127.0.0.1:3004` while the parser service was listening on `127.0.0.1:8000`.
 
@@ -14,6 +14,18 @@ Codex works on `codex-dev`, pushes `origin/codex-dev`, and opens PRs into `main`
 
 ## This Session
 
+- Investigated the Gear Sync status `No players need import or enrichment.` after Neil clarified that existing DB players should be updated to their current Warmane gear.
+- Confirmed the existing queue only returned missing or enrichment-needed cached gear rows.
+- Added a refresh-all queue helper that returns all known combat-log players plus PizzaWarriors/Lordaeron roster members, de-duped by character and realm.
+- Added `mode: "refresh-all"` support to `/api/admin/armory-gear/missing`; missing-only behavior remains the default for compatibility.
+- Updated the Gear Sync userscript hourly path and the bulk bookmarklet fallback to request refresh-all mode.
+- Bumped the Gear Sync userscript to `1.8.0`.
+- Updated admin copy, README gear wording, feature status, and known-issues notes for hourly current-equipment refreshes.
+- Added focused tests for the refresh-all queue, route behavior, userscript request body, bookmarklet fallback, and admin panel copy.
+- Ran the focused gear sync tests and local userscript route test; they passed after the implementation.
+- Ran `node node_modules\typescript\bin\tsc --noEmit`; it passed.
+- Ran `node node_modules\eslint\bin\eslint.js . --max-warnings=0`; it passed.
+- Ran `npm run build`; it passed.
 - Investigated the latest raid report where Deathbringer Saurfang was normal but displayed heroic, and Valithria Dreamwalker was heroic but displayed normal.
 - Confirmed the parser treated `Rune of Blood` as heroic evidence even though it appears in normal Saurfang.
 - Confirmed Valithria had no heroic marker for `Twisted Nightmares`.
@@ -111,6 +123,7 @@ Codex works on `codex-dev`, pushes `origin/codex-dev`, and opens PRs into `main`
 | README app preview | DONE | Added `docs/assets/readme-screenshot.png` and linked it from `README.md` |
 | README and wiki metadata refresh | DONE | Updated public README link and GitHub wiki content |
 | Userscript target-specific secrets | DONE | Gear `1.7.1`, roster `1.0.5`; local/prod secrets no longer collide |
+| Hourly Gear Sync refresh-all | DONE | Gear `1.8.0` refreshes all known DB/roster characters hourly from Warmane |
 | ICC difficulty marker fix | DONE | Saurfang `Rune of Blood` stays normal-capable; Saurfang `Scent of Blood` IDs and Valithria `Twisted Nightmares` now mark heroic |
 | Session player chart kill filter | DONE | DPS/HPS by encounter chart excludes wipes; Encounter Breakdown still lists all pulls |
 
@@ -121,7 +134,7 @@ Codex works on `codex-dev`, pushes `origin/codex-dev`, and opens PRs into `main`
 - Add hard server-side upload size enforcement.
 - Decide whether app-level upload rate limiting is needed or Railway-level controls are enough.
 - Continue using browser-assisted Warmane imports until a local automated sync agent is built.
-- After the userscript auth PR deploys, reinstall/update the production gear and roster userscripts from `/admin`; local `3001` variants are already serving the new scripts while the local server is running.
+- After the hourly refresh PR deploys, reinstall/update the production Gear Sync userscript from `/admin`; open any Warmane character page and click `Sync now` once if the admin secret is not saved.
 - After this parser fix deploys, reprocess or re-upload the affected latest raid so stored Saurfang and Valithria difficulties are regenerated.
 - Absorbs remain future parser work.
 - Add more encounter-specific useful-damage exclusions as real Skada comparison data becomes available.

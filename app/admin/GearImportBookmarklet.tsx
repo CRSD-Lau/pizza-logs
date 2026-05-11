@@ -7,9 +7,9 @@ export function GearImportBookmarklet() {
         <h3 className="heading-cinzel text-sm text-gold tracking-wide">Browser Gear Import</h3>
         <p className="text-sm text-text-secondary mt-1">
           Install the hosted userscript with Tampermonkey, then open Warmane Armory. It adds a
-          small Pizza Logs sync panel and automatically imports missing or unenriched players
-          through Warmane&apos;s browser-accessible API. The admin secret is stored in browser
-          localStorage on Warmane so auto-sync can run.
+          small Pizza Logs sync panel and refreshes every known Pizza Logs character once per
+          hour through Warmane&apos;s browser-accessible API. The admin secret is stored in
+          browser localStorage on Warmane so auto-sync can run.
         </p>
       </div>
       <ol className="list-decimal space-y-1 pl-5 text-sm text-text-secondary">

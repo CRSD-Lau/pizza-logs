@@ -7,6 +7,7 @@ import { LOCAL_USERSCRIPT_URL, USERSCRIPT_URL } from "../lib/armory-gear-client-
 const markup = renderToStaticMarkup(React.createElement(GearImportBookmarklet));
 
 assert.match(markup, /Browser Gear Import/);
+assert.match(markup, /refreshes every known Pizza Logs character once per hour/);
 assert.match(markup, new RegExp(USERSCRIPT_URL.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
 assert.match(markup, new RegExp(LOCAL_USERSCRIPT_URL.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
 assert.match(markup, /Install \/ Update Gear Userscript/);

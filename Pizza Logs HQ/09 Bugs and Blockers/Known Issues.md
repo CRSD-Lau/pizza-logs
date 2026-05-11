@@ -51,6 +51,7 @@ No confirmed app-breaking bugs are active as of the documentation audit.
 | PR Slack message read like a raw dump | Reworked Slack blocks into a compact header, metadata fields, trimmed description, and cleaner changed-file list |
 | PR description headings showed unsupported Slack markdown | Added markdown normalization so GitHub headings become Slack bold labels |
 | Local and production Warmane userscripts shared the same saved admin secret | Gear `1.7.1` and roster `1.0.5` now use target-specific localStorage keys, show the target host, and clear the legacy shared key on unauthorized responses |
+| Gear Sync skipped already cached characters | Gear `1.8.0` requests refresh-all mode hourly so complete cached players are refreshed from Warmane too |
 
 ## Not Bugs
 

@@ -20,7 +20,7 @@ This file is the single source for shipped features, active backlog, and technic
 | Header search | Searches combat-log players plus roster-only members through `/api/players/search` |
 | Gear cache | Warmane snapshots cached in `armory_gear_cache`, with GearScoreLite display |
 | Item metadata | AzerothCore `item_template` import populates `wow_items`; no runtime Wowhead API dependency |
-| Gear/userscript import | Browser-assisted Warmane Gear Sync fills gear snapshots and icon gaps |
+| Gear/userscript import | Browser-assisted Warmane Gear Sync refreshes known character gear hourly and fills icon gaps |
 | Class-icon avatars | Player avatars use WoW class icons with initials fallback |
 | ICC ordering | Shared helpers keep ICC boss displays in progression order where appropriate |
 | Local test server helpers | Windows scripts start/stop web and parser test servers |

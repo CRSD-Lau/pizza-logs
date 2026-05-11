@@ -2,7 +2,7 @@
 
 ## Date
 
-2026-05-10
+2026-05-11
 
 ## Branch
 
@@ -23,6 +23,8 @@
   spell IDs, and Valithria heroic uses `Twisted Nightmares`.
 - Session player comparison charts now graph kills only, so wipe pulls no longer
   clutter the DPS/HPS by encounter trend.
+- Gear Sync now refreshes every known Pizza Logs character from Warmane once per
+  hour, instead of only importing players with missing or incomplete cached gear.
 - README now includes a high-resolution app preview captured from a fresh local Next server on `http://127.0.0.1:3004`.
 - README now links to the GitHub wiki, and the wiki has been refreshed for current upload, roster, gear, parser, roadmap, and branch workflow details.
 - Local repo-root launchers:
@@ -49,7 +51,7 @@
 - Supported roster/gear refresh path is browser-assisted userscripts from `/admin`.
 - Player avatars intentionally use class icons, with initials fallback when class data or icon loading is unavailable.
 - Production userscripts still post to Railway production; local userscripts post to `http://127.0.0.1:3001`.
-- Gear userscript v1.7.1 and roster userscript v1.0.5 store admin secrets per Pizza Logs target origin and show their target in the Warmane panel, so local and production secrets no longer overwrite each other on `armory.warmane.com`.
+- Gear userscript v1.8.0 requests the full refresh queue hourly; roster userscript v1.0.5 stores admin secrets per Pizza Logs target origin and shows the target in the Warmane panel, so local and production secrets no longer overwrite each other on `armory.warmane.com`.
 - The cinematic intro now uses generated video assets from `animations/source/Veo.mp4` instead of the retired `public/intro` asset set.
 
 ## Tampermonkey Auth Session
@@ -66,6 +68,21 @@
   - Gear: `1.7.1`
   - Roster: `1.0.5`
 - Local endpoints verified on `http://127.0.0.1:3001` after the local stack was started.
+
+## Hourly Gear Refresh Session
+
+- Investigated `Pizza Logs Gear Sync` reporting `No players need import or enrichment.`
+  even though Neil wanted current gear refreshed for characters already in the DB.
+- Root cause: `/api/admin/armory-gear/missing` only returned missing or
+  enrichment-needed cache rows, so complete cached characters were skipped.
+- Added a `refresh-all` mode to the existing admin gear queue endpoint.
+- Added `getArmoryGearRefreshPlayers` to return all known combat-log players plus
+  guild roster members, de-duped by character and realm.
+- Updated the hosted gear userscript and bulk bookmarklet fallback to request
+  `mode: "refresh-all"`.
+- Bumped Gear Sync to `1.8.0`.
+- Updated admin copy, README gear wording, and feature-status notes to describe
+  hourly current-equipment refreshes.
 
 ## Cinematic Intro Session
 
@@ -168,6 +185,14 @@
 | Gear/admin panel JSX-aware `ts-node` test | Passed |
 | Guild roster/admin panel JSX-aware `ts-node` test | Passed |
 | Local userscript endpoint version/key check | Passed for gear `1.7.1` and roster `1.0.5` |
+| `node node_modules\ts-node\dist\bin.js --project tsconfig.seed.json tests\armory-gear-queue.test.ts` | Passed |
+| `node node_modules\ts-node\dist\bin.js --project tsconfig.seed.json tests\armory-gear-missing-route.test.ts` | Passed |
+| `node node_modules\ts-node\dist\bin.js --project tsconfig.seed.json tests\armory-gear-client-scripts.test.ts` | Passed |
+| `node node_modules\ts-node\dist\bin.js --project tsconfig.seed.json tests\local-userscript-routes.test.ts` | Passed |
+| JSX-aware `tests\gear-import-bookmarklet.test.ts` | Passed |
+| `node node_modules\typescript\bin\tsc --noEmit` | Passed |
+| `node node_modules\eslint\bin\eslint.js . --max-warnings=0` | Passed |
+| `npm run build` | Passed |
 | `node node_modules\typescript\bin\tsc --noEmit` | Passed |
 | `node node_modules\eslint\bin\eslint.js . --max-warnings=0` | Passed |
 | `npm run build` | Passed |
@@ -190,11 +215,13 @@
 - `pull_request_target` runs the Slack workflow from `main`, so Slack formatting changes only affect fresh PR events after the workflow update is merged.
 - Absorbs remain future parser work.
 - Railway CLI is installed locally but this checkout remains unlinked until Neil intentionally runs `railway link`.
+- Hourly full gear refresh depends on a browser tab visiting Warmane with the
+  production Gear Sync userscript installed and the correct admin secret saved.
 
 ## Exact Next Step
 
-Review the `codex-dev` to `main` PR for the ICC difficulty marker fix and the
-session player chart kill-only update. After deployment, reprocess or re-upload
-the affected latest raid so the stored Deathbringer Saurfang and Valithria
-Dreamwalker rows are regenerated with the correct difficulties. Neil merges into
-`main` only after review; Codex does not merge or push `main` directly.
+Review the `codex-dev` to `main` PR for the hourly Gear Sync refresh update.
+After deployment, reinstall/update the production Gear Sync userscript from
+`/admin`, open any Warmane character page, and click `Sync now` once if the
+admin secret is not already saved. Neil merges into `main` only after review;
+Codex does not merge or push `main` directly.

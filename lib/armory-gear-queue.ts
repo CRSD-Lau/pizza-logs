@@ -23,17 +23,15 @@ export type ArmoryGearQueueEntry = {
 };
 
 function queueKey(characterName: string, realm: string): string {
-  return `${characterName.trim().toLowerCase()}:${realm}`;
+  return `${characterName.trim().toLowerCase()}:${realm.trim().toLowerCase()}`;
 }
 
-export function getMissingArmoryGearPlayers({
+function getKnownArmoryGearEntries({
   players,
   rosterMembers,
-  cachedRows,
 }: {
   players: ArmoryGearQueuePlayer[];
   rosterMembers: ArmoryGearQueueRosterMember[];
-  cachedRows: ArmoryGearQueueCachedRow[];
 }): ArmoryGearQueueEntry[] {
   const entries = new Map<string, ArmoryGearQueueEntry>();
 
@@ -52,13 +50,38 @@ export function getMissingArmoryGearPlayers({
     });
   }
 
+  return Array.from(entries.values())
+    .sort((left, right) => left.characterName.localeCompare(right.characterName));
+}
+
+export function getArmoryGearRefreshPlayers({
+  players,
+  rosterMembers,
+}: {
+  players: ArmoryGearQueuePlayer[];
+  rosterMembers: ArmoryGearQueueRosterMember[];
+}): ArmoryGearQueueEntry[] {
+  return getKnownArmoryGearEntries({ players, rosterMembers });
+}
+
+export function getMissingArmoryGearPlayers({
+  players,
+  rosterMembers,
+  cachedRows,
+}: {
+  players: ArmoryGearQueuePlayer[];
+  rosterMembers: ArmoryGearQueueRosterMember[];
+  cachedRows: ArmoryGearQueueCachedRow[];
+}): ArmoryGearQueueEntry[] {
+  const entries = getKnownArmoryGearEntries({ players, rosterMembers });
+
   const freshCachedKeys = new Set(
     cachedRows
       .filter((row) => !gearNeedsEnrichment(row.gear))
       .map((row) => queueKey(row.characterKey, row.realm))
   );
 
-  return Array.from(entries.values())
+  return entries
     .filter((entry) => !freshCachedKeys.has(queueKey(entry.characterName, entry.realm)))
     .sort((left, right) => left.characterName.localeCompare(right.characterName));
 }
