@@ -136,6 +136,10 @@ Warmane live server fetches are best-effort and may fail from Railway or local s
 - Warmane Gear Sync userscript for hourly current-equipment refreshes and icon backfill.
 - Warmane Guild Roster userscript for roster rank, class, race, professions, and member rows.
 
+For Windows persistence, the repo includes a Task Scheduler setup that opens a
+Warmane character page hourly so the Gear Sync userscript can run after restarts:
+[`docs/gear-sync-windows-task.md`](docs/gear-sync-windows-task.md).
+
 Player avatars intentionally use class icons instead of Warmane-rendered character portraits. The old portrait userscript URL remains only as a no-op compatibility update for existing installs.
 
 Item names, item levels, stats, slot metadata, and GearScoreLite inputs come from the local AzerothCore `item_template` import:

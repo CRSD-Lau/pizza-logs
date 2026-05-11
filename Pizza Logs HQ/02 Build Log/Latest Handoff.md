@@ -25,6 +25,8 @@
   clutter the DPS/HPS by encounter trend.
 - Gear Sync now refreshes every known Pizza Logs character from Warmane once per
   hour, instead of only importing players with missing or incomplete cached gear.
+- Local Windows automation can now open a Warmane character page hourly and at
+  logon so the browser Gear Sync userscript can run after restarts.
 - README now includes a high-resolution app preview captured from a fresh local Next server on `http://127.0.0.1:3004`.
 - README now links to the GitHub wiki, and the wiki has been refreshed for current upload, roster, gear, parser, roadmap, and branch workflow details.
 - Local repo-root launchers:
@@ -52,6 +54,8 @@
 - Player avatars intentionally use class icons, with initials fallback when class data or icon loading is unavailable.
 - Production userscripts still post to Railway production; local userscripts post to `http://127.0.0.1:3001`.
 - Gear userscript v1.8.0 requests the full refresh queue hourly; roster userscript v1.0.5 stores admin secrets per Pizza Logs target origin and shows the target in the Warmane panel, so local and production secrets no longer overwrite each other on `armory.warmane.com`.
+- Windows gear automation scripts live under `scripts/gear-sync/`; docs live in
+  `docs/gear-sync-windows-task.md`.
 - The cinematic intro now uses generated video assets from `animations/source/Veo.mp4` instead of the retired `public/intro` asset set.
 
 ## Tampermonkey Auth Session
@@ -83,6 +87,27 @@
 - Bumped Gear Sync to `1.8.0`.
 - Updated admin copy, README gear wording, and feature-status notes to describe
   hourly current-equipment refreshes.
+
+## Windows Gear Sync Task Session
+
+- Confirmed direct local CLI/API requests to Warmane character JSON return HTTP
+  403, so the safe automation path still needs a real browser context.
+- Added `scripts/gear-sync/open-warmane-gear-sync.ps1` to open a configurable
+  Warmane character page with Chrome, Edge, or the Windows default browser.
+- Added `scripts/gear-sync/install-windows-task.ps1` to register the hourly
+  `PizzaLogsGearSync` task through `schtasks.exe` and create a Startup-folder
+  `PizzaLogsGearSyncAtLogon.cmd` launcher.
+- Added `scripts/gear-sync/uninstall-windows-task.ps1` for cleanup.
+- Added npm shortcuts:
+  - `npm run gear-sync:install-task`
+  - `npm run gear-sync:uninstall-task`
+- Added `docs/gear-sync-windows-task.md` with setup, limits, logs, Startup
+  folder behavior, and uninstall instructions.
+- The scheduled task stores no Pizza Logs admin secret; the userscript secret
+  remains in the browser profile on `armory.warmane.com`.
+- Installed the current-user hourly scheduled task on Neil's Windows machine.
+- Created the Startup-folder launcher at
+  `C:\Users\neil_\AppData\Roaming\Microsoft\Windows\Start Menu\Programs\Startup\PizzaLogsGearSyncAtLogon.cmd`.
 
 ## Cinematic Intro Session
 
@@ -178,6 +203,12 @@
 | `node node_modules\typescript\bin\tsc --noEmit` | Passed |
 | `node node_modules\eslint\bin\eslint.js . --max-warnings=0` | Passed |
 | `npm run build` | Passed |
+| Local Warmane API probe from PowerShell | Returned expected HTTP 403, confirming browser-assisted automation is still needed |
+| `node node_modules\ts-node\dist\bin.js --project tsconfig.seed.json tests\gear-sync-windows-task-source.test.ts` | Passed |
+| `powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\gear-sync\install-windows-task.ps1 -WhatIf` | Passed |
+| `powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\gear-sync\install-windows-task.ps1` | Passed; registered `PizzaLogsGearSync` and created Startup launcher |
+| `schtasks.exe /Query /TN PizzaLogsGearSync /FO LIST /V` | Passed; task is ready and repeats every 1 hour |
+| Startup launcher content check | Passed; points at `scripts\gear-sync\open-warmane-gear-sync.ps1` |
 | Local `GET http://127.0.0.1:3001/guild-roster?page=2` | Passed with HTTP 200 after dev server compile |
 | `node node_modules\ts-node\dist\bin.js --project tsconfig.seed.json tests\armory-gear-client-scripts.test.ts` | Passed |
 | `node node_modules\ts-node\dist\bin.js --project tsconfig.seed.json tests\guild-roster-client-scripts.test.ts` | Passed |
@@ -215,13 +246,16 @@
 - `pull_request_target` runs the Slack workflow from `main`, so Slack formatting changes only affect fresh PR events after the workflow update is merged.
 - Absorbs remain future parser work.
 - Railway CLI is installed locally but this checkout remains unlinked until Neil intentionally runs `railway link`.
-- Hourly full gear refresh depends on a browser tab visiting Warmane with the
-  production Gear Sync userscript installed and the correct admin secret saved.
+- Hourly full gear refresh depends on a local Windows user/browser profile with
+  the production Gear Sync userscript installed and the correct admin secret saved.
+- The current-user task is interactive only. It persists through restarts, but it
+  cannot run before Neil logs into Windows.
 
 ## Exact Next Step
 
-Review the `codex-dev` to `main` PR for the hourly Gear Sync refresh update.
+Review the `codex-dev` to `main` PR for the local Windows Gear Sync automation.
 After deployment, reinstall/update the production Gear Sync userscript from
 `/admin`, open any Warmane character page, and click `Sync now` once if the
-admin secret is not already saved. Neil merges into `main` only after review;
-Codex does not merge or push `main` directly.
+admin secret is not already saved. The scheduled task can then keep opening
+Warmane hourly after restarts. Neil merges into `main` only after review; Codex
+does not merge or push `main` directly.
