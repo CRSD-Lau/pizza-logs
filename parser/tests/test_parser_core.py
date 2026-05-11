@@ -47,13 +47,14 @@ def _spell_damage_parts(src_guid: str, src_name: str,
                         dst_guid: str, dst_name: str,
                         amount: int, spell: str = "Fireball",
                         event: str = "SPELL_DAMAGE",
+                        spell_id: int = 133,
                         overkill: int = 0) -> list[str]:
     """Build a minimal SPELL_DAMAGE parts list (18 fields)."""
     return [
         event,
         src_guid, f'"{src_name}"', "0x512",
         dst_guid, f'"{dst_name}"', "0xa48",
-        "133", f'"{spell}"', "4",
+        str(spell_id), f'"{spell}"', "4",
         str(amount), str(overkill), "4", "0", "0", "0", "0", "0",
     ]
 
@@ -2001,6 +2002,8 @@ def _make_encounter_start_segment(
     diff_id: int,
     group_size: int,
     heroic_spell: str | None = None,
+    heroic_spell_id: int = 133,
+    heroic_event: str = "SPELL_DAMAGE",
     extra_player_count: int = 0,
 ) -> list[tuple[str, list[str], float]]:
     """Build a minimal segment with ENCOUNTER_START/END and optional heroic spell."""
@@ -2019,6 +2022,8 @@ def _make_encounter_start_segment(
                 PLAYER_GUID, "Phyre",
                 NPC_GUID, boss_name,
                 50_000, spell=heroic_spell,
+                spell_id=heroic_spell_id,
+                event=heroic_event,
             ),
             ts_base + 1,
         ))
@@ -2047,6 +2052,45 @@ def test_heroic_detected_with_encounter_start_25h():
     seg = _make_encounter_start_segment(
         "Lord Marrowgar", diff_id=4, group_size=25,
         heroic_spell="Bone Slice", extra_player_count=20,
+    )
+    p = CombatLogParser()
+    enc = p._aggregate_segment(seg, {})
+    assert enc is not None
+    assert enc.difficulty == "25H", f"Expected 25H, got {enc.difficulty}"
+
+
+def test_saurfang_rune_of_blood_does_not_upgrade_to_heroic():
+    """Rune of Blood exists on normal Saurfang and must not be a heroic marker."""
+    seg = _make_encounter_start_segment(
+        "Deathbringer Saurfang", diff_id=4, group_size=25,
+        heroic_spell="Rune of Blood", heroic_spell_id=72410,
+        heroic_event="SPELL_AURA_APPLIED", extra_player_count=20,
+    )
+    p = CombatLogParser()
+    enc = p._aggregate_segment(seg, {})
+    assert enc is not None
+    assert enc.difficulty == "25N", f"Expected 25N, got {enc.difficulty}"
+
+
+def test_saurfang_scent_of_blood_spell_id_upgrades_to_heroic():
+    """Saurfang heroic logs Scent of Blood as the safe direct heroic marker."""
+    seg = _make_encounter_start_segment(
+        "Deathbringer Saurfang", diff_id=4, group_size=25,
+        heroic_spell="Scent of Blood", heroic_spell_id=72769,
+        heroic_event="SPELL_AURA_APPLIED", extra_player_count=20,
+    )
+    p = CombatLogParser()
+    enc = p._aggregate_segment(seg, {})
+    assert enc is not None
+    assert enc.difficulty == "25H", f"Expected 25H, got {enc.difficulty}"
+
+
+def test_valithria_twisted_nightmares_upgrades_to_heroic():
+    """Heroic Valithria replaces Emerald Vigor with Twisted Nightmares."""
+    seg = _make_encounter_start_segment(
+        "Valithria Dreamwalker", diff_id=4, group_size=25,
+        heroic_spell="Twisted Nightmares", heroic_spell_id=71941,
+        heroic_event="SPELL_AURA_APPLIED", extra_player_count=20,
     )
     p = CombatLogParser()
     enc = p._aggregate_segment(seg, {})

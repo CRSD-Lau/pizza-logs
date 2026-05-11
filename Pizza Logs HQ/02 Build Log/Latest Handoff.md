@@ -2,7 +2,7 @@
 
 ## Date
 
-2026-05-09
+2026-05-10
 
 ## Branch
 
@@ -18,6 +18,9 @@
 - Local Git executable fallback: `C:\Program Files\Git\cmd\git.exe`
 - GitHub CLI executable: `C:\Program Files\GitHub CLI\gh.exe`
 - Parser correctness remains the highest-risk area.
+- ICC heroic difficulty detection now uses boss-scoped markers. `Rune of Blood`
+  no longer promotes Deathbringer Saurfang; Saurfang heroic uses `Scent of Blood`
+  spell IDs, and Valithria heroic uses `Twisted Nightmares`.
 - README now includes a high-resolution app preview captured from a fresh local Next server on `http://127.0.0.1:3004`.
 - README now links to the GitHub wiki, and the wiki has been refreshed for current upload, roster, gear, parser, roadmap, and branch workflow details.
 - Local repo-root launchers:
@@ -34,6 +37,10 @@
 - `/admin`, `/admin/uploads`, cleanup actions, and admin import APIs are protected by `ADMIN_SECRET`.
 - Upload flow streams multipart data from `app/api/upload/route.ts` to parser `/parse-stream`, then writes database rows and milestones.
 - Parser supports both encounter marker and heuristic segmentation paths, with Skada-aligned damage/healing formulas documented in `docs/parser-contract.md`.
+- Parser heroic upgrade markers are boss-scoped to reduce mixed-raid false positives:
+  Saurfang `Rune of Blood` is normal-capable, Saurfang `Scent of Blood`
+  IDs `72769`/`72771` are heroic evidence, and Valithria `Twisted Nightmares`
+  IDs `71940`/`71941` or name are heroic evidence.
 - Gear pages read cached Warmane snapshots, enrich from local AzerothCore `wow_items`, and attempt Warmane live fetches only as best effort.
 - Supported roster/gear refresh path is browser-assisted userscripts from `/admin`.
 - Player avatars intentionally use class icons, with initials fallback when class data or icon loading is unavailable.
@@ -78,6 +85,22 @@
 - Intro brand text is larger and positioned about 15% down from the top while remaining horizontally centered.
 - Removed obsolete `public/intro/` generated assets.
 - Updated README, `docs/intro-animation.md`, `AGENTS.md`, `.gitignore`, source tests, and vault notes.
+
+## ICC Difficulty Marker Session
+
+- Investigated latest mixed ICC raid labels where Deathbringer Saurfang was shown
+  heroic despite being normal, and Valithria Dreamwalker was shown normal despite
+  being heroic.
+- Root cause: `Rune of Blood` was treated as a Saurfang heroic-only marker, but it
+  appears in normal Saurfang. Valithria had no `Twisted Nightmares` heroic marker.
+- Replaced the global heroic marker set with boss-scoped marker matching.
+- Removed Saurfang `Rune of Blood` from heroic evidence.
+- Added Saurfang heroic `Scent of Blood` spell ID markers `72769` and `72771`.
+- Added Valithria heroic `Twisted Nightmares` spell ID markers `71940` and `71941`,
+  plus name matching.
+- Added focused parser regression tests for Saurfang `Rune of Blood`, Saurfang
+  `Scent of Blood`, and Valithria `Twisted Nightmares`.
+- Updated `docs/parser-contract.md` and known-issues notes.
 
 ## Guild Roster Pagination Session
 
@@ -135,6 +158,9 @@
 | `node node_modules\typescript\bin\tsc --noEmit` | Passed |
 | `node node_modules\eslint\bin\eslint.js . --max-warnings=0` | Passed |
 | `npm run build` | Passed |
+| `python -m pytest tests/test_parser_core.py -k "saurfang_rune_of_blood or saurfang_scent_of_blood or valithria_twisted_nightmares" -v` | Failed before fix with the expected three difficulty assertions |
+| `python -m pytest tests/test_parser_core.py -k "saurfang_rune_of_blood or saurfang_scent_of_blood or valithria_twisted_nightmares or heroic_detected_with_encounter_start" -v` | Passed |
+| `python -m pytest tests/ -v` from `parser/` | Passed: 136 passed, 1 existing Pydantic deprecation warning |
 
 ## Remaining Risks
 
@@ -148,4 +174,8 @@
 
 ## Exact Next Step
 
-Review the `codex-dev` to `main` PR after the Tampermonkey auth fix is pushed. After deployment, reinstall/update the gear and roster userscripts from `/admin` so Tampermonkey receives gear `1.7.1` and roster `1.0.5`, then enter the admin secret that matches the shown target. Neil merges into `main` only after review; Codex does not merge or push `main` directly.
+Review the `codex-dev` to `main` PR for the ICC difficulty marker fix. After
+deployment, reprocess or re-upload the affected latest raid so the stored
+Deathbringer Saurfang and Valithria Dreamwalker rows are regenerated with the
+correct difficulties. Neil merges into `main` only after review; Codex does not
+merge or push `main` directly.
