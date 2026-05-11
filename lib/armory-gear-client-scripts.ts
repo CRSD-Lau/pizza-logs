@@ -345,6 +345,7 @@ export function buildUserscript(options: UserscriptOptions = {}): string {
       panel: null as HTMLDivElement | null,
       status: null as HTMLDivElement | null,
       button: null as HTMLButtonElement | null,
+      autoTimer: null as ReturnType<typeof setTimeout> | null,
     };
 
     const setStatus = function setStatus(message: string) {
@@ -399,7 +400,9 @@ export function buildUserscript(options: UserscriptOptions = {}): string {
         "color:#f1d36b",
         "cursor:pointer",
       ].join(";");
-      button.addEventListener("click", () => runSync(true));
+      button.addEventListener("click", () => {
+        runSync(true).finally(scheduleNextAutoSync);
+      });
 
       const reset = document.createElement("button");
       reset.type = "button";
@@ -409,6 +412,8 @@ export function buildUserscript(options: UserscriptOptions = {}): string {
         localStorage.removeItem(secretKey);
         localStorage.removeItem(legacySecretKey);
         localStorage.removeItem(lastRunKey);
+        if (state.autoTimer !== null) clearTimeout(state.autoTimer);
+        state.autoTimer = null;
         setStatus("Secret cleared. Click Sync now to enter it again.");
       });
 
@@ -606,24 +611,43 @@ export function buildUserscript(options: UserscriptOptions = {}): string {
       }
     }
 
-    buildPanel();
+    const scheduleNextAutoSync = function scheduleNextAutoSync() {
+      if (state.autoTimer !== null) {
+        clearTimeout(state.autoTimer);
+        state.autoTimer = null;
+      }
 
-    const lastRun = Number(localStorage.getItem(lastRunKey) || "0");
-    const hasSecret = Boolean(localStorage.getItem(secretKey));
-    if (hasSecret && Date.now() - lastRun > autoIntervalMs) {
-      setTimeout(() => runSync(false), 2500);
-    } else if (!hasSecret) {
-      setStatus("Click Sync now once to save the admin secret and enable auto-sync.");
-    } else {
-      setStatus("Auto-sync armed. Click Sync now to force a refresh.");
-    }
+      const hasSecret = Boolean(localStorage.getItem(secretKey));
+      if (!hasSecret) {
+        setStatus("Click Sync now once to save the admin secret and enable auto-sync.");
+        return;
+      }
+
+      const lastRun = Number(localStorage.getItem(lastRunKey) || "0");
+      const elapsed = Date.now() - lastRun;
+      const delay = lastRun > 0 ? Math.max(5000, autoIntervalMs - elapsed) : 2500;
+
+      state.autoTimer = setTimeout(() => {
+        state.autoTimer = null;
+        return runSync(false).finally(scheduleNextAutoSync);
+      }, delay);
+
+      if (delay <= 5000) {
+        setStatus("Auto-sync will run in this Warmane tab.");
+      } else {
+        setStatus("Auto-sync armed in this Warmane tab. Click Sync now to force a refresh.");
+      }
+    };
+
+    buildPanel();
+    scheduleNextAutoSync();
   };
 
   return [
     "// ==UserScript==",
     `// @name         Pizza Logs Warmane Gear Auto Sync${nameSuffix}`,
     `// @namespace    ${pizzaLogsOrigin}`,
-    "// @version      1.8.0",
+    "// @version      1.8.1",
     "// @description  Hourly refresh Pizza Logs gear cache from Warmane Armory pages.",
     "// @match        https://armory.warmane.com/character/*",
     "// @match        http://armory.warmane.com/character/*",

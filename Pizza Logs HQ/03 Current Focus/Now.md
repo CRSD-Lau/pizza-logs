@@ -2,7 +2,7 @@
 
 ## Active Focus
 
-The current session added local Windows automation for Guild Roster Sync, matching the Gear Sync setup. Direct local CLI requests to Warmane still return 403, so the automation opens real Warmane pages hourly and at Windows logon; the browser userscripts handle the actual refreshes. Parser reliability remains the highest-risk product area.
+The current session quieted the local Windows Warmane sync automation. Direct local CLI requests to Warmane still return 403, so Windows now opens Warmane pages only at logon with hidden Startup launchers, and the browser userscripts keep hourly refreshes running inside the existing Warmane tabs. Parser reliability remains the highest-risk product area.
 
 README visual refresh: added a high-resolution `docs/assets/readme-screenshot.png` preview to the public README. The screenshot was captured from a fresh local Next dev server on `http://127.0.0.1:3004` while the parser service was listening on `127.0.0.1:8000`.
 
@@ -14,6 +14,14 @@ Codex works on `codex-dev`, pushes `origin/codex-dev`, and opens PRs into `main`
 
 ## This Session
 
+- Investigated Neil's report that command prompts interrupted gaming and hourly sync opened too many Warmane tabs.
+- Confirmed the root cause was hourly `powershell.exe` scheduled tasks plus visible `.cmd` Startup launchers.
+- Changed Gear Sync and Guild Roster Sync so the browser userscripts schedule the next hourly run inside the already-open Warmane tab.
+- Bumped Gear Sync to `1.8.1` and Guild Roster Sync to `1.1.1`.
+- Updated Windows installers to remove the old hourly scheduled tasks and create hidden `.vbs` Startup launchers.
+- Reinstalled the local quiet launchers; `PizzaLogsGearSync` and `PizzaLogsGuildRosterSync` scheduled tasks are now absent.
+- Removed the old Startup `.cmd` files and created `PizzaLogsGearSyncAtLogon.vbs` plus `PizzaLogsGuildRosterSyncAtLogon.vbs`.
+- Verified both VBS launchers call `powershell.exe -WindowStyle Hidden`.
 - Extended the Guild Roster Sync userscript so saved-secret Warmane guild page visits auto-sync at most once per hour.
 - Bumped Guild Roster Sync to `1.1.0`.
 - Added Windows guild roster automation scripts under `scripts/guild-roster-sync/`.
@@ -143,9 +151,9 @@ Codex works on `codex-dev`, pushes `origin/codex-dev`, and opens PRs into `main`
 | README app preview | DONE | Added `docs/assets/readme-screenshot.png` and linked it from `README.md` |
 | README and wiki metadata refresh | DONE | Updated public README link and GitHub wiki content |
 | Userscript target-specific secrets | DONE | Gear `1.7.1`, roster `1.0.5`; local/prod secrets no longer collide |
-| Hourly Gear Sync refresh-all | DONE | Gear `1.8.0` refreshes all known DB/roster characters hourly from Warmane |
-| Windows Gear Sync scheduled task | DONE | Task Scheduler opens a Warmane character page hourly; Startup folder opens it at logon |
-| Windows Guild Roster Sync scheduled task | DONE | Task Scheduler opens the Warmane guild roster page hourly; Startup folder opens it at logon |
+| Hourly Gear Sync refresh-all | DONE | Gear `1.8.1` refreshes all known DB/roster characters hourly from an existing Warmane tab |
+| Windows Gear Sync quiet launcher | DONE | Hidden Startup VBS opens a Warmane character page at logon; no hourly Windows tab opener |
+| Windows Guild Roster Sync quiet launcher | DONE | Hidden Startup VBS opens the Warmane guild roster page at logon; no hourly Windows tab opener |
 | ICC difficulty marker fix | DONE | Saurfang `Rune of Blood` stays normal-capable; Saurfang `Scent of Blood` IDs and Valithria `Twisted Nightmares` now mark heroic |
 | Session player chart kill filter | DONE | DPS/HPS by encounter chart excludes wipes; Encounter Breakdown still lists all pulls |
 
@@ -155,9 +163,7 @@ Codex works on `codex-dev`, pushes `origin/codex-dev`, and opens PRs into `main`
 - Confirm the fresh docs-only PR posts to Slack now that `PR_SLACK_WEBHOOK_URL` is configured.
 - Add hard server-side upload size enforcement.
 - Decide whether app-level upload rate limiting is needed or Railway-level controls are enough.
-- Use `scripts/gear-sync/install-windows-task.ps1` or `npm run gear-sync:install-task` to keep Gear Sync running hourly from Windows.
-- After the Windows automation PR deploys, reinstall/update the production Gear Sync userscript from `/admin`; open any Warmane character page and click `Sync now` once if the admin secret is not saved.
-- After the roster automation PR deploys, reinstall/update the production Guild Roster Sync userscript from `/admin`; open the Warmane Pizza Warriors guild page and click `Sync roster` once if the admin secret is not saved.
+- After the quiet sync PR deploys, reinstall/update the production Gear Sync and Guild Roster Sync userscripts from `/admin`; keep one Warmane character tab and one guild page tab open for hourly refreshes.
 - After this parser fix deploys, reprocess or re-upload the affected latest raid so stored Saurfang and Valithria difficulties are regenerated.
 - Absorbs remain future parser work.
 - Add more encounter-specific useful-damage exclusions as real Skada comparison data becomes available.

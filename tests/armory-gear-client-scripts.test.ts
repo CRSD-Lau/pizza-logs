@@ -36,7 +36,7 @@ assert.match(localUserscript, new RegExp(`// @downloadURL\\s+${LOCAL_USERSCRIPT_
 assert.match(localUserscript, new RegExp(`// @updateURL\\s+${LOCAL_USERSCRIPT_URL.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}`));
 assert.match(localUserscript, new RegExp(`const pizzaLogsOrigin = "${PIZZA_LOGS_LOCAL_ORIGIN.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}";`));
 assert.match(localUserscript, /\/api\/admin\/armory-gear\/import/);
-assert.match(userscript, /\/\/ @version\s+1\.8\.0/);
+assert.match(userscript, /\/\/ @version\s+1\.8\.1/);
 assert.match(userscript, /\/\/ @match\s+https:\/\/armory\.warmane\.com\/character\/\*/);
 assert.match(userscript, /\/\/ @match\s+http:\/\/armory\.warmane\.com\/character\/\*/);
 assert.match(userscript, new RegExp(`pizzaLogsAdminSecret:${PIZZA_LOGS_ORIGIN.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}`));
@@ -58,6 +58,9 @@ assert.match(userscript, /Pizza Logs panel injection failed/);
 assert.match(userscript, /Pizza Logs Gear Sync/);
 assert.match(userscript, /Refreshing known Pizza Logs players/);
 assert.match(userscript, /mode: "refresh-all"/);
+assert.match(userscript, /scheduleNextAutoSync/);
+assert.match(userscript, /autoTimer/);
+assert.match(userscript, /clearTimeout/);
 assert.match(bookmarklet, /mode: "refresh-all"/);
 assert.match(bookmarklet, /no Pizza Logs players found to refresh/i);
 
@@ -90,13 +93,15 @@ async function verifyUserscriptMergesDomIconFallback() {
       removeItem: (key: string) => storage.delete(key),
     },
     prompt: () => "secret",
-    setTimeout: (callback: () => unknown) => {
+    setTimeout: (callback: () => unknown, delay?: number) => {
+      if (typeof delay === "number" && delay > 5000) return 1;
       const result = callback();
       if (result && typeof (result as Promise<unknown>).then === "function") {
         pending.push(result as Promise<unknown>);
       }
       return 1;
     },
+    clearTimeout() {},
     document: {
       body: { appendChild() {} },
       addEventListener() {},
@@ -183,13 +188,15 @@ async function verifyUserscriptFetchesQueuedPlayerPageIcons() {
       removeItem: (key: string) => storage.delete(key),
     },
     prompt: () => "secret",
-    setTimeout: (callback: () => unknown) => {
+    setTimeout: (callback: () => unknown, delay?: number) => {
+      if (typeof delay === "number" && delay > 5000) return 1;
       const result = callback();
       if (result && typeof (result as Promise<unknown>).then === "function") {
         pending.push(result as Promise<unknown>);
       }
       return 1;
     },
+    clearTimeout() {},
     DOMParser: class {
       parseFromString() {
         return makeIconDocument();

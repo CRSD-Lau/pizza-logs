@@ -16,12 +16,15 @@ const localUserscript = buildGuildRosterUserscript({
 });
 assert.match(userscript, /Pizza Logs Warmane Guild Roster Sync/);
 assert.match(userscript, /api\/admin\/guild-roster\/import/);
-assert.match(userscript, /\/\/ @version\s+1\.1\.0/);
+assert.match(userscript, /\/\/ @version\s+1\.1\.1/);
 assert.match(userscript, /\/\/ @match\s+https:\/\/armory\.warmane\.com\/guild\/\*/);
 assert.match(userscript, /\/\/ @match\s+http:\/\/armory\.warmane\.com\/guild\/\*/);
 assert.match(userscript, /pizzaLogsAdminSecret:https:\/\/pizza-logs-production\.up\.railway\.app/);
 assert.match(userscript, /pizzaLogsLastRosterSyncAt:https:\/\/pizza-logs-production\.up\.railway\.app/);
 assert.match(userscript, /autoIntervalMs = 60 \* 60 \* 1000/);
+assert.match(userscript, /scheduleNextAutoSync/);
+assert.match(userscript, /autoTimer/);
+assert.match(userscript, /clearTimeout/);
 assert.match(userscript, /isGuildPage/);
 assert.match(userscript, /api\/guild\/Pizza\+Warriors\/Lordaeron\/summary/);
 assert.match(userscript, /guild\/Pizza\+Warriors\/Lordaeron\/summary/);
@@ -68,13 +71,15 @@ async function verifyUserscriptAutoRunsWithSavedSecret() {
     prompt: () => {
       throw new Error("Auto-sync should use the saved secret");
     },
-    setTimeout: (callback: () => unknown) => {
+    setTimeout: (callback: () => unknown, delay?: number) => {
+      if (typeof delay === "number" && delay > 5000) return 1;
       const result = callback();
       if (result && typeof (result as Promise<unknown>).then === "function") {
         pending.push(result as Promise<unknown>);
       }
       return 1;
     },
+    clearTimeout() {},
     document: {
       body: { appendChild() {} },
       addEventListener() {},

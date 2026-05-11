@@ -18,16 +18,22 @@ assert.match(launcher, /Warmane Gear Sync userscript/i);
 
 assert.match(installer, /PizzaLogsGearSync/);
 assert.match(installer, /schtasks\.exe/i);
-assert.match(installer, /\/SC"\s*,\s*"MINUTE"/);
 assert.match(installer, /GetFolderPath\("Startup"\)/);
+assert.match(installer, /PizzaLogsGearSyncAtLogon\.vbs/);
 assert.match(installer, /PizzaLogsGearSyncAtLogon\.cmd/);
 assert.match(installer, /open-warmane-gear-sync\.ps1/);
+assert.match(installer, /WindowStyle Hidden/);
+assert.match(installer, /WScript\.Shell/);
+assert.match(installer, /Remove-ExistingTask/);
+assert.match(installer, /\$escaped = \$Value\.Replace/);
+assert.doesNotMatch(installer, /\/SC"\s*,\s*"MINUTE"/);
 assert.doesNotMatch(installer, /ADMIN_SECRET|DATABASE_URL|RAILWAY_TOKEN/);
 
 assert.match(uninstaller, /schtasks\.exe/i);
 assert.match(uninstaller, /\/Delete/);
 assert.match(uninstaller, /PizzaLogsGearSync/);
 assert.match(uninstaller, /PizzaLogsGearSyncAtLogon\.cmd/);
+assert.match(uninstaller, /PizzaLogsGearSyncAtLogon\.vbs/);
 assert.match(uninstaller, /queryExitCode/);
 assert.doesNotMatch(uninstaller, /\*>\s*\$null/);
 assert.doesNotMatch(uninstaller, /ADMIN_SECRET|DATABASE_URL|RAILWAY_TOKEN/);
@@ -36,6 +42,8 @@ assert.match(docs, /does not store the Pizza Logs admin secret/i);
 assert.match(docs, /Tampermonkey/i);
 assert.match(docs, /persists through restarts/i);
 assert.match(docs, /Startup folder/i);
+assert.match(docs, /existing Warmane tab/i);
+assert.match(docs, /does not create a new browser tab every hour/i);
 assert.match(docs, /\.sync-agent-logs/);
 
 assert.equal(

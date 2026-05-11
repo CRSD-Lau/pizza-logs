@@ -2,8 +2,6 @@
 param(
   [string]$TaskName = "PizzaLogsGuildRosterSync",
   [string]$TargetUrl = "https://armory.warmane.com/guild/Pizza+Warriors/Lordaeron/summary",
-  [int]$IntervalMinutes = 60,
-  [int]$StartDelayMinutes = 8,
   [string]$BrowserPath = "",
   [switch]$UseDefaultBrowser,
   [switch]$RunNow
@@ -11,17 +9,15 @@ param(
 
 $ErrorActionPreference = "Stop"
 
-if ($IntervalMinutes -lt 15) {
-  throw "IntervalMinutes must be at least 15."
-}
-
 $launcherPath = (Resolve-Path -LiteralPath (Join-Path $PSScriptRoot "open-warmane-guild-roster-sync.ps1")).Path
-$startAt = (Get-Date).AddMinutes($StartDelayMinutes).ToString("HH:mm")
 $startupFolder = [Environment]::GetFolderPath("Startup")
-$startupCommandPath = Join-Path $startupFolder "PizzaLogsGuildRosterSyncAtLogon.cmd"
+$startupScriptPath = Join-Path $startupFolder "PizzaLogsGuildRosterSyncAtLogon.vbs"
+$legacyStartupCommandPath = Join-Path $startupFolder "PizzaLogsGuildRosterSyncAtLogon.cmd"
 
 $taskArguments = @(
   "-NoProfile",
+  "-WindowStyle",
+  "Hidden",
   "-ExecutionPolicy",
   "Bypass",
   "-File",
@@ -41,6 +37,17 @@ if ($UseDefaultBrowser) {
 $taskCommand = "powershell.exe $($taskArguments -join ' ')"
 $schtasks = "schtasks.exe"
 
+function Test-ExistingTask {
+  $previousErrorActionPreference = $ErrorActionPreference
+  $ErrorActionPreference = "Continue"
+  try {
+    & $schtasks /Query /TN $TaskName > $null 2>&1
+    return $LASTEXITCODE -eq 0
+  } finally {
+    $ErrorActionPreference = $previousErrorActionPreference
+  }
+}
+
 function Invoke-Schtasks {
   param([string[]]$Arguments)
 
@@ -50,28 +57,40 @@ function Invoke-Schtasks {
   }
 }
 
-if ($PSCmdlet.ShouldProcess($TaskName, "Register hourly Pizza Logs Guild Roster Sync scheduled task")) {
-  Invoke-Schtasks @(
-    "/Create",
-    "/TN", $TaskName,
-    "/SC", "MINUTE",
-    "/MO", "$IntervalMinutes",
-    "/ST", $startAt,
-    "/TR", $taskCommand,
-    "/F"
-  )
+function Remove-ExistingTask {
+  if (Test-ExistingTask) {
+    if ($PSCmdlet.ShouldProcess($TaskName, "Delete old hourly Pizza Logs Guild Roster Sync scheduled task")) {
+      Invoke-Schtasks @("/Delete", "/TN", $TaskName, "/F")
+      Write-Host "Removed old scheduled task '$TaskName'."
+    }
+  }
+}
 
-  Set-Content -LiteralPath $startupCommandPath -Value @(
-    "@echo off",
-    $taskCommand
+function ConvertTo-VbsStringLiteral {
+  param([string]$Value)
+  $escaped = $Value.Replace('"', '""')
+  return "`"$escaped`""
+}
+
+if ($PSCmdlet.ShouldProcess($startupScriptPath, "Create quiet Pizza Logs Guild Roster Sync startup launcher")) {
+  Remove-ExistingTask
+
+  if (Test-Path -LiteralPath $legacyStartupCommandPath) {
+    Remove-Item -LiteralPath $legacyStartupCommandPath -Force
+    Write-Host "Removed legacy startup launcher '$legacyStartupCommandPath'."
+  }
+
+  $vbsCommand = ConvertTo-VbsStringLiteral $taskCommand
+  Set-Content -LiteralPath $startupScriptPath -Value @(
+    'Set shell = CreateObject("WScript.Shell")',
+    "shell.Run $vbsCommand, 0, False"
   ) -Encoding ascii
 
   if ($RunNow) {
-    Invoke-Schtasks @("/Run", "/TN", $TaskName)
+    Start-Process -FilePath "powershell.exe" -ArgumentList $taskArguments -WindowStyle Hidden
   }
 
-  Write-Host "Registered scheduled task '$TaskName'."
-  Write-Host "Created startup launcher '$startupCommandPath'."
+  Write-Host "Created quiet startup launcher '$startupScriptPath'."
   Write-Host "Target URL: $TargetUrl"
-  Write-Host "Interval: every $IntervalMinutes minutes, plus at logon."
+  Write-Host "The browser userscript now owns the hourly refresh inside the existing Warmane tab."
 }

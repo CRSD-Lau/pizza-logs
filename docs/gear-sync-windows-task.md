@@ -2,23 +2,25 @@
 
 Pizza Logs can run Warmane gear refreshes from Neil's Windows PC without putting
 anything on Railway. Warmane blocks plain server-side and CLI requests with 403,
-so the local automation opens a real Warmane character page and lets the
-Tampermonkey Gear Sync userscript do the refresh from the browser.
+so the local automation opens a real Warmane character page at logon and lets
+the Tampermonkey Gear Sync userscript do the refresh from the browser.
 
-This setup persists through restarts by combining one hourly Task Scheduler task
-with one Startup folder launcher. Both run when the Windows user is logged in.
+This setup persists through restarts with a quiet Startup folder launcher. The
+userscript keeps refreshing hourly inside the existing Warmane tab, so Windows
+does not create a new browser tab every hour.
 
 ## What It Does
 
-- Opens a Warmane character page once per hour.
-- Opens the same page at Windows logon from the Startup folder.
+- Opens a Warmane character page at Windows logon from the Startup folder.
+- Reuses the existing Warmane tab after that by letting the userscript schedule
+  the hourly refresh in-page.
 - Relies on the installed Pizza Logs Gear Sync userscript to refresh all known
   Pizza Logs characters.
 - Writes launcher logs to `.sync-agent-logs/gear-sync-launcher.log`.
 
-The scheduled task does not store the Pizza Logs admin secret, `DATABASE_URL`,
-Railway tokens, or other production secrets. The admin secret remains wherever
-the browser userscript stores it for `armory.warmane.com`.
+The launcher does not store the Pizza Logs admin secret, `DATABASE_URL`, Railway
+tokens, or other production secrets. The admin secret remains wherever the
+browser userscript stores it for `armory.warmane.com`.
 
 ## Prerequisites
 
@@ -27,7 +29,7 @@ the browser userscript stores it for `armory.warmane.com`.
 3. Click `Sync now` once and enter the production admin secret.
 4. Confirm Gear Sync shows the production target.
 
-## Install The Task
+## Install The Quiet Launcher
 
 From the repo root:
 
@@ -41,7 +43,7 @@ Or through npm:
 npm run gear-sync:install-task
 ```
 
-By default the task opens:
+By default the launcher opens:
 
 ```text
 https://armory.warmane.com/character/Lausudo/Lordaeron/summary
@@ -62,9 +64,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\gear-sync\install-
 ## Run Or Inspect
 
 ```powershell
-Start-ScheduledTask -TaskName PizzaLogsGearSync
-Get-ScheduledTask -TaskName PizzaLogsGearSync
-Get-ChildItem "$env:APPDATA\Microsoft\Windows\Start Menu\Programs\Startup\PizzaLogsGearSyncAtLogon.cmd"
+Get-ChildItem "$env:APPDATA\Microsoft\Windows\Start Menu\Programs\Startup\PizzaLogsGearSyncAtLogon.vbs"
 Get-Content .\.sync-agent-logs\gear-sync-launcher.log -Tail 20
 ```
 
@@ -86,6 +86,7 @@ npm run gear-sync:uninstall-task
 - It cannot run before the Windows user logs in, because the browser and
   Tampermonkey need an interactive user profile.
 - If the PC is asleep or offline, the Startup folder launcher catches the next
-  restart or login, and the hourly task resumes after Windows is active.
-- If the browser opens many Warmane tabs, close old ones periodically or change
-  the target browser/profile setup.
+  restart or login. If the Warmane tab is closed later, open it again manually
+  or rerun the installer with `-RunNow`.
+- Background tab timers are owned by the browser; if Windows or the browser
+  suspends the tab, the next sync can be delayed until the tab wakes.

@@ -19,16 +19,22 @@ assert.match(launcher, /\/guild\/\[\^\/\]\+\/\[\^\/\]\+\/summary/);
 
 assert.match(installer, /PizzaLogsGuildRosterSync/);
 assert.match(installer, /schtasks\.exe/i);
-assert.match(installer, /\/SC"\s*,\s*"MINUTE"/);
 assert.match(installer, /GetFolderPath\("Startup"\)/);
+assert.match(installer, /PizzaLogsGuildRosterSyncAtLogon\.vbs/);
 assert.match(installer, /PizzaLogsGuildRosterSyncAtLogon\.cmd/);
 assert.match(installer, /open-warmane-guild-roster-sync\.ps1/);
+assert.match(installer, /WindowStyle Hidden/);
+assert.match(installer, /WScript\.Shell/);
+assert.match(installer, /Remove-ExistingTask/);
+assert.match(installer, /\$escaped = \$Value\.Replace/);
+assert.doesNotMatch(installer, /\/SC"\s*,\s*"MINUTE"/);
 assert.doesNotMatch(installer, /ADMIN_SECRET|DATABASE_URL|RAILWAY_TOKEN/);
 
 assert.match(uninstaller, /schtasks\.exe/i);
 assert.match(uninstaller, /\/Delete/);
 assert.match(uninstaller, /PizzaLogsGuildRosterSync/);
 assert.match(uninstaller, /PizzaLogsGuildRosterSyncAtLogon\.cmd/);
+assert.match(uninstaller, /PizzaLogsGuildRosterSyncAtLogon\.vbs/);
 assert.match(uninstaller, /queryExitCode/);
 assert.doesNotMatch(uninstaller, /\*>\s*\$null/);
 assert.doesNotMatch(uninstaller, /ADMIN_SECRET|DATABASE_URL|RAILWAY_TOKEN/);
@@ -37,6 +43,8 @@ assert.match(docs, /does not store the Pizza Logs admin secret/i);
 assert.match(docs, /Tampermonkey/i);
 assert.match(docs, /persists through restarts/i);
 assert.match(docs, /Startup folder/i);
+assert.match(docs, /existing Warmane tab/i);
+assert.match(docs, /does not create a new browser tab every hour/i);
 assert.match(docs, /guild-roster-sync-launcher\.log/);
 
 assert.equal(

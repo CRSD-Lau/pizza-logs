@@ -30,9 +30,9 @@ export function GuildRosterSyncPanel({
         Warmane blocks server-side requests from Railway, so the roster is synced via a
         browser userscript. Install the userscript below, open the Warmane guild page, and
         click the floating Pizza Logs Roster Sync button once to save the admin secret.
-        After that, opening the guild page can auto-sync the roster hourly. The public
-        roster page reads only from our database, so it loads even when Warmane is
-        unavailable.
+        After that, leaving the guild page open can auto-sync the roster hourly without
+        Windows opening a new tab each time. The public roster page reads only from our
+        database, so it loads even when Warmane is unavailable.
       </p>
 
       <div className="flex flex-wrap items-center gap-4">
@@ -47,7 +47,7 @@ export function GuildRosterSyncPanel({
           <p className="text-sm text-text-secondary mt-1">
             Install this userscript with Tampermonkey, then open the Warmane guild page below.
             The floating Pizza Logs Roster Sync button will import the full roster into Pizza Logs,
-            and saved-secret visits can auto-sync the roster hourly.
+            and a saved-secret Warmane tab can keep auto-syncing the roster hourly.
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
