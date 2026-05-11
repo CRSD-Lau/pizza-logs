@@ -2,7 +2,7 @@
 
 ## Active Focus
 
-The current session fixed latest mixed-ICC difficulty drift. Deathbringer Saurfang no longer upgrades to heroic from normal-mode `Rune of Blood`, and Valithria Dreamwalker now upgrades to heroic from `Twisted Nightmares` evidence. Parser reliability remains the highest-risk product area.
+The current session fixed latest mixed-ICC difficulty drift and removed wipe pulls from the session player DPS/HPS by encounter chart. Deathbringer Saurfang no longer upgrades to heroic from normal-mode `Rune of Blood`, and Valithria Dreamwalker now upgrades to heroic from `Twisted Nightmares` evidence. Parser reliability remains the highest-risk product area.
 
 README visual refresh: added a high-resolution `docs/assets/readme-screenshot.png` preview to the public README. The screenshot was captured from a fresh local Next dev server on `http://127.0.0.1:3004` while the parser service was listening on `127.0.0.1:8000`.
 
@@ -25,6 +25,14 @@ Codex works on `codex-dev`, pushes `origin/codex-dev`, and opens PRs into `main`
 - Updated `docs/parser-contract.md`, `Latest Handoff.md`, and `Known Issues.md`.
 - Ran focused parser difficulty tests; they failed before the fix and passed after the fix.
 - Ran `python -m pytest tests/ -v` from `parser/`; it passed with 136 tests and 1 existing Pydantic deprecation warning.
+- Updated the session player comparison chart to build from kill encounters only.
+- Added `lib/session-player-chart.ts` and `tests/session-player-chart.test.ts`.
+- Confirmed the chart-data test failed before the helper existed and passed after implementation.
+- Ran `node node_modules\typescript\bin\tsc --noEmit`; it passed.
+- Ran `node node_modules\eslint\bin\eslint.js . --max-warnings=0`; it passed.
+- Ran `npm run build`; it passed.
+- Created a local-only chart fixture in the local DB and loaded `/raids/chart-fixture-upload/sessions/0/players/Lausudo` with HTTP 200.
+- Opened the local fixture route in the in-app browser; page identity and console checks passed, but screenshot capture timed out in the browser runtime.
 - Investigated the Warmane userscript status `Sync failed: Unauthorized.`
 - Confirmed this was a Pizza Logs admin-secret rejection, not a Warmane verification failure.
 - Fixed gear and roster userscripts so production and local installs no longer share the same `pizzaLogsAdminSecret` localStorage key on `armory.warmane.com`.
@@ -104,6 +112,7 @@ Codex works on `codex-dev`, pushes `origin/codex-dev`, and opens PRs into `main`
 | README and wiki metadata refresh | DONE | Updated public README link and GitHub wiki content |
 | Userscript target-specific secrets | DONE | Gear `1.7.1`, roster `1.0.5`; local/prod secrets no longer collide |
 | ICC difficulty marker fix | DONE | Saurfang `Rune of Blood` stays normal-capable; Saurfang `Scent of Blood` IDs and Valithria `Twisted Nightmares` now mark heroic |
+| Session player chart kill filter | DONE | DPS/HPS by encounter chart excludes wipes; Encounter Breakdown still lists all pulls |
 
 ## Open Follow-Ups
 

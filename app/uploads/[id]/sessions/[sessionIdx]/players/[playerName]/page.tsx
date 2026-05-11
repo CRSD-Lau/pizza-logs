@@ -10,6 +10,7 @@ import { StatCard } from "@/components/ui/StatCard";
 import { getClassColor } from "@/lib/constants/classes";
 import { getClassIconUrl } from "@/lib/class-icons";
 import { getRevealClassName, getRevealStyle, orderBossDisplayEntries } from "@/lib/ui-animation";
+import { buildSessionPlayerMetricChart } from "@/lib/session-player-chart";
 import { cn, formatDps, formatDuration } from "@/lib/utils";
 
 interface Props {
@@ -122,13 +123,10 @@ export default async function SessionPlayerPage({ params }: Props) {
 
   const allPlayers = [name, ...Array.from(classmateNames)];
 
-  const chartData: ChartPoint[] = orderedEncounters.map((enc) => {
-    const point: ChartPoint = { bossName: enc.boss.name };
-    for (const pName of allPlayers) {
-      const p = enc.participants.find(part => part.player.name === pName);
-      point[pName] = p ? (metric === "DPS" ? p.dps : p.hps) : null;
-    }
-    return point;
+  const chartData: ChartPoint[] = buildSessionPlayerMetricChart({
+    encounters: orderedEncounters,
+    playerNames: allPlayers,
+    metric,
   });
 
   const chartPlayers: PlayerLine[] = allPlayers.map((pName) => ({
