@@ -2,7 +2,7 @@
 
 ## Active Focus
 
-The current session added local Windows automation for Gear Sync. Direct local CLI requests to Warmane still return 403, so the automation opens a real Warmane character page hourly and at Windows logon; the browser Gear Sync userscript handles the actual refresh. Parser reliability remains the highest-risk product area.
+The current session added local Windows automation for Guild Roster Sync, matching the Gear Sync setup. Direct local CLI requests to Warmane still return 403, so the automation opens real Warmane pages hourly and at Windows logon; the browser userscripts handle the actual refreshes. Parser reliability remains the highest-risk product area.
 
 README visual refresh: added a high-resolution `docs/assets/readme-screenshot.png` preview to the public README. The screenshot was captured from a fresh local Next dev server on `http://127.0.0.1:3004` while the parser service was listening on `127.0.0.1:8000`.
 
@@ -14,6 +14,16 @@ Codex works on `codex-dev`, pushes `origin/codex-dev`, and opens PRs into `main`
 
 ## This Session
 
+- Extended the Guild Roster Sync userscript so saved-secret Warmane guild page visits auto-sync at most once per hour.
+- Bumped Guild Roster Sync to `1.1.0`.
+- Added Windows guild roster automation scripts under `scripts/guild-roster-sync/`.
+- Added `npm run guild-roster-sync:install-task` and `npm run guild-roster-sync:uninstall-task`.
+- Added `docs/guild-roster-sync-windows-task.md`.
+- Added `tests/guild-roster-sync-windows-task-source.test.ts` and expanded roster userscript/admin/local route coverage.
+- Hardened both gear and roster uninstall scripts so missing scheduled tasks/startup launchers are clean no-ops.
+- Installed the actual `PizzaLogsGuildRosterSync` hourly task on Neil's Windows machine.
+- Created `C:\Users\neil_\AppData\Roaming\Microsoft\Windows\Start Menu\Programs\Startup\PizzaLogsGuildRosterSyncAtLogon.cmd`.
+- Queried the scheduled task and startup launcher; both point at `scripts\guild-roster-sync\open-warmane-guild-roster-sync.ps1`.
 - Investigated the Gear Sync status `No players need import or enrichment.` after Neil clarified that existing DB players should be updated to their current Warmane gear.
 - Confirmed the existing queue only returned missing or enrichment-needed cached gear rows.
 - Added a refresh-all queue helper that returns all known combat-log players plus PizzaWarriors/Lordaeron roster members, de-duped by character and realm.
@@ -135,6 +145,7 @@ Codex works on `codex-dev`, pushes `origin/codex-dev`, and opens PRs into `main`
 | Userscript target-specific secrets | DONE | Gear `1.7.1`, roster `1.0.5`; local/prod secrets no longer collide |
 | Hourly Gear Sync refresh-all | DONE | Gear `1.8.0` refreshes all known DB/roster characters hourly from Warmane |
 | Windows Gear Sync scheduled task | DONE | Task Scheduler opens a Warmane character page hourly; Startup folder opens it at logon |
+| Windows Guild Roster Sync scheduled task | DONE | Task Scheduler opens the Warmane guild roster page hourly; Startup folder opens it at logon |
 | ICC difficulty marker fix | DONE | Saurfang `Rune of Blood` stays normal-capable; Saurfang `Scent of Blood` IDs and Valithria `Twisted Nightmares` now mark heroic |
 | Session player chart kill filter | DONE | DPS/HPS by encounter chart excludes wipes; Encounter Breakdown still lists all pulls |
 
@@ -146,6 +157,7 @@ Codex works on `codex-dev`, pushes `origin/codex-dev`, and opens PRs into `main`
 - Decide whether app-level upload rate limiting is needed or Railway-level controls are enough.
 - Use `scripts/gear-sync/install-windows-task.ps1` or `npm run gear-sync:install-task` to keep Gear Sync running hourly from Windows.
 - After the Windows automation PR deploys, reinstall/update the production Gear Sync userscript from `/admin`; open any Warmane character page and click `Sync now` once if the admin secret is not saved.
+- After the roster automation PR deploys, reinstall/update the production Guild Roster Sync userscript from `/admin`; open the Warmane Pizza Warriors guild page and click `Sync roster` once if the admin secret is not saved.
 - After this parser fix deploys, reprocess or re-upload the affected latest raid so stored Saurfang and Valithria difficulties are regenerated.
 - Absorbs remain future parser work.
 - Add more encounter-specific useful-damage exclusions as real Skada comparison data becomes available.

@@ -52,6 +52,7 @@ async function main() {
   assert.match(gear, new RegExp(PIZZA_LOGS_LOCAL_ORIGIN.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
 
   assert.match(roster, /Pizza Logs Warmane Guild Roster Sync \(Local\)/);
+  assert.match(roster, /\/\/ @version\s+1\.1\.0/);
   assert.match(roster, new RegExp(LOCAL_GUILD_ROSTER_USERSCRIPT_URL.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
   assert.match(roster, new RegExp(PIZZA_LOGS_LOCAL_ORIGIN.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
 

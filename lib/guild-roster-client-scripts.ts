@@ -24,6 +24,8 @@ function buildRosterScriptBody(autoRun: boolean, pizzaLogsOrigin = PIZZA_LOGS_OR
     const realm = "__WARMANE_REALM__";
     const legacySecretKey = "pizzaLogsAdminSecret";
     const secretKey = "pizzaLogsAdminSecret:__PIZZA_LOGS_ORIGIN__";
+    const lastRunKey = "pizzaLogsLastRosterSyncAt:__PIZZA_LOGS_ORIGIN__";
+    const autoIntervalMs = 60 * 60 * 1000;
 
     if (location.hostname !== "armory.warmane.com") {
       alert("Pizza Logs: open Warmane Armory first, then run the roster importer.");
@@ -114,6 +116,7 @@ function buildRosterScriptBody(autoRun: boolean, pizzaLogsOrigin = PIZZA_LOGS_OR
           realm,
           ...payload,
         });
+        localStorage.setItem(lastRunKey, String(Date.now()));
         setStatus(`Imported ${result.count} roster ${result.count === 1 ? "member" : "members"}.`);
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error);
@@ -186,6 +189,7 @@ function buildRosterScriptBody(autoRun: boolean, pizzaLogsOrigin = PIZZA_LOGS_OR
       reset.addEventListener("click", () => {
         localStorage.removeItem(secretKey);
         localStorage.removeItem(legacySecretKey);
+        localStorage.removeItem(lastRunKey);
         setStatus("Secret cleared. Click Sync roster to enter it again.");
       });
 
@@ -201,6 +205,16 @@ function buildRosterScriptBody(autoRun: boolean, pizzaLogsOrigin = PIZZA_LOGS_OR
     const autoRunFlag: string = "__AUTO_RUN__";
     if (autoRunFlag === "true") {
       setTimeout(runRosterSync, 500);
+    } else {
+      const lastRun = Number(localStorage.getItem(lastRunKey) || "0");
+      const hasSecret = Boolean(localStorage.getItem(secretKey));
+      if (hasSecret && Date.now() - lastRun > autoIntervalMs) {
+        setTimeout(runRosterSync, 2500);
+      } else if (!hasSecret) {
+        setStatus("Click Sync roster once to save the admin secret and enable auto-sync.");
+      } else {
+        setStatus("Roster auto-sync armed. Click Sync roster to force a refresh.");
+      }
     }
   };
 
@@ -229,8 +243,8 @@ export function buildGuildRosterUserscript(options: GuildRosterUserscriptOptions
     "// ==UserScript==",
     `// @name         Pizza Logs Warmane Guild Roster Sync${nameSuffix}`,
     `// @namespace    ${pizzaLogsOrigin}`,
-    "// @version      1.0.5",
-    "// @description  Sync Pizza Logs guild roster from Warmane Armory in-browser.",
+    "// @version      1.1.0",
+    "// @description  Hourly sync Pizza Logs guild roster from Warmane Armory in-browser.",
     "// @match        https://armory.warmane.com/guild/*",
     "// @match        http://armory.warmane.com/guild/*",
     `// @downloadURL   ${userscriptUrl}`,

@@ -25,8 +25,8 @@
   clutter the DPS/HPS by encounter trend.
 - Gear Sync now refreshes every known Pizza Logs character from Warmane once per
   hour, instead of only importing players with missing or incomplete cached gear.
-- Local Windows automation can now open a Warmane character page hourly and at
-  logon so the browser Gear Sync userscript can run after restarts.
+- Local Windows automation can now open Warmane character and guild roster pages
+  hourly and at logon so the browser userscripts can run after restarts.
 - README now includes a high-resolution app preview captured from a fresh local Next server on `http://127.0.0.1:3004`.
 - README now links to the GitHub wiki, and the wiki has been refreshed for current upload, roster, gear, parser, roadmap, and branch workflow details.
 - Local repo-root launchers:
@@ -53,9 +53,13 @@
 - Supported roster/gear refresh path is browser-assisted userscripts from `/admin`.
 - Player avatars intentionally use class icons, with initials fallback when class data or icon loading is unavailable.
 - Production userscripts still post to Railway production; local userscripts post to `http://127.0.0.1:3001`.
-- Gear userscript v1.8.0 requests the full refresh queue hourly; roster userscript v1.0.5 stores admin secrets per Pizza Logs target origin and shows the target in the Warmane panel, so local and production secrets no longer overwrite each other on `armory.warmane.com`.
+- Gear userscript v1.8.0 requests the full refresh queue hourly; roster
+  userscript v1.1.0 stores admin secrets per Pizza Logs target origin, shows the
+  target in the Warmane panel, and auto-runs hourly after a secret is saved.
 - Windows gear automation scripts live under `scripts/gear-sync/`; docs live in
   `docs/gear-sync-windows-task.md`.
+- Windows guild roster automation scripts live under `scripts/guild-roster-sync/`;
+  docs live in `docs/guild-roster-sync-windows-task.md`.
 - The cinematic intro now uses generated video assets from `animations/source/Veo.mp4` instead of the retired `public/intro` asset set.
 
 ## Tampermonkey Auth Session
@@ -108,6 +112,29 @@
 - Installed the current-user hourly scheduled task on Neil's Windows machine.
 - Created the Startup-folder launcher at
   `C:\Users\neil_\AppData\Roaming\Microsoft\Windows\Start Menu\Programs\Startup\PizzaLogsGearSyncAtLogon.cmd`.
+
+## Windows Guild Roster Sync Task Session
+
+- Extended the roster userscript so saved-secret Warmane guild page visits
+  auto-sync at most once per hour.
+- Bumped Guild Roster Sync to `1.1.0`.
+- Added `scripts/guild-roster-sync/open-warmane-guild-roster-sync.ps1` to open
+  the Pizza Warriors Warmane guild summary page through Chrome, Edge, or the
+  Windows default browser.
+- Added `scripts/guild-roster-sync/install-windows-task.ps1` to register the
+  hourly `PizzaLogsGuildRosterSync` task through `schtasks.exe` and create a
+  Startup-folder `PizzaLogsGuildRosterSyncAtLogon.cmd` launcher.
+- Added `scripts/guild-roster-sync/uninstall-windows-task.ps1` for cleanup.
+- Added npm shortcuts:
+  - `npm run guild-roster-sync:install-task`
+  - `npm run guild-roster-sync:uninstall-task`
+- Added `docs/guild-roster-sync-windows-task.md` with setup, limits, logs,
+  Startup folder behavior, and uninstall instructions.
+- Hardened both gear and roster uninstall scripts so missing tasks/startup
+  launchers are clean no-ops.
+- Installed the current-user hourly scheduled task on Neil's Windows machine.
+- Created the Startup-folder launcher at
+  `C:\Users\neil_\AppData\Roaming\Microsoft\Windows\Start Menu\Programs\Startup\PizzaLogsGuildRosterSyncAtLogon.cmd`.
 
 ## Cinematic Intro Session
 
@@ -209,6 +236,17 @@
 | `powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\gear-sync\install-windows-task.ps1` | Passed; registered `PizzaLogsGearSync` and created Startup launcher |
 | `schtasks.exe /Query /TN PizzaLogsGearSync /FO LIST /V` | Passed; task is ready and repeats every 1 hour |
 | Startup launcher content check | Passed; points at `scripts\gear-sync\open-warmane-gear-sync.ps1` |
+| `npx ts-node --project tsconfig.seed.json tests\guild-roster-client-scripts.test.ts` | Passed |
+| `npx ts-node --project tsconfig.seed.json tests\guild-roster-sync-windows-task-source.test.ts` | Passed |
+| `npx ts-node --project tsconfig.seed.json tests\gear-sync-windows-task-source.test.ts` | Passed |
+| `npx ts-node --project tsconfig.seed.json tests\local-userscript-routes.test.ts` | Passed |
+| JSX-aware `tests\guild-roster-admin-panel.test.ts` | Passed |
+| `powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\guild-roster-sync\install-windows-task.ps1 -WhatIf` | Passed |
+| `powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\guild-roster-sync\uninstall-windows-task.ps1 -WhatIf` | Passed; missing task/startup launcher is a clean no-op |
+| `powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\gear-sync\uninstall-windows-task.ps1 -WhatIf` | Passed |
+| `powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\guild-roster-sync\install-windows-task.ps1` | Passed; registered `PizzaLogsGuildRosterSync` and created Startup launcher |
+| `schtasks.exe /Query /TN PizzaLogsGuildRosterSync /FO LIST /V` | Passed; task is ready and repeats every 1 hour |
+| Guild roster startup launcher content check | Passed; points at `scripts\guild-roster-sync\open-warmane-guild-roster-sync.ps1` |
 | Local `GET http://127.0.0.1:3001/guild-roster?page=2` | Passed with HTTP 200 after dev server compile |
 | `node node_modules\ts-node\dist\bin.js --project tsconfig.seed.json tests\armory-gear-client-scripts.test.ts` | Passed |
 | `node node_modules\ts-node\dist\bin.js --project tsconfig.seed.json tests\guild-roster-client-scripts.test.ts` | Passed |
@@ -246,16 +284,17 @@
 - `pull_request_target` runs the Slack workflow from `main`, so Slack formatting changes only affect fresh PR events after the workflow update is merged.
 - Absorbs remain future parser work.
 - Railway CLI is installed locally but this checkout remains unlinked until Neil intentionally runs `railway link`.
-- Hourly full gear refresh depends on a local Windows user/browser profile with
-  the production Gear Sync userscript installed and the correct admin secret saved.
+- Hourly full gear and roster refreshes depend on a local Windows user/browser
+  profile with the production userscripts installed and the correct admin secret
+  saved.
 - The current-user task is interactive only. It persists through restarts, but it
   cannot run before Neil logs into Windows.
 
 ## Exact Next Step
 
-Review the `codex-dev` to `main` PR for the local Windows Gear Sync automation.
-After deployment, reinstall/update the production Gear Sync userscript from
-`/admin`, open any Warmane character page, and click `Sync now` once if the
-admin secret is not already saved. The scheduled task can then keep opening
-Warmane hourly after restarts. Neil merges into `main` only after review; Codex
-does not merge or push `main` directly.
+Review the `codex-dev` to `main` PR for the local Windows roster automation.
+After deployment, reinstall/update the production Guild Roster Sync userscript
+from `/admin`, open the Warmane Pizza Warriors guild summary page, and click
+`Sync roster` once if the admin secret is not already saved. The scheduled task
+can then keep opening Warmane hourly after restarts. Neil merges into `main`
+only after review; Codex does not merge or push `main` directly.

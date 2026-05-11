@@ -15,6 +15,7 @@ assert.match(markup, /Roster Members/);
 assert.match(markup, /42/);
 assert.match(markup, /Warmane/);
 assert.match(markup, /Browser Roster Import/);
+assert.match(markup, /auto-sync the roster hourly/);
 assert.match(markup, /userscript\.user\.js/);
 assert.match(markup, /Install Local Roster Userscript/);
 assert.match(markup, new RegExp(LOCAL_GUILD_ROSTER_USERSCRIPT_URL.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));

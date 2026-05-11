@@ -28,6 +28,8 @@ assert.match(uninstaller, /schtasks\.exe/i);
 assert.match(uninstaller, /\/Delete/);
 assert.match(uninstaller, /PizzaLogsGearSync/);
 assert.match(uninstaller, /PizzaLogsGearSyncAtLogon\.cmd/);
+assert.match(uninstaller, /queryExitCode/);
+assert.doesNotMatch(uninstaller, /\*>\s*\$null/);
 assert.doesNotMatch(uninstaller, /ADMIN_SECRET|DATABASE_URL|RAILWAY_TOKEN/);
 
 assert.match(docs, /does not store the Pizza Logs admin secret/i);

@@ -1,12 +1,12 @@
 [CmdletBinding(SupportsShouldProcess = $true)]
 param(
-  [string]$TaskName = "PizzaLogsGearSync"
+  [string]$TaskName = "PizzaLogsGuildRosterSync"
 )
 
 $ErrorActionPreference = "Stop"
 
 $schtasks = "schtasks.exe"
-$startupCommandPath = Join-Path ([Environment]::GetFolderPath("Startup")) "PizzaLogsGearSyncAtLogon.cmd"
+$startupCommandPath = Join-Path ([Environment]::GetFolderPath("Startup")) "PizzaLogsGuildRosterSyncAtLogon.cmd"
 $removed = 0
 $found = 0
 
@@ -21,7 +21,7 @@ try {
 
 if ($queryExitCode -eq 0) {
   $found++
-  if ($PSCmdlet.ShouldProcess($TaskName, "Delete Pizza Logs Gear Sync scheduled task")) {
+  if ($PSCmdlet.ShouldProcess($TaskName, "Delete Pizza Logs Guild Roster Sync scheduled task")) {
     & $schtasks /Delete /TN $TaskName /F
     if ($LASTEXITCODE -ne 0) {
       throw "schtasks.exe delete failed with exit code $LASTEXITCODE."
@@ -32,7 +32,7 @@ if ($queryExitCode -eq 0) {
 
 if (Test-Path -LiteralPath $startupCommandPath) {
   $found++
-  if ($PSCmdlet.ShouldProcess($startupCommandPath, "Remove Pizza Logs Gear Sync startup launcher")) {
+  if ($PSCmdlet.ShouldProcess($startupCommandPath, "Remove Pizza Logs Guild Roster Sync startup launcher")) {
     Remove-Item -LiteralPath $startupCommandPath -Force
     Write-Host "Removed startup launcher '$startupCommandPath'."
     $removed++
